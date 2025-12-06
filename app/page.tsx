@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 export default function CurriculumPage() {
   const [activeTab, setActiveTab] = useState<'main' | 'foundry'>('main')
@@ -35,41 +36,30 @@ export default function CurriculumPage() {
     {
       phase: 1,
       title: '데이터 엔지니어링 기초',
-      duration: '3개월',
+      duration: '2개월',
       color: 'bg-blue-500',
       borderColor: 'border-blue-500',
       lightBg: 'bg-blue-50',
       months: [
         {
           month: 1,
-          title: 'Python 심화 & 데이터 처리',
+          title: 'Python & SQL 심화',
           weeks: [
-            { week: 1, title: 'Python 심화 문법', topics: ['제너레이터와 이터레이터', '데코레이터 패턴', '컨텍스트 매니저', 'Type Hints & mypy'], practice: '데코레이터 기반 로깅 시스템 구현' },
-            { week: 2, title: 'pandas 고급 활용', topics: ['대용량 CSV 청크 처리', 'MultiIndex 활용', 'apply vs vectorize 성능', 'Dask 소개'], practice: '100GB 데이터셋 처리 파이프라인' },
-            { week: 3, title: 'SQL 심화', topics: ['윈도우 함수 (ROW_NUMBER, LAG/LEAD)', 'CTE와 재귀 쿼리', '실행 계획 분석', '인덱스 최적화'], practice: 'SQL 쿼리 최적화 챌린지 20문제' },
-            { week: 4, title: '데이터 모델링', topics: ['정규화 (1NF~3NF)', '스타 스키마 vs 스노우플레이크', 'SCD (Slowly Changing Dimension)', 'Data Vault 소개'], practice: '이커머스 데이터 웨어하우스 설계' }
+            { week: 1, title: 'Python 심화', topics: ['제너레이터 & 이터레이터', '데코레이터 패턴', '컨텍스트 매니저', 'Type Hints & mypy'], practice: '데코레이터 기반 로깅 & 캐싱 시스템' },
+            { week: 2, title: 'pandas & 데이터 처리', topics: ['대용량 데이터 처리 (chunk)', '고급 pandas (MultiIndex, pivot)', '성능 최적화 (vectorize)', 'Polars 소개'], practice: '1GB+ CSV 처리 파이프라인' },
+            { week: 3, title: 'SQL 심화', topics: ['윈도우 함수 (ROW_NUMBER, LAG/LEAD)', 'CTE & 재귀 쿼리', '실행 계획 분석 & 튜닝', '트랜잭션 & 락'], practice: '복잡한 분석 쿼리 20개' },
+            { week: 4, title: '데이터 모델링', topics: ['정규화 (1NF~3NF)', 'Star Schema vs Snowflake', 'SCD (Type 1/2/3)', '실무 설계 패턴'], practice: '이커머스 데이터 웨어하우스 설계' }
           ],
-          output: 'pandas 분석 프로젝트, SQL 쿼리 50개'
+          output: 'SQL 쿼리 포트폴리오, ERD 설계'
         },
         {
           month: 2,
-          title: 'Apache Spark & 분산 처리',
+          title: 'Spark & 파이프라인',
           weeks: [
-            { week: 1, title: 'Spark 아키텍처', topics: ['RDD vs DataFrame vs Dataset', 'Spark 실행 모델 (Driver, Executor)', 'Lazy Evaluation', '파티셔닝 전략'], practice: 'Local Spark 클러스터 구축' },
-            { week: 2, title: 'PySpark 심화', topics: ['DataFrame API 마스터', 'UDF 작성법', '브로드캐스트 변수', 'Accumulator 활용'], practice: '대용량 로그 분석 파이프라인' },
-            { week: 3, title: 'SparkSQL & 최적화', topics: ['SparkSQL vs DataFrame', 'Catalyst Optimizer', 'Tungsten 엔진', '파티션 pruning'], practice: '쿼리 성능 최적화 실습' },
-            { week: 4, title: 'Spark ML 기초', topics: ['MLlib 파이프라인', 'Feature Engineering', '모델 학습 & 평가', 'Cross Validation'], practice: '추천 시스템 프로토타입' }
-          ],
-          output: 'PySpark 파이프라인 3개, Databricks 프로젝트'
-        },
-        {
-          month: 3,
-          title: '실시간 스트리밍 & 워크플로우',
-          weeks: [
-            { week: 1, title: 'Apache Kafka 기초', topics: ['Kafka 아키텍처 (Broker, Topic, Partition)', 'Producer & Consumer API', 'Consumer Group', 'Offset 관리'], practice: '실시간 이벤트 수집 시스템' },
-            { week: 2, title: 'Kafka 심화 & 스트리밍', topics: ['Kafka Streams', 'Exactly-once 시맨틱', 'Schema Registry', 'KSQL 소개'], practice: '실시간 집계 대시보드' },
-            { week: 3, title: 'Apache Airflow', topics: ['DAG 작성법', 'Operator 종류 (Python, Bash, Sensor)', 'XCom 통신', 'Task Dependencies'], practice: 'ETL 워크플로우 자동화' },
-            { week: 4, title: 'E2E 파이프라인 프로젝트', topics: ['Kafka → Spark Streaming → Data Lake', 'Delta Lake 소개', '모니터링 & 알림', '에러 핸들링'], practice: '포트폴리오 #1: E2E 데이터 파이프라인' }
+            { week: 1, title: 'Apache Spark', topics: ['Spark 아키텍처 (Driver, Executor)', 'DataFrame API 마스터', 'Catalyst & Tungsten 최적화', 'PySpark UDF'], practice: '대용량 로그 분석 파이프라인' },
+            { week: 2, title: 'Spark 심화 & Delta Lake', topics: ['Structured Streaming', 'Delta Lake (ACID, Time Travel)', '성능 튜닝 (파티션, 캐싱)', 'Spark UI 모니터링'], practice: '실시간 처리 + Delta Lake 저장' },
+            { week: 3, title: '워크플로우 오케스트레이션', topics: ['Apache Airflow (DAG, Operator)', '스케줄링 & 에러 핸들링', 'Prefect, Dagster 비교', '모니터링 & 알림'], practice: 'ETL 워크플로우 자동화' },
+            { week: 4, title: 'E2E 파이프라인 프로젝트', topics: ['아키텍처 설계', '데이터 품질 (Great Expectations)', '모니터링 & 로깅', '문서화'], practice: '포트폴리오 #1: E2E 데이터 파이프라인' }
           ],
           output: '포트폴리오 #1: E2E 데이터 파이프라인'
         }
@@ -77,38 +67,72 @@ export default function CurriculumPage() {
     },
     {
       phase: 2,
-      title: '온톨로지 & 지식 그래프',
+      title: '데이터 분석 & 컨설팅',
       duration: '2개월',
-      color: 'bg-purple-500',
-      borderColor: 'border-purple-500',
-      lightBg: 'bg-purple-50',
+      color: 'bg-teal-500',
+      borderColor: 'border-teal-500',
+      lightBg: 'bg-teal-50',
+      isUpdated: true,
       months: [
         {
-          month: 4,
-          title: '온톨로지 기초',
+          month: 3,
+          title: '문제 정의 & EDA',
           weeks: [
-            { week: 1, title: '온톨로지 개념 & RDF', topics: ['온톨로지란 무엇인가', 'RDF 트리플 (Subject-Predicate-Object)', 'URI와 IRI', 'Turtle 문법'], practice: 'RDF 트리플 50개 직접 작성' },
-            { week: 2, title: 'RDFS & OWL', topics: ['RDFS 스키마 (Class, Property)', 'OWL 표현력 (Restriction, Cardinality)', 'Protégé 도구 활용', '추론 규칙'], practice: '도메인 온톨로지 설계' },
-            { week: 3, title: 'SPARQL 쿼리', topics: ['SELECT, CONSTRUCT, ASK, DESCRIBE', 'FILTER와 OPTIONAL', 'Aggregation', 'Property Path'], practice: 'Wikidata SPARQL 쿼리 30개' },
-            { week: 4, title: '공개 지식 그래프 활용', topics: ['Wikidata 구조 이해', 'DBpedia 탐색', 'FIBO (금융) 살펴보기', 'Schema.org 활용'], practice: '공개 KG 기반 질의응답 시스템' }
+            { week: 1, title: '비즈니스 문제 정의 & EDA 기초', topics: ['문제 vs 증상 구분', '5 Whys & MECE 분석', '통계 기초 (분포, 상관관계)', '시각화 (matplotlib, seaborn)'], practice: '문제 정의서 + EDA 리포트' },
+            { week: 2, title: '데이터 이해 & 전처리', topics: ['데이터 소스 매핑', '데이터 품질 6차원 평가', '결측치/이상치 처리', '인코딩 & 변환'], practice: '데이터 품질 평가 + 정제 파이프라인' },
+            { week: 3, title: 'Feature Engineering', topics: ['수치형 피처 (binning, polynomial)', '범주형 피처 (희귀 카테고리 처리)', '시간 피처 (요일, 계절, lag)', '텍스트 피처 (TF-IDF, 길이)'], practice: 'Kaggle 피처 엔지니어링' },
+            { week: 4, title: 'Feature Selection & 차원 축소', topics: ['Filter 방법 (상관관계, 분산)', 'Wrapper 방법 (RFE, Forward/Backward)', 'Embedded 방법 (Lasso, Tree importance)', '차원 축소 (PCA, t-SNE, UMAP)'], practice: '고차원 데이터 시각화' }
           ],
-          output: 'RDF 트리플 100개, SPARQL 쿼리 30개'
+          output: 'Feature Engineering 노트북'
         },
         {
-          month: 5,
-          title: '지식 그래프 & 추론',
+          month: 4,
+          title: 'ML 모델링 & 커뮤니케이션',
           weeks: [
-            { week: 1, title: '추론 엔진', topics: ['RDFS 추론 규칙', 'OWL 추론 (Transitive, Symmetric)', 'Forward vs Backward Chaining', 'Pellet/HermiT'], practice: '추론 규칙 기반 지식 확장' },
-            { week: 2, title: '지식 그래프 구축', topics: ['Neo4j vs RDF Store', 'GraphDB/Virtuoso 설치', '지식 추출 (NER, RE)', '엔티티 연결'], practice: 'Neo4j 기반 KG 구축' },
-            { week: 3, title: 'Knowledge Graph Embedding', topics: ['TransE, RotatE', 'Link Prediction', '지식 완성 (Knowledge Completion)', 'PyKEEN 실습'], practice: 'KG 임베딩 모델 학습' },
-            { week: 4, title: 'KG 프로젝트', topics: ['데이터 수집 & 정제', '스키마 설계', 'Triple 추출 파이프라인', '시각화'], practice: 'Knowledge Graph 프로젝트 (100+ 노드)' }
+            { week: 1, title: '가설 기반 분석 & 분류/회귀', topics: ['가설 기반 분석 접근', '상관관계 vs 인과관계', '앙상블 (XGBoost, LightGBM)', '평가 지표 (F1, AUC, RMSE)'], practice: '가설 검증 + 이탈 예측 모델' },
+            { week: 2, title: '클러스터링 & 세그멘테이션', topics: ['K-means (Elbow, Silhouette)', '계층적 클러스터링 (Dendrogram)', 'RFM 분석', 'Pyramid Principle 보고서'], practice: '세그멘테이션 + 전략 제안' },
+            { week: 3, title: '이상 탐지 (Anomaly Detection)', topics: ['통계적 방법 (Z-score, IQR)', 'Isolation Forest, Autoencoder', '임계값 설정', '비즈니스 언어 번역'], practice: '금융 사기 탐지 시스템' },
+            { week: 4, title: '시계열 분석 & 발표', topics: ['Prophet, ML 접근', '수요 예측 모델', '경영진 발표 기법', '데이터 스토리텔링'], practice: '포트폴리오 #2: 수요 예측 + 발표' }
           ],
-          output: 'Knowledge Graph 프로젝트 (100+ 노드)'
+          output: '포트폴리오 #2: 분석 프로젝트 + 경영진 보고서'
         }
       ]
     },
     {
       phase: 3,
+      title: '지식 그래프',
+      duration: '2개월',
+      color: 'bg-purple-500',
+      borderColor: 'border-purple-500',
+      lightBg: 'bg-purple-50',
+      isUpdated: true,
+      months: [
+        {
+          month: 5,
+          title: 'Property Graph & Neo4j',
+          weeks: [
+            { week: 1, title: '그래프 데이터베이스 기초', topics: ['그래프 vs 관계형 DB (언제 쓰는가)', 'Property Graph 모델 (Node, Relationship)', 'Neo4j 설치 & Aura (클라우드)', 'RDF/OWL 개념 소개 (1-2시간)'], practice: 'Neo4j 환경 구축 + 샘플 데이터' },
+            { week: 2, title: 'Cypher 쿼리 마스터', topics: ['기본 쿼리 (MATCH, WHERE, RETURN)', '생성 & 수정 (CREATE, MERGE, SET)', '패턴 매칭 (경로 탐색, 가변 길이)', '집계 & 정렬 (COUNT, ORDER BY)'], practice: 'Cypher 쿼리 30개 작성' },
+            { week: 3, title: '그래프 알고리즘', topics: ['경로 탐색 (Shortest Path, All Paths)', '중심성 (PageRank, Betweenness)', '커뮤니티 탐지 (Louvain)', '유사도 (Node Similarity, Jaccard)'], practice: '소셜 네트워크 분석 (인플루언서 찾기)' },
+            { week: 4, title: '실무 KG 구축', topics: ['데이터 Import (CSV, JSON, JDBC)', '스키마 설계 & 제약 조건', '성능 최적화 (인덱스, 프로파일링)', '시각화 (Neo4j Bloom)'], practice: '비즈니스 도메인 KG 구축' }
+          ],
+          output: 'Cypher 치트시트, 도메인 KG'
+        },
+        {
+          month: 6,
+          title: '고급 KG & 통합',
+          weeks: [
+            { week: 1, title: 'Entity Resolution & 데이터 통합', topics: ['Entity Resolution 개념 (중복 탐지)', '매칭 기법 (규칙 기반, ML 기반)', '도구 (splink, dedupe)', 'KG에서 노드 병합'], practice: '여러 소스 데이터 통합' },
+            { week: 2, title: '지식 추출 & NLP', topics: ['NER (spaCy, 커스텀 모델)', '관계 추출 (규칙 기반, LLM 활용)', '엔티티 연결 (KG와 매핑)', '자동 KG 구축 (텍스트 → 트리플)'], practice: '뉴스에서 자동 KG 구축' },
+            { week: 3, title: 'GraphRAG & LLM 통합', topics: ['GraphRAG 개념 (왜 KG + RAG인가)', 'LangChain + Neo4j 구현', '자연어 → Cypher (LLM)', '하이브리드 검색 (벡터 + 그래프)'], practice: 'GraphRAG Q&A 시스템' },
+            { week: 4, title: 'KG 프로젝트', topics: ['프로젝트 설계 & 데이터 수집', 'KG 구축 & 애플리케이션 개발', '시각화 & REST API', '발표 & 문서화'], practice: '포트폴리오 #3: KG 애플리케이션' }
+          ],
+          output: '포트폴리오 #3: 지식 그래프 애플리케이션'
+        }
+      ]
+    },
+    {
+      phase: 4,
       title: '클라우드 & 인프라',
       duration: '2개월',
       color: 'bg-orange-500',
@@ -116,109 +140,88 @@ export default function CurriculumPage() {
       lightBg: 'bg-orange-50',
       months: [
         {
-          month: 6,
-          title: 'AWS & 클라우드 기초',
+          month: 7,
+          title: 'AWS 핵심 서비스',
           weeks: [
-            { week: 1, title: '컴퓨팅 & 네트워크', topics: ['EC2 인스턴스 유형', 'VPC, Subnet, Security Group', 'Load Balancer (ALB, NLB)', 'Auto Scaling'], practice: '고가용성 웹 아키텍처 구축' },
-            { week: 2, title: '스토리지 & 데이터베이스', topics: ['S3 버킷 정책 & Lifecycle', 'RDS vs Aurora', 'DynamoDB 설계 패턴', 'ElastiCache'], practice: '멀티티어 데이터 아키텍처' },
-            { week: 3, title: '서버리스 & IAM', topics: ['Lambda 함수 작성', 'API Gateway', 'Step Functions', 'IAM 정책 작성'], practice: '서버리스 API 구축' },
-            { week: 4, title: 'Terraform IaC', topics: ['HCL 문법', 'State 관리', '모듈화', 'Terraform Cloud'], practice: 'AWS SAA 자격증 준비' }
+            { week: 1, title: '컴퓨팅 & 네트워킹', topics: ['EC2 (인스턴스 유형, AMI, EBS)', 'VPC (Subnet, Route Table, NAT)', 'Load Balancing (ALB, NLB)', 'Auto Scaling'], practice: '고가용성 웹 아키텍처 구축' },
+            { week: 2, title: '스토리지 & 데이터베이스', topics: ['S3 (버킷 정책, Lifecycle)', 'RDS & Aurora (MySQL, PostgreSQL)', 'DynamoDB (파티션 키, GSI)', 'ElastiCache (Redis)'], practice: '데이터 티어 아키텍처' },
+            { week: 3, title: '서버리스 & 이벤트', topics: ['Lambda (핸들러, 레이어, 콜드 스타트)', 'API Gateway (REST, WebSocket)', 'Step Functions (상태 머신)', 'EventBridge'], practice: '서버리스 데이터 처리' },
+            { week: 4, title: 'IaC & 모니터링', topics: ['Terraform (HCL, State, 모듈)', 'CloudWatch (메트릭, 로그, 알람)', 'IAM (정책, 역할, 최소 권한)', 'AWS SAA 자격증 준비'], practice: 'Terraform 인프라 코드화' }
           ],
           output: 'AWS SAA 자격증'
         },
         {
-          month: 7,
+          month: 8,
           title: '컨테이너 & Kubernetes',
           weeks: [
-            { week: 1, title: 'Docker 심화', topics: ['Multi-stage Build', 'Docker Compose', '이미지 최적화', 'Registry 운영'], practice: '마이크로서비스 컨테이너화' },
-            { week: 2, title: 'Kubernetes 기초', topics: ['Pod, Service, Deployment', 'ReplicaSet & Scaling', 'kubectl 마스터', 'YAML 매니페스트'], practice: 'K8s 클러스터 배포 실습' },
-            { week: 3, title: 'Kubernetes 심화', topics: ['ConfigMap & Secret', 'PersistentVolume', 'Ingress Controller', 'Helm 차트'], practice: 'Helm 차트 작성' },
-            { week: 4, title: 'EKS/GKE 프로덕션', topics: ['EKS 클러스터 구축', '모니터링 (Prometheus, Grafana)', 'CI/CD 파이프라인', 'GitOps (ArgoCD)'], practice: 'EKS 프로덕션 클러스터 배포' }
+            { week: 1, title: 'Docker 심화', topics: ['Dockerfile (Multi-stage, 캐싱)', 'Docker Compose (멀티 컨테이너)', '이미지 최적화 & 레지스트리', '보안 (루트리스, 시크릿)'], practice: '마이크로서비스 컨테이너화' },
+            { week: 2, title: 'Kubernetes 기초', topics: ['아키텍처 (Control Plane, Node)', '워크로드 (Pod, Deployment, ReplicaSet)', '서비스 (ClusterIP, NodePort, LB)', 'ConfigMap & Secret'], practice: '로컬 K8s 클러스터' },
+            { week: 3, title: 'Kubernetes 심화', topics: ['스토리지 (PV, PVC, StorageClass)', 'Ingress & NetworkPolicy', 'Helm & Kustomize', 'HPA & 리소스 관리'], practice: 'Helm 차트 작성' },
+            { week: 4, title: '프로덕션 K8s', topics: ['EKS/GKE 관리형 K8s', 'Prometheus & Grafana 모니터링', 'GitHub Actions CI/CD', 'GitOps (ArgoCD)'], practice: '포트폴리오 #4: 클라우드 인프라' }
           ],
-          output: 'K8s 매니페스트, EKS 클러스터 배포'
+          output: '포트폴리오 #4: 클라우드 인프라'
         }
       ]
     },
     {
-      phase: 4,
-      title: 'AI/ML & GenAI',
+      phase: 5,
+      title: 'GenAI & 에이전트',
       duration: '2개월',
       color: 'bg-green-500',
       borderColor: 'border-green-500',
       lightBg: 'bg-green-50',
       months: [
         {
-          month: 8,
-          title: 'LLM & 프롬프트 엔지니어링',
+          month: 9,
+          title: 'LLM & RAG',
           weeks: [
-            { week: 1, title: 'LLM 기초', topics: ['Transformer 아키텍처 이해', 'GPT vs Claude vs Gemini', 'API 사용법', '토큰과 비용 계산'], practice: 'OpenAI & Claude API 실습' },
-            { week: 2, title: '프롬프트 엔지니어링', topics: ['Zero-shot vs Few-shot', 'Chain of Thought', 'System Prompt 설계', '프롬프트 템플릿'], practice: '프롬프트 라이브러리 구축' },
-            { week: 3, title: '임베딩 & 벡터 DB', topics: ['Text Embedding 원리', 'OpenAI Embeddings', 'Pinecone/Weaviate/Chroma', '유사도 검색'], practice: '시맨틱 검색 엔진 구축' },
-            { week: 4, title: 'LLM 평가', topics: ['BLEU, ROUGE, BERTScore', 'Human Evaluation', 'LLM-as-a-Judge', 'Hallucination 감지'], practice: '프롬프트 라이브러리 20개' }
+            { week: 1, title: 'LLM 기초', topics: ['Transformer 개념 (Attention, 토큰화)', '주요 모델 (GPT, Claude, Gemini, Llama)', 'API 사용 (OpenAI, Anthropic SDK)', '비용 관리 (토큰 계산, 최적화)'], practice: '다양한 LLM API 실험' },
+            { week: 2, title: '프롬프트 엔지니어링', topics: ['기본 기법 (Zero-shot, Few-shot, CoT)', '고급 기법 (Self-consistency, ToT)', '시스템 프롬프트 & 가드레일', '평가 (일관성, 정확도, 안전성)'], practice: '프롬프트 라이브러리 구축' },
+            { week: 3, title: '임베딩 & 벡터 DB', topics: ['텍스트 임베딩 (OpenAI, Cohere, 오픈소스)', '벡터 DB (Pinecone, Weaviate, Chroma)', '유사도 검색 & 하이브리드', '인덱싱 (HNSW, IVF, 성능 튜닝)'], practice: '시맨틱 검색 엔진' },
+            { week: 4, title: 'RAG 시스템', topics: ['RAG 아키텍처 (Index → Retrieve → Generate)', '청킹 전략 (Fixed, Semantic, Parent-Child)', '검색 최적화 (Re-ranking, Query Expansion)', '평가 (Retrieval 정확도, 답변 품질)'], practice: '문서 Q&A RAG 시스템' }
           ],
-          output: '프롬프트 라이브러리 20개'
+          output: 'RAG 시스템, 프롬프트 라이브러리'
         },
         {
-          month: 9,
-          title: 'RAG & AI 에이전트',
+          month: 10,
+          title: 'AI 에이전트 & 프로덕션',
           weeks: [
-            { week: 1, title: 'RAG 기초', topics: ['RAG 아키텍처', 'LangChain 기초', 'Document Loaders', 'Text Splitters'], practice: 'PDF 문서 Q&A 시스템' },
-            { week: 2, title: 'RAG 심화', topics: ['하이브리드 검색 (BM25 + Dense)', 'Re-ranking', 'Multi-Query RAG', 'Self-RAG'], practice: '하이브리드 RAG 시스템' },
-            { week: 3, title: 'AI 에이전트', topics: ['LangGraph 기초', 'Tool Use & Function Calling', '멀티 에이전트 시스템', 'ReAct 패턴'], practice: 'AI 에이전트 구축' },
-            { week: 4, title: 'RAG 프로덕션', topics: ['FastAPI 서버', '캐싱 전략', '모니터링 & 로깅', 'A/B 테스팅'], practice: '포트폴리오 #2: RAG 애플리케이션' }
+            { week: 1, title: 'AI 에이전트 기초', topics: ['에이전트 개념 (자율성, 도구 사용)', 'Function Calling (OpenAI, Claude)', 'ReAct 패턴 (Reasoning + Acting)', 'LangGraph (상태 기반 워크플로우)'], practice: '도구 사용 에이전트 구축' },
+            { week: 2, title: '고급 에이전트', topics: ['멀티 에이전트 (협업, 위임)', '메모리 (단기/장기, 요약)', '계획 & 반성 (Plan-and-Execute)', '에이전트 평가'], practice: '멀티 에이전트 시스템' },
+            { week: 3, title: '프로덕션 배포', topics: ['FastAPI 서버 & 스트리밍', '캐싱 (Semantic 캐시, Redis)', '모니터링 (LangSmith, 비용 추적)', '보안 (Rate limiting, Input validation)'], practice: 'RAG API 서버 배포' },
+            { week: 4, title: 'GenAI 프로젝트', topics: ['프로젝트 설계 & 아키텍처', 'RAG + Agent 통합', '평가 & 개선 (A/B 테스트)', '발표 & 문서화'], practice: '포트폴리오 #5: AI 애플리케이션' }
           ],
-          output: '포트폴리오 #2: RAG 애플리케이션'
+          output: '포트폴리오 #5: AI 애플리케이션'
         }
       ]
     },
     {
-      phase: 5,
-      title: '산업별 심화',
+      phase: 6,
+      title: '산업별 프로젝트 & 취업',
       duration: '2개월',
       color: 'bg-red-500',
       borderColor: 'border-red-500',
       lightBg: 'bg-red-50',
       months: [
         {
-          month: 10,
-          title: '도메인 온톨로지 (택 1)',
+          month: 11,
+          title: '도메인 심화 & 캡스톤',
           weeks: [
-            { week: 1, title: '금융 도메인 - FIBO', topics: ['FIBO 구조 이해', '금융 상품 온톨로지', '규제 컴플라이언스', '리스크 모델링'], practice: 'FIBO 기반 투자 포트폴리오 분석' },
-            { week: 2, title: '의료 도메인 - FHIR', topics: ['FHIR 리소스 구조', 'Patient, Observation, Condition', 'SMART on FHIR', 'CDS Hooks'], practice: 'FHIR 기반 환자 데이터 분석' },
-            { week: 3, title: '국방/사이버 - BFO/ATT&CK', topics: ['BFO (Basic Formal Ontology)', 'MITRE ATT&CK Framework', '위협 인텔리전스', '사이버 킬체인'], practice: 'ATT&CK 기반 위협 분석' },
-            { week: 4, title: '도메인 모델링 실습', topics: ['도메인 전문가 인터뷰', '요구사항 분석', '온톨로지 설계 패턴', '검증 및 테스트'], practice: '커스텀 도메인 온톨로지 설계' }
+            { week: 1, title: '도메인 선택 (택 1)', topics: ['금융: 포트폴리오 분석, 사기 탐지', '의료: 환자 데이터, FHIR', '제조: 수요 예측, 예지 정비', '사이버보안: 위협 탐지, ATT&CK'], practice: '도메인 리서치 & 데이터 수집' },
+            { week: 2, title: '도메인 심화', topics: ['산업 표준 & 규제 이해', '도메인 특화 데이터셋', '실무 사례 분석', '전문가 인터뷰 (가능 시)'], practice: '도메인 분석 리포트' },
+            { week: 3, title: '캡스톤 프로젝트 (1)', topics: ['문제 정의 & 요구사항', '데이터 수집 & 파이프라인', 'KG 또는 ML 모델 구축', 'API & 백엔드 개발'], practice: '캡스톤 진행 (백엔드)' },
+            { week: 4, title: '캡스톤 프로젝트 (2)', topics: ['AI 기능 통합 (RAG/Agent)', 'UI/대시보드 개발', '테스트 & 최적화', '문서화 & 발표 준비'], practice: '최종 포트폴리오 프로젝트' }
           ],
-          output: '산업 표준 온톨로지 활용'
+          output: '최종 포트폴리오 프로젝트'
         },
         {
-          month: 11,
-          title: '미니 프로젝트',
-          weeks: [
-            { week: 1, title: '프로젝트 기획', topics: ['문제 정의', '데이터 소스 확보', '아키텍처 설계', '마일스톤 설정'], practice: '프로젝트 제안서 작성' },
-            { week: 2, title: '데이터 파이프라인 구축', topics: ['데이터 수집', 'ETL 구현', 'KG 구축', 'API 개발'], practice: '백엔드 시스템 구축' },
-            { week: 3, title: 'AI 기능 통합', topics: ['RAG 시스템 연동', 'LLM 통합', '추론 엔진 연결', 'UI 개발'], practice: '프론트엔드 & AI 통합' },
-            { week: 4, title: '배포 & 문서화', topics: ['클라우드 배포', '성능 최적화', 'README 작성', '데모 영상'], practice: '포트폴리오 #3: 산업별 프로젝트' }
-          ],
-          output: '포트폴리오 #3: 산업별 프로젝트'
-        }
-      ]
-    },
-    {
-      phase: 6,
-      title: '실전 & 취업',
-      duration: '1개월',
-      color: 'bg-gray-500',
-      borderColor: 'border-gray-500',
-      lightBg: 'bg-gray-50',
-      months: [
-        {
           month: 12,
-          title: '포트폴리오 & 면접',
+          title: '취업 준비',
           weeks: [
-            { week: 1, title: '포트폴리오 정리', topics: ['GitHub 프로필 최적화', 'README 작성 가이드', '코드 리팩토링', '기술 블로그'], practice: 'GitHub 포트폴리오 완성' },
-            { week: 2, title: '데모 & 프레젠테이션', topics: ['데모 영상 제작', '발표 스토리텔링', '기술 설명 연습', 'Q&A 대비'], practice: '5분 데모 영상 제작' },
-            { week: 3, title: '기술 면접 준비', topics: ['시스템 디자인 면접', '코딩 테스트', 'SQL 면접 문제', 'ML 기초 문제'], practice: '모의 기술 면접 3회' },
-            { week: 4, title: '행동 면접 & 취업', topics: ['STAR 기법', '자기소개 스크립트', '연봉 협상', '회사 리서치'], practice: '취업!' }
+            { week: 1, title: '포트폴리오 완성', topics: ['GitHub 정리 (README, 라이선스)', '기술 블로그 (프로젝트 회고)', 'LinkedIn 프로필 최적화', '5분 데모 영상 제작'], practice: '포트폴리오 사이트 배포' },
+            { week: 2, title: '기술 면접 준비', topics: ['Data Engineering (SQL, Spark, 파이프라인)', 'ML/AI (알고리즘, 평가 지표)', '시스템 디자인 (확장성, 가용성)', '코딩 테스트 (LeetCode Medium)'], practice: '모의 기술 면접 3회' },
+            { week: 3, title: '행동 면접 & 지원', topics: ['STAR 기법 (상황-과제-행동-결과)', '자기소개 (30초, 1분, 3분)', '회사 리서치 & 지원', '이력서 & 커버레터'], practice: '실제 지원 시작' },
+            { week: 4, title: '최종 준비 & 수료', topics: ['모의 면접 & 피드백', '연봉 협상 전략', '네트워킹 (커뮤니티, 밋업)', '수료식 & 발표'], practice: '취업!' }
           ],
           output: '취업!'
         }
@@ -290,13 +293,75 @@ export default function CurriculumPage() {
   ]
 
   const certifications = [
-    { name: 'AWS Solutions Architect Associate', month: 6, color: 'bg-orange-100 text-orange-700', details: '공식 시험 | $150' },
-    { name: 'Databricks Data Engineer Associate', month: 3, color: 'bg-red-100 text-red-700', details: '공식 시험 | $200' }
+    { name: 'AWS Solutions Architect Associate', month: 7, color: 'bg-orange-100 text-orange-700', details: '공식 시험 | $150' },
+    { name: 'Neo4j Certified Professional', month: 6, color: 'bg-purple-100 text-purple-700', details: '무료 시험 | 온라인' }
   ]
+
+  const prerequisites = {
+    main: [
+      { skill: 'Python 기초', level: '필수', description: '변수, 함수, 클래스, 모듈 이해' },
+      { skill: 'SQL 기초', level: '필수', description: 'SELECT, JOIN, GROUP BY 사용 가능' },
+      { skill: 'Git 기초', level: '필수', description: 'clone, commit, push, branch 사용 가능' },
+      { skill: '영어 문서 독해', level: '권장', description: '기술 문서 읽기 가능 수준' },
+      { skill: '통계 기초', level: '권장', description: '평균, 분산, 분포 개념 이해' }
+    ],
+    foundry: [
+      { skill: '메인 과정 수료', level: '필수', description: 'Phase 1~4 완료 또는 동등 경력' },
+      { skill: 'PySpark 경험', level: '필수', description: 'DataFrame API 사용 가능' },
+      { skill: '데이터 모델링', level: '필수', description: 'ERD 설계 경험' },
+      { skill: 'Palantir 계정', level: '필수', description: 'Foundry 환경 접근 필요' }
+    ]
+  }
+
+  const weeklySchedule = {
+    main: {
+      totalHours: 40,
+      breakdown: [
+        { activity: '이론 학습 (강의/문서)', hours: 8 },
+        { activity: '실습 & 코딩', hours: 20 },
+        { activity: '프로젝트 작업', hours: 8 },
+        { activity: '복습 & 퀴즈', hours: 4 }
+      ]
+    },
+    foundry: {
+      totalHours: 50,
+      breakdown: [
+        { activity: '플랫폼 실습', hours: 25 },
+        { activity: '이론 학습', hours: 10 },
+        { activity: '미니 프로젝트', hours: 10 },
+        { activity: '자격증 준비', hours: 5 }
+      ]
+    }
+  }
+
+  const evaluationCriteria = {
+    main: [
+      { type: '주간 퀴즈', weight: 10, description: '매주 금요일, 객관식+단답형 20문제' },
+      { type: '코딩 과제', weight: 30, description: '주 1-2회, GitHub 제출, 코드 리뷰' },
+      { type: '월간 프로젝트', weight: 40, description: '매월 1개, 실무 시나리오 기반' },
+      { type: '최종 포트폴리오', weight: 20, description: '6개 프로젝트 통합, 발표 평가' }
+    ],
+    foundry: [
+      { type: '실습 완료', weight: 30, description: '각 트랙별 핸즈온 완료' },
+      { type: 'Palantir 배지', weight: 20, description: 'Foundations + Track 배지 취득' },
+      { type: '미니 프로젝트', weight: 20, description: '주차별 산출물 제출' },
+      { type: '공식 자격증', weight: 30, description: '시험 합격 (70% 이상)' }
+    ],
+    passingScore: 70
+  }
 
   const foundryCertifications = [
     { name: 'Foundry Data Engineer', color: 'bg-blue-100 text-blue-700 border-blue-300', details: '60문제 | 70% 합격', topics: ['Data Connection', 'Pipeline Builder', 'Code Transforms', 'Data Quality'] },
     { name: 'Foundry Application Developer', color: 'bg-purple-100 text-purple-700 border-purple-300', details: '60문제 | 70% 합격', topics: ['Ontology Manager', 'Workshop', 'Quiver', 'Functions', 'OSDK'] }
+  ]
+
+  const portfolios = [
+    { num: 1, title: 'E2E 데이터 파이프라인', phase: 1, stack: 'Python, Spark, Airflow, Delta Lake' },
+    { num: 2, title: '데이터 분석 & 컨설팅', phase: 2, stack: 'pandas, XGBoost, 경영진 발표' },
+    { num: 3, title: '지식 그래프 애플리케이션', phase: 3, stack: 'Neo4j, GraphRAG, LangChain' },
+    { num: 4, title: '클라우드 인프라', phase: 4, stack: 'AWS, Terraform, K8s, ArgoCD' },
+    { num: 5, title: 'AI 애플리케이션', phase: 5, stack: 'RAG, AI Agent, FastAPI' },
+    { num: 6, title: '캡스톤 (도메인 특화)', phase: 6, stack: '전체 기술 통합' }
   ]
 
   return (
@@ -309,7 +374,7 @@ export default function CurriculumPage() {
             ) : (
               <span className="px-3 py-1 bg-purple-500 rounded-full text-sm font-bold">SPECIAL COURSE</span>
             )}
-            <span className="px-3 py-1 bg-white/20 rounded-full text-sm">DRAFT v0.2</span>
+            <span className="px-3 py-1 bg-green-500 rounded-full text-sm font-bold">v2.2</span>
           </div>
           <h1 className="text-4xl font-bold">{activeTab === 'main' ? 'FDE Academy' : 'Palantir Foundry 스페셜'}</h1>
           <p className={`${activeTab === 'main' ? 'text-blue-100' : 'text-purple-100'} mt-2 text-lg`}>
@@ -356,12 +421,99 @@ export default function CurriculumPage() {
                 <div className="text-gray-600 mt-1">단계별 학습</div>
               </div>
               <div className="bg-purple-50 rounded-xl p-5 border border-purple-100">
-                <div className="text-3xl font-bold text-purple-600">3개</div>
+                <div className="text-3xl font-bold text-purple-600">6개</div>
                 <div className="text-gray-600 mt-1">포트폴리오 프로젝트</div>
               </div>
               <div className="bg-orange-50 rounded-xl p-5 border border-orange-100">
                 <div className="text-3xl font-bold text-orange-600">7천만~2억+</div>
                 <div className="text-gray-600 mt-1">목표 연봉</div>
+              </div>
+            </div>
+
+            {/* v2.2 변경 사항 하이라이트 */}
+            <div className="bg-gradient-to-r from-green-50 to-teal-50 rounded-xl p-6 mb-8 border-2 border-green-200">
+              <h2 className="text-xl font-bold text-green-800 mb-4 flex items-center gap-2">
+                <span className="px-2 py-1 bg-green-500 text-white rounded text-sm">v2.2</span>
+                주요 변경 사항
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-white rounded-lg p-4 border border-green-100">
+                  <div className="text-teal-700 font-bold mb-1">Phase 2 강화</div>
+                  <div className="text-sm text-gray-600">문제 정의 + 컨설팅 역량 통합</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-green-100">
+                  <div className="text-teal-600 font-bold mb-1">비즈니스 역량</div>
+                  <div className="text-sm text-gray-600">5 Whys, MECE, 경영진 발표</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-green-100">
+                  <div className="text-purple-600 font-bold mb-1">Phase 3 실무화</div>
+                  <div className="text-sm text-gray-600">Neo4j/Cypher + GraphRAG</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-green-100">
+                  <div className="text-blue-600 font-bold mb-1">포트폴리오 6개</div>
+                  <div className="text-sm text-gray-600">각 Phase별 실무 프로젝트</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 선수 과목 섹션 */}
+            <div className="bg-yellow-50 rounded-xl p-6 mb-8 border border-yellow-200">
+              <h2 className="text-xl font-bold text-yellow-800 mb-4 flex items-center gap-2">
+                <span>📋</span> 선수 과목 (Prerequisites)
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {prerequisites.main.map((req) => (
+                  <div key={req.skill} className="bg-white rounded-lg p-4 border border-yellow-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${req.level === '필수' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {req.level}
+                      </span>
+                      <span className="font-semibold text-gray-900">{req.skill}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{req.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 주간 학습 시간 섹션 */}
+            <div className="bg-indigo-50 rounded-xl p-6 mb-8 border border-indigo-200">
+              <h2 className="text-xl font-bold text-indigo-800 mb-4 flex items-center gap-2">
+                <span>⏰</span> 주간 학습 시간
+              </h2>
+              <div className="flex items-center gap-6 mb-4">
+                <div className="text-4xl font-bold text-indigo-600">{weeklySchedule.main.totalHours}시간</div>
+                <div className="text-gray-600">/ 주 (풀타임 기준)</div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {weeklySchedule.main.breakdown.map((item) => (
+                  <div key={item.activity} className="bg-white rounded-lg p-3 border border-indigo-100">
+                    <div className="text-2xl font-bold text-indigo-600">{item.hours}h</div>
+                    <div className="text-sm text-gray-600">{item.activity}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 평가 기준 섹션 */}
+            <div className="bg-emerald-50 rounded-xl p-6 mb-8 border border-emerald-200">
+              <h2 className="text-xl font-bold text-emerald-800 mb-4 flex items-center gap-2">
+                <span>📊</span> 평가 기준
+              </h2>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="text-gray-600">수료 기준:</span>
+                <span className="px-3 py-1 bg-emerald-600 text-white rounded-full font-bold">{evaluationCriteria.passingScore}% 이상</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {evaluationCriteria.main.map((criteria) => (
+                  <div key={criteria.type} className="bg-white rounded-lg p-4 border border-emerald-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-900">{criteria.type}</span>
+                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-sm font-bold">{criteria.weight}%</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{criteria.description}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -373,7 +525,12 @@ export default function CurriculumPage() {
                     <div className="flex items-center space-x-4">
                       <div className={`w-12 h-12 rounded-xl ${phase.color} flex items-center justify-center text-white font-bold text-lg`}>{phase.phase}</div>
                       <div className="text-left">
-                        <span className="text-lg font-bold text-gray-900">Phase {phase.phase}: {phase.title}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-gray-900">Phase {phase.phase}: {phase.title}</span>
+                          {(phase as any).isNew && <span className="px-2 py-0.5 bg-teal-500 text-white text-xs rounded-full font-bold">NEW</span>}
+                          {(phase as any).isFundamental && <span className="px-2 py-0.5 bg-slate-600 text-white text-xs rounded-full font-bold">핵심</span>}
+                          {(phase as any).isUpdated && <span className="px-2 py-0.5 bg-purple-500 text-white text-xs rounded-full font-bold">실무화</span>}
+                        </div>
                         <span className="block text-gray-500 text-sm">{phase.duration}</span>
                       </div>
                     </div>
@@ -406,10 +563,38 @@ export default function CurriculumPage() {
                           </div>
                         </div>
                       ))}
+                      <div className="mt-6 text-center">
+                        <Link
+                          href={`/phase/${phase.phase}`}
+                          className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg ${phase.color} text-white font-medium hover:opacity-90 transition-opacity`}
+                        >
+                          <span>Phase {phase.phase} 상세 커리큘럼 보기</span>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </Link>
+                      </div>
                     </div>
                   )}
                 </div>
               ))}
+            </div>
+
+            {/* 포트폴리오 요약 */}
+            <h2 className="text-2xl font-bold mt-12 mb-6">포트폴리오 로드맵</h2>
+            <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-6 border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {portfolios.map((p) => (
+                  <div key={p.num} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">#{p.num}</span>
+                      <span className="font-bold text-gray-900">{p.title}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 mb-2">Phase {p.phase}</div>
+                    <div className="text-sm text-gray-600 bg-gray-50 rounded px-2 py-1">{p.stack}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <h2 className="text-2xl font-bold mt-12 mb-6">자격증 로드맵</h2>
@@ -423,6 +608,100 @@ export default function CurriculumPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* 비용 추정 가이드 */}
+            <h2 className="text-2xl font-bold mt-12 mb-6">예상 비용 가이드</h2>
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl p-6 border border-amber-200">
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl">💰</span>
+                  <span className="text-lg font-bold text-amber-800">12개월 총 예상 비용</span>
+                </div>
+                <div className="text-3xl font-bold text-amber-700">$1,100 ~ $3,700</div>
+                <div className="text-sm text-gray-600 mt-1">Free Tier 최대 활용 시 (약 150~500만원)</div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <div className="bg-white rounded-lg p-4 border border-amber-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-900">AWS</span>
+                    <span className="text-amber-600 font-bold">$50-150/월</span>
+                  </div>
+                  <div className="text-sm text-gray-600">Phase 4 집중 사용</div>
+                  <div className="text-xs text-gray-500 mt-1">Free Tier 12개월 활용 권장</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-amber-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-900">OpenAI API</span>
+                    <span className="text-amber-600 font-bold">$20-50/월</span>
+                  </div>
+                  <div className="text-sm text-gray-600">Phase 5 집중 사용</div>
+                  <div className="text-xs text-gray-500 mt-1">GPT-4o-mini로 비용 절감</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-amber-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-900">Anthropic API</span>
+                    <span className="text-amber-600 font-bold">$20-40/월</span>
+                  </div>
+                  <div className="text-sm text-gray-600">Phase 5 집중 사용</div>
+                  <div className="text-xs text-gray-500 mt-1">Claude Haiku로 프로토타이핑</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-amber-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-900">Neo4j Aura</span>
+                    <span className="text-green-600 font-bold">$0</span>
+                  </div>
+                  <div className="text-sm text-gray-600">Phase 3 사용</div>
+                  <div className="text-xs text-gray-500 mt-1">Free Tier (50K 노드)</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-amber-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-900">Pinecone</span>
+                    <span className="text-green-600 font-bold">$0-20/월</span>
+                  </div>
+                  <div className="text-sm text-gray-600">Phase 5 RAG 실습</div>
+                  <div className="text-xs text-gray-500 mt-1">Free Tier 존재</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-amber-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-900">Databricks</span>
+                    <span className="text-green-600 font-bold">$0</span>
+                  </div>
+                  <div className="text-sm text-gray-600">Phase 1 Spark 실습</div>
+                  <div className="text-xs text-gray-500 mt-1">Community Edition 무료</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg p-4 border border-amber-200">
+                <div className="font-semibold text-amber-800 mb-3">💡 비용 절약 팁</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500">✓</span>
+                    <span className="text-gray-600">AWS Free Tier 한도 모니터링 (Budgets 설정)</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500">✓</span>
+                    <span className="text-gray-600">학습 후 리소스 즉시 삭제 (terraform destroy)</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500">✓</span>
+                    <span className="text-gray-600">Spot Instances 활용 (최대 90% 할인)</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500">✓</span>
+                    <span className="text-gray-600">LLM API 캐싱 적용 (동일 질문 반복 방지)</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500">✓</span>
+                    <span className="text-gray-600">로컬 개발 최대한 활용 후 클라우드 배포</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-green-500">✓</span>
+                    <span className="text-gray-600">GitHub Student Pack 활용 (학생인 경우)</span>
+                  </div>
+                </div>
               </div>
             </div>
           </>
@@ -449,6 +728,67 @@ export default function CurriculumPage() {
               <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
                 <div className="text-3xl font-bold text-blue-600">AIP</div>
                 <div className="text-gray-600 mt-1">AI 플랫폼 포함</div>
+              </div>
+            </div>
+
+            {/* Foundry 선수 과목 */}
+            <div className="bg-yellow-50 rounded-xl p-6 mb-8 border border-yellow-200">
+              <h2 className="text-xl font-bold text-yellow-800 mb-4 flex items-center gap-2">
+                <span>📋</span> 선수 과목 (Prerequisites)
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {prerequisites.foundry.map((req) => (
+                  <div key={req.skill} className="bg-white rounded-lg p-4 border border-yellow-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
+                        {req.level}
+                      </span>
+                      <span className="font-semibold text-gray-900">{req.skill}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{req.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Foundry 주간 학습 시간 */}
+            <div className="bg-indigo-50 rounded-xl p-6 mb-8 border border-indigo-200">
+              <h2 className="text-xl font-bold text-indigo-800 mb-4 flex items-center gap-2">
+                <span>⏰</span> 주간 학습 시간
+              </h2>
+              <div className="flex items-center gap-6 mb-4">
+                <div className="text-4xl font-bold text-indigo-600">{weeklySchedule.foundry.totalHours}시간</div>
+                <div className="text-gray-600">/ 주 (집중 과정)</div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {weeklySchedule.foundry.breakdown.map((item) => (
+                  <div key={item.activity} className="bg-white rounded-lg p-3 border border-indigo-100">
+                    <div className="text-2xl font-bold text-indigo-600">{item.hours}h</div>
+                    <div className="text-sm text-gray-600">{item.activity}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Foundry 평가 기준 */}
+            <div className="bg-emerald-50 rounded-xl p-6 mb-8 border border-emerald-200">
+              <h2 className="text-xl font-bold text-emerald-800 mb-4 flex items-center gap-2">
+                <span>📊</span> 평가 기준
+              </h2>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="text-gray-600">수료 기준:</span>
+                <span className="px-3 py-1 bg-emerald-600 text-white rounded-full font-bold">{evaluationCriteria.passingScore}% 이상</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                {evaluationCriteria.foundry.map((criteria) => (
+                  <div key={criteria.type} className="bg-white rounded-lg p-4 border border-emerald-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-900">{criteria.type}</span>
+                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-sm font-bold">{criteria.weight}%</span>
+                    </div>
+                    <p className="text-sm text-gray-600">{criteria.description}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -516,7 +856,10 @@ export default function CurriculumPage() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full text-gray-600 text-sm">
             <span>FDE Academy 커리큘럼</span>
             <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-            <span>DRAFT v0.2</span>
+            <span className="text-green-600 font-bold">v2.2</span>
+          </div>
+          <div className="mt-3 text-xs text-gray-400">
+            마지막 업데이트: 2025-12-06 | Phase 2에 컨설팅 역량 통합
           </div>
         </div>
       </main>
