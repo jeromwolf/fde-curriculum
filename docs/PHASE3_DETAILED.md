@@ -51,13 +51,14 @@ Phase 3에서는:
 
 ---
 
-### Week 17: 그래프 이론 & Neo4j 입문
+### Week 17: 그래프 이론 & 그래프 DB 입문
 
 #### 학습 목표
 - [ ] 그래프 데이터 모델의 개념과 장점을 설명할 수 있다
-- [ ] Neo4j를 설치하고 기본 조작을 할 수 있다
+- [ ] Neo4j 또는 Memgraph를 설치하고 기본 조작을 할 수 있다
 - [ ] Cypher 기본 문법으로 CRUD를 수행할 수 있다
 - [ ] 관계형 DB와 그래프 DB의 차이를 이해할 수 있다
+- [ ] Neo4j와 Memgraph의 차이점을 설명할 수 있다
 
 #### 핵심 개념
 
@@ -104,9 +105,22 @@ MATCH (u:User {name: 'Kim'})-[:FRIEND*3]->(friend)
 RETURN DISTINCT friend.name
 ```
 
-**2. Neo4j 설치 & 설정**
+**2. 그래프 DB 설치 & 설정**
+
+**Neo4j vs Memgraph 비교**
+
+| 항목 | Neo4j | Memgraph |
+|------|-------|----------|
+| 라이선스 | Community (무료) / Enterprise | 완전 무료 (BSL) |
+| 쿼리 언어 | Cypher | Cypher (호환) |
+| 성능 | 디스크 기반 | 인메모리 (빠름) |
+| 클라우드 | Aura (무료 티어 있음) | Cloud (무료 티어) |
+| 알고리즘 | GDS (유료) | MAGE (무료) |
+| 시각화 | Bloom (유료) | Lab (무료) |
+| 추천 | 학습용, 프로덕션 | 비용 민감, 고성능 필요 시 |
+
 ```bash
-# Docker로 설치 (권장)
+# Option 1: Neo4j Docker (권장 - 생태계 풍부)
 docker run \
     --name neo4j \
     -p 7474:7474 -p 7687:7687 \
@@ -117,6 +131,18 @@ docker run \
 # 접속
 # Browser: http://localhost:7474
 # Bolt: bolt://localhost:7687
+
+# Option 2: Memgraph Docker (무료 대안 - 고성능)
+docker run \
+    --name memgraph \
+    -p 7687:7687 -p 3000:3000 \
+    memgraph/memgraph-platform
+
+# 접속
+# Memgraph Lab: http://localhost:3000
+# Bolt: bolt://localhost:7687
+
+# 💡 Cypher 문법이 동일하므로, 어느 것을 선택해도 학습 내용 적용 가능
 ```
 
 **3. Cypher 기초**
@@ -420,8 +446,20 @@ CREATE (o)-[:CONTAINS {quantity: toInteger(row.quantity)}]->(p)
 
 #### 핵심 개념
 
-**1. Graph Data Science (GDS) 라이브러리**
+**1. 그래프 알고리즘 라이브러리**
+
+> **Neo4j GDS** (Graph Data Science) 또는 **Memgraph MAGE** 사용
+>
+> | 항목 | Neo4j GDS | Memgraph MAGE |
+> |------|-----------|---------------|
+> | 비용 | Enterprise (유료) | 완전 무료 |
+> | 알고리즘 | 65+ 알고리즘 | 40+ 알고리즘 |
+> | 설치 | 별도 플러그인 | 기본 포함 |
+> | Cypher 호환 | ✅ | ✅ (일부 문법 차이) |
+
 ```cypher
+-- Neo4j GDS 사용 시 --
+
 // GDS 설치 확인
 CALL gds.list()
 
@@ -438,6 +476,21 @@ CALL gds.graph.project(
 
 // 프로젝션 확인
 CALL gds.graph.list()
+```
+
+```cypher
+-- Memgraph MAGE 사용 시 (무료 대안) --
+
+// MAGE 모듈 확인
+CALL mg.procedures() YIELD name
+WHERE name STARTS WITH 'pagerank' OR name STARTS WITH 'community'
+RETURN name;
+
+// Memgraph는 프로젝션 없이 직접 쿼리 가능
+// 예: PageRank
+CALL pagerank.get() YIELD node, rank
+RETURN node.name, rank
+ORDER BY rank DESC LIMIT 10;
 ```
 
 **2. 중심성 (Centrality)**
@@ -558,8 +611,13 @@ RETURN path
 산출물:
 - Cypher 스크립트
 - 분석 결과 리포트
-- 시각화 (Neo4j Bloom 또는 Python)
+- 시각화 (Neo4j Browser, Memgraph Lab, 또는 Python)
 - 비즈니스 인사이트 3개
+
+> 💡 **시각화 도구 선택:**
+> - Neo4j Bloom: 유료 (Enterprise)
+> - Memgraph Lab: **무료** - http://localhost:3000
+> - Python (NetworkX/PyVis): 무료, 커스터마이징 가능
 ```
 
 #### 평가 기준
@@ -833,12 +891,15 @@ CALL apoc.periodic.iterate(
 요구사항:
 1. 다중 소스 통합:
    - CSV 로드
-   - 뉴스에서 기업명 추출 (간단한 NER)
+   - 뉴스에서 기업명 추출 (NER)
+     - 영어: spaCy, Hugging Face Transformers
+     - **한국어: KoNLPy (Okt, Komoran), Kiwi, Pororo**
 2. Entity Resolution:
-   - 기업명 정규화
+   - 기업명 정규화 (삼성전자 = Samsung = SEC)
    - 중복 통합
 3. 관계 추출:
    - 뉴스에서 관계 추론 (키워드 기반)
+   - 한국어 뉴스 처리 시 형태소 분석 활용
 4. 품질 관리:
    - 고아 노드 제거
    - 무결성 검사
@@ -860,6 +921,15 @@ CALL apoc.periodic.iterate(
 | 관계 추출 | 의미 있는 관계 | 20% |
 | 품질 관리 | 검증 쿼리 5개 | 20% |
 | 문서화 | 파이프라인 설명 | 10% |
+
+#### 추천 자료 (한국어 NLP)
+
+| 유형 | 제목 | 링크 |
+|------|------|------|
+| 라이브러리 | KoNLPy (한국어 NLP) | https://konlpy.org/ko/latest/ |
+| 라이브러리 | Kiwi (빠른 형태소 분석) | https://github.com/bab2min/Kiwi |
+| 라이브러리 | Pororo (카카오브레인) | https://github.com/kakaobrain/pororo |
+| 튜토리얼 | 한국어 NER 실습 | https://wikidocs.net/30682 |
 
 ---
 
