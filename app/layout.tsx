@@ -1,4 +1,5 @@
 import './globals.css'
+import SessionProvider from '@/components/SessionProvider'
 
 export const metadata = {
   title: 'FDE Academy - Forward Deployed Engineer 교육 과정',
@@ -8,7 +9,9 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body className="bg-white text-gray-900">{children}</body>
+      <body className="bg-white text-gray-900">
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   )
 }

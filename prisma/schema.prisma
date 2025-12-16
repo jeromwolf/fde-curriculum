@@ -1,0 +1,149 @@
+// Prisma Schema for FDE Academy
+// PostgreSQL Database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// User Management (NextAuth 호환)
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+
+  // FDE Academy 전용 필드
+  accessLevel   AccessLevel @default(FREE)
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  progress      Progress[]
+  subscription  Subscription?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([email])
+  @@map("users")
+}
+
+// NextAuth Account (OAuth)
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+// NextAuth Session
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// NextAuth Verification Token
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================
+// Learning Progress (학습 진행)
+// ============================================
+
+model Progress {
+  id        String   @id @default(cuid())
+  userId    String
+  taskId    String   // 'iterator-protocol-video', 'custom-iterator-code' 등
+  weekSlug  String   // 'python-advanced'
+
+  completed Boolean  @default(false)
+  score     Int?     // 퀴즈 점수 (0-100)
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, taskId])
+  @@index([userId])
+  @@index([weekSlug])
+  @@map("progress")
+}
+
+// ============================================
+// Subscription (구독 관리)
+// ============================================
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  plan          AccessLevel @default(FREE)
+  status        SubStatus   @default(ACTIVE)
+
+  // 결제 정보
+  priceMonthly  Int?        // 월 구독료 (원)
+  paymentMethod String?     // 'card', 'bank', etc.
+
+  // 기간
+  startDate     DateTime    @default(now())
+  endDate       DateTime?
+  cancelledAt   DateTime?
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("subscriptions")
+}
+
+// ============================================
+// Enums
+// ============================================
+
+enum AccessLevel {
+  FREE       // 무료 (Phase 1 일부)
+  BASIC      // 베이직 (Phase 1-2)
+  PRO        // 프로 (Phase 1-4)
+  ENTERPRISE // 엔터프라이즈 (전체)
+}
+
+enum SubStatus {
+  ACTIVE     // 활성
+  CANCELLED  // 해지됨
+  EXPIRED    // 만료됨
+  PAUSED     // 일시정지
+}

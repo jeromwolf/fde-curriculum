@@ -35,6 +35,35 @@ FDE (Forward Deployed Engineer) 교육 플랫폼의 커리큘럼을 웹으로 �
 - **Typography**: @tailwindcss/typography
 - **Deployment**: Vercel
 
+## 주간 콘텐츠 제작 현황
+
+> Phase 3 (Knowledge Graph)에 대한 요청이 많아 여기부터 콘텐츠를 제작 중입니다.
+
+### Phase 3: Knowledge Graph (우선 제작)
+
+| Week | 주제 | 상태 | Tasks |
+|------|------|------|-------|
+| 1 | 그래프 이론 & Neo4j 입문 | **완료** | 49개 (video 12, reading 9, code 18, quiz 10) |
+| 2 | Cypher 심화 & 패턴 매칭 | 대기 | - |
+| 3 | 온톨로지 기초 (RDF/OWL) | 대기 | - |
+| 4 | SPARQL & Triple Store | 대기 | - |
+| 5 | Knowledge Graph 구축 | 대기 | - |
+| 6 | 그래프 알고리즘 | 대기 | - |
+| 7 | GraphRAG & LLM 통합 | 대기 | - |
+| 8 | 캡스톤 프로젝트 | 대기 | - |
+
+### Week 1 상세 (그래프 이론 & Neo4j 입문)
+
+| Day | 주제 | 시간 |
+|-----|------|------|
+| 1 | 그래프 데이터 모델 기초 | 150분 |
+| 2 | Neo4j 환경 설정 & 첫 실행 | 140분 |
+| 3 | Cypher 기초 CRUD | 160분 |
+| 4 | Cypher 패턴 매칭 | 150분 |
+| 5 | Weekly Project: 소셜 네트워크 그래프 | 180분 |
+
+**총 학습 시간**: 720분 (12시간)
+
 ## 프로젝트 구조
 
 ```
@@ -42,6 +71,12 @@ fde-curriculum-simple/
 ├── app/
 │   ├── page.tsx              # 메인 커리큘럼 페이지
 │   └── phase/[id]/page.tsx   # Phase 상세 페이지
+├── lib/curriculum/
+│   ├── index.ts              # 커리큘럼 진입점
+│   ├── types.ts              # 타입 정의
+│   └── weeks/
+│       ├── python-advanced.ts # Phase 1 Week 1
+│       └── graph-intro.ts     # Phase 3 Week 1 (146KB)
 ├── docs/
 │   ├── PHASE1_DETAILED.md    # Phase 1 상세 커리큘럼
 │   ├── PHASE2_DETAILED.md    # Phase 2 상세 커리큘럼
@@ -50,7 +85,7 @@ fde-curriculum-simple/
 │   ├── PHASE5_DETAILED.md    # Phase 5 상세 커리큘럼
 │   ├── PHASE6_DETAILED.md    # Phase 6 상세 커리큘럼
 │   └── SIMULATORS.md         # 시뮬레이터 목록
-└── ...
+└── CLAUDE.md                 # 개발 로그
 ```
 
 ## 실행 방법
