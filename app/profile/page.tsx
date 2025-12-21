@@ -6,6 +6,15 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
+interface Service {
+  id: string
+  name: string
+  description: string | null
+  url: string | null
+  logoUrl: string | null
+  status: 'ACTIVE' | 'INACTIVE' | 'DEVELOPMENT'
+}
+
 interface Profile {
   id: string
   headline: string | null
@@ -37,6 +46,7 @@ interface Profile {
       category: string | null
     }
   }[]
+  services: Service[]
   user: {
     id: string
     name: string | null
@@ -90,6 +100,12 @@ const DEFAULT_SKILLS = [
   { name: 'LangChain', category: 'AI' },
 ]
 
+const SERVICE_STATUS = [
+  { value: 'ACTIVE', label: '운영 중', color: 'bg-green-100 text-green-700' },
+  { value: 'DEVELOPMENT', label: '개발 중', color: 'bg-yellow-100 text-yellow-700' },
+  { value: 'INACTIVE', label: '중단', color: 'bg-gray-100 text-gray-700' },
+]
+
 export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
@@ -127,6 +143,10 @@ export default function ProfilePage() {
   })
 
   const [skills, setSkills] = useState<{ name: string; level: string }[]>([])
+  const [services, setServices] = useState<Service[]>([])
+  const [newService, setNewService] = useState({ name: '', description: '', url: '', status: 'ACTIVE' })
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
+  const [isAddingService, setIsAddingService] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -172,6 +192,7 @@ export default function ProfilePage() {
             level: s.level,
           })) || []
         )
+        setServices(data.profile.services || [])
       } else if (data.user) {
         setFormData((prev) => ({
           ...prev,
@@ -249,6 +270,67 @@ export default function ProfilePage() {
 
   const updateSkillLevel = (skillName: string, level: string) => {
     setSkills(skills.map((s) => (s.name === skillName ? { ...s, level } : s)))
+  }
+
+  // 서비스 관련 함수
+  const addService = async () => {
+    if (!newService.name.trim()) {
+      setMessage({ type: 'error', text: '서비스 이름을 입력해주세요' })
+      return
+    }
+
+    try {
+      const res = await fetch('/api/profile/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newService),
+      })
+
+      if (!res.ok) throw new Error('서비스 추가 실패')
+
+      const data = await res.json()
+      setServices([data.service, ...services])
+      setNewService({ name: '', description: '', url: '', status: 'ACTIVE' })
+      setIsAddingService(false)
+      setMessage({ type: 'success', text: '서비스가 추가되었습니다' })
+    } catch (error) {
+      setMessage({ type: 'error', text: '서비스 추가 중 오류가 발생했습니다' })
+    }
+  }
+
+  const updateService = async (service: Service) => {
+    try {
+      const res = await fetch('/api/profile/services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(service),
+      })
+
+      if (!res.ok) throw new Error('서비스 수정 실패')
+
+      setServices(services.map((s) => (s.id === service.id ? service : s)))
+      setEditingServiceId(null)
+      setMessage({ type: 'success', text: '서비스가 수정되었습니다' })
+    } catch (error) {
+      setMessage({ type: 'error', text: '서비스 수정 중 오류가 발생했습니다' })
+    }
+  }
+
+  const deleteService = async (id: string) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return
+
+    try {
+      const res = await fetch(`/api/profile/services?id=${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) throw new Error('서비스 삭제 실패')
+
+      setServices(services.filter((s) => s.id !== id))
+      setMessage({ type: 'success', text: '서비스가 삭제되었습니다' })
+    } catch (error) {
+      setMessage({ type: 'error', text: '서비스 삭제 중 오류가 발생했습니다' })
+    }
   }
 
   if (status === 'loading' || isLoading) {
@@ -598,36 +680,239 @@ export default function ProfilePage() {
 
             {/* 링크 탭 */}
             {activeTab === 'links' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { key: 'githubUrl', label: 'GitHub', icon: '🐙', placeholder: 'https://github.com/username' },
-                  { key: 'linkedinUrl', label: 'LinkedIn', icon: '💼', placeholder: 'https://linkedin.com/in/username' },
-                  { key: 'portfolioUrl', label: '포트폴리오', icon: '🎨', placeholder: 'https://portfolio.com' },
-                  { key: 'blogUrl', label: '블로그', icon: '📝', placeholder: 'https://blog.com' },
-                  { key: 'youtubeUrl', label: 'YouTube', icon: '📺', placeholder: 'https://youtube.com/@channel' },
-                  { key: 'twitterUrl', label: 'Twitter/X', icon: '🐦', placeholder: 'https://x.com/username' },
-                  { key: 'companyUrl', label: '회사 홈페이지', icon: '🏢', placeholder: 'https://company.com' },
-                  { key: 'personalUrl', label: '개인 웹사이트', icon: '🌐', placeholder: 'https://mysite.com' },
-                ].map((link) => (
-                  <div key={link.key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{link.icon} {link.label}</label>
-                    {isEditing ? (
-                      <input
-                        type="url"
-                        value={(formData as any)[link.key] || ''}
-                        onChange={(e) => setFormData({ ...formData, [link.key]: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
-                        placeholder={link.placeholder}
-                      />
-                    ) : (formData as any)[link.key] ? (
-                      <a href={(formData as any)[link.key]} target="_blank" rel="noopener noreferrer" className="text-[#03EF62] hover:underline break-all">
-                        {(formData as any)[link.key]}
-                      </a>
-                    ) : (
-                      <p className="text-gray-500">-</p>
+              <div className="space-y-8">
+                {/* 기본 링크 */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">소셜 및 웹사이트</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'githubUrl', label: 'GitHub', icon: '🐙', placeholder: 'https://github.com/username' },
+                      { key: 'linkedinUrl', label: 'LinkedIn', icon: '💼', placeholder: 'https://linkedin.com/in/username' },
+                      { key: 'portfolioUrl', label: '포트폴리오', icon: '🎨', placeholder: 'https://portfolio.com' },
+                      { key: 'blogUrl', label: '블로그', icon: '📝', placeholder: 'https://blog.com' },
+                      { key: 'youtubeUrl', label: 'YouTube', icon: '📺', placeholder: 'https://youtube.com/@channel' },
+                      { key: 'twitterUrl', label: 'Twitter/X', icon: '🐦', placeholder: 'https://x.com/username' },
+                      { key: 'companyUrl', label: '회사 홈페이지', icon: '🏢', placeholder: 'https://company.com' },
+                      { key: 'personalUrl', label: '개인 웹사이트', icon: '🌐', placeholder: 'https://mysite.com' },
+                    ].map((link) => (
+                      <div key={link.key}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{link.icon} {link.label}</label>
+                        {isEditing ? (
+                          <input
+                            type="url"
+                            value={(formData as any)[link.key] || ''}
+                            onChange={(e) => setFormData({ ...formData, [link.key]: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
+                            placeholder={link.placeholder}
+                          />
+                        ) : (formData as any)[link.key] ? (
+                          <a href={(formData as any)[link.key]} target="_blank" rel="noopener noreferrer" className="text-[#03EF62] hover:underline break-all">
+                            {(formData as any)[link.key]}
+                          </a>
+                        ) : (
+                          <p className="text-gray-500">-</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 내 서비스 섹션 */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">🚀 내 서비스</h3>
+                    {!isAddingService && (
+                      <button
+                        onClick={() => setIsAddingService(true)}
+                        className="px-4 py-2 text-sm bg-[#03EF62] text-black font-medium rounded-lg hover:bg-[#02d654] transition"
+                      >
+                        + 서비스 추가
+                      </button>
                     )}
                   </div>
-                ))}
+
+                  {/* 새 서비스 추가 폼 */}
+                  {isAddingService && (
+                    <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">서비스 이름 *</label>
+                          <input
+                            type="text"
+                            value={newService.name}
+                            onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
+                            placeholder="예: 나의 SaaS 서비스"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
+                          <textarea
+                            value={newService.description}
+                            onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
+                            rows={2}
+                            placeholder="서비스에 대한 간단한 설명"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">URL</label>
+                          <input
+                            type="url"
+                            value={newService.url}
+                            onChange={(e) => setNewService({ ...newService, url: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
+                            placeholder="https://myservice.com"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">상태</label>
+                          <select
+                            value={newService.status}
+                            onChange={(e) => setNewService({ ...newService, status: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
+                          >
+                            {SERVICE_STATUS.map((s) => (
+                              <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="flex gap-2 pt-2">
+                          <button
+                            onClick={addService}
+                            className="px-4 py-2 bg-[#03EF62] text-black font-medium rounded-lg hover:bg-[#02d654] transition"
+                          >
+                            추가
+                          </button>
+                          <button
+                            onClick={() => {
+                              setIsAddingService(false)
+                              setNewService({ name: '', description: '', url: '', status: 'ACTIVE' })
+                            }}
+                            className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                          >
+                            취소
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 서비스 목록 */}
+                  <div className="space-y-3">
+                    {services.length > 0 ? services.map((service) => {
+                      const statusInfo = SERVICE_STATUS.find((s) => s.value === service.status)
+                      const isEditingThis = editingServiceId === service.id
+
+                      return (
+                        <div key={service.id} className="p-4 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition">
+                          {isEditingThis ? (
+                            <div className="space-y-3">
+                              <input
+                                type="text"
+                                value={service.name}
+                                onChange={(e) => setServices(services.map((s) => s.id === service.id ? { ...s, name: e.target.value } : s))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent font-medium"
+                              />
+                              <textarea
+                                value={service.description || ''}
+                                onChange={(e) => setServices(services.map((s) => s.id === service.id ? { ...s, description: e.target.value } : s))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
+                                rows={2}
+                                placeholder="설명"
+                              />
+                              <input
+                                type="url"
+                                value={service.url || ''}
+                                onChange={(e) => setServices(services.map((s) => s.id === service.id ? { ...s, url: e.target.value } : s))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
+                                placeholder="URL"
+                              />
+                              <select
+                                value={service.status}
+                                onChange={(e) => setServices(services.map((s) => s.id === service.id ? { ...s, status: e.target.value as Service['status'] } : s))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
+                              >
+                                {SERVICE_STATUS.map((s) => (
+                                  <option key={s.value} value={s.value}>{s.label}</option>
+                                ))}
+                              </select>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => updateService(service)}
+                                  className="px-3 py-1 bg-[#03EF62] text-black text-sm font-medium rounded hover:bg-[#02d654] transition"
+                                >
+                                  저장
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingServiceId(null)
+                                    fetchProfile() // 원래 상태로 복원
+                                  }}
+                                  className="px-3 py-1 text-gray-600 text-sm hover:text-gray-900"
+                                >
+                                  취소
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-semibold text-gray-900">{service.name}</h4>
+                                    <span className={`px-2 py-0.5 text-xs rounded-full ${statusInfo?.color}`}>
+                                      {statusInfo?.label}
+                                    </span>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-sm text-gray-600 mt-1">{service.description}</p>
+                                  )}
+                                  {service.url && (
+                                    <a
+                                      href={service.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-[#03EF62] hover:underline mt-1 inline-block"
+                                    >
+                                      {service.url}
+                                    </a>
+                                  )}
+                                </div>
+                                <div className="flex gap-1 ml-2">
+                                  <button
+                                    onClick={() => setEditingServiceId(service.id)}
+                                    className="p-1 text-gray-400 hover:text-gray-600"
+                                    title="수정"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => deleteService(service.id)}
+                                    className="p-1 text-gray-400 hover:text-red-500"
+                                    title="삭제"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )
+                    }) : (
+                      <p className="text-gray-500 text-center py-4">
+                        아직 등록된 서비스가 없습니다.
+                        <br />
+                        <span className="text-sm">운영 중인 서비스나 프로젝트를 추가해보세요!</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
           </div>
