@@ -15,7 +15,7 @@ interface Member {
   profile: {
     headline: string | null
     bio: string | null
-    roleType: string
+    roleType: string | null
     jobTitle: string | null
     company: string | null
     location: string | null
@@ -28,7 +28,7 @@ interface Member {
     githubUrl: string | null
     linkedinUrl: string | null
     skills: {
-      id: string
+      skillId: string
       level: string
       skill: {
         id: string
@@ -488,7 +488,7 @@ export default function MembersPage() {
                       <div className="flex flex-wrap gap-1">
                         {member.profile.skills.slice(0, 4).map((skill) => (
                           <span
-                            key={skill.id}
+                            key={skill.skillId}
                             className="px-2 py-0.5 bg-[#03EF62]/10 text-[#02a846] rounded text-xs font-medium"
                           >
                             {skill.skill.name}
