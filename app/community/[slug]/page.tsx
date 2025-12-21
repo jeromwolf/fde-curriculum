@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -61,8 +61,9 @@ interface Post {
   }
 }
 
-export default function PostDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = use(params)
+export default function PostDetailPage() {
+  const params = useParams()
+  const slug = params.slug as string
   const { data: session } = useSession()
   const router = useRouter()
 
@@ -77,12 +78,12 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    fetchPost()
-  }, [resolvedParams.slug])
+    if (slug) fetchPost()
+  }, [slug])
 
   const fetchPost = async () => {
     try {
-      const res = await fetch(`/api/community/posts/${resolvedParams.slug}`)
+      const res = await fetch(`/api/community/posts/${slug}`)
       const data = await res.json()
 
       if (!res.ok) {
@@ -101,12 +102,12 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
 
   const handleLike = async () => {
     if (!session) {
-      router.push(`/auth/login?callbackUrl=/community/${resolvedParams.slug}`)
+      router.push(`/auth/login?callbackUrl=/community/${slug}`)
       return
     }
 
     try {
-      const res = await fetch(`/api/community/posts/${resolvedParams.slug}/like`, {
+      const res = await fetch(`/api/community/posts/${slug}/like`, {
         method: 'POST',
       })
       const data = await res.json()
@@ -122,12 +123,12 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
 
   const handleBookmark = async () => {
     if (!session) {
-      router.push(`/auth/login?callbackUrl=/community/${resolvedParams.slug}`)
+      router.push(`/auth/login?callbackUrl=/community/${slug}`)
       return
     }
 
     try {
-      const res = await fetch(`/api/community/posts/${resolvedParams.slug}/bookmark`, {
+      const res = await fetch(`/api/community/posts/${slug}/bookmark`, {
         method: 'POST',
       })
       const data = await res.json()
@@ -143,7 +144,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
   const handleComment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!session) {
-      router.push(`/auth/login?callbackUrl=/community/${resolvedParams.slug}`)
+      router.push(`/auth/login?callbackUrl=/community/${slug}`)
       return
     }
 
@@ -151,7 +152,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
 
     setIsSubmitting(true)
     try {
-      const res = await fetch(`/api/community/posts/${resolvedParams.slug}/comments`, {
+      const res = await fetch(`/api/community/posts/${slug}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: commentContent.trim() }),
@@ -170,7 +171,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
 
   const handleReply = async (parentId: string) => {
     if (!session) {
-      router.push(`/auth/login?callbackUrl=/community/${resolvedParams.slug}`)
+      router.push(`/auth/login?callbackUrl=/community/${slug}`)
       return
     }
 
@@ -178,7 +179,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
 
     setIsSubmitting(true)
     try {
-      const res = await fetch(`/api/community/posts/${resolvedParams.slug}/comments`, {
+      const res = await fetch(`/api/community/posts/${slug}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: replyContent.trim(), parentId }),
@@ -200,7 +201,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ slug: str
     if (!confirm('정말 삭제하시겠습니까?')) return
 
     try {
-      const res = await fetch(`/api/community/posts/${resolvedParams.slug}`, {
+      const res = await fetch(`/api/community/posts/${slug}`, {
         method: 'DELETE',
       })
 
