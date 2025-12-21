@@ -12,6 +12,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
+# 토스페이먼츠 클라이언트 키 (빌드 시점에 필요)
+ENV NEXT_PUBLIC_TOSS_CLIENT_KEY="test_ck_lpP2YxJ4K877JAdv7KX8RGZwXLOb"
 RUN npx prisma generate
 RUN npm run build
 
