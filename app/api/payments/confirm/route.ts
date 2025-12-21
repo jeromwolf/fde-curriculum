@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { tossPayments, PRICING, PlanType } from '@/lib/services/toss-payments'
+import { sendPaymentConfirmationEmail } from '@/lib/services/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,10 +93,30 @@ export async function POST(request: NextRequest) {
     })
 
     // 사용자 accessLevel 업데이트
-    await prisma.user.update({
+    const user = await prisma.user.update({
       where: { id: session.user.id },
       data: { accessLevel: plan as PlanType },
     })
+
+    // 결제 완료 이메일 발송 (비동기, 실패해도 결제는 성공)
+    if (user.email) {
+      sendPaymentConfirmationEmail({
+        email: user.email,
+        name: user.name || user.email.split('@')[0],
+        planName: `${planInfo.name} 플랜`,
+        amount: payment.totalAmount,
+        orderId: payment.orderId,
+        paymentMethod: payment.method,
+      })
+        .then((result) => {
+          if (result.success) {
+            console.log('Payment confirmation email sent to:', user.email)
+          } else {
+            console.warn('Payment email failed:', result.error)
+          }
+        })
+        .catch((err) => console.error('Payment email error:', err))
+    }
 
     return NextResponse.json({
       success: true,

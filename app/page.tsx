@@ -139,8 +139,9 @@ export default function LandingPage() {
           </Link>
           <div className="hidden md:flex items-center gap-8">
             <Link href="/curriculum" className="text-gray-600 hover:text-gray-900 transition">커리큘럼</Link>
-            <Link href="#features" className="text-gray-600 hover:text-gray-900 transition">프로그램</Link>
-            <Link href="#testimonials" className="text-gray-600 hover:text-gray-900 transition">후기</Link>
+            <Link href="/community" className="text-gray-600 hover:text-gray-900 transition">커뮤니티</Link>
+            <Link href="/members" className="text-gray-600 hover:text-gray-900 transition">회원</Link>
+            <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition">요금제</Link>
             <AuthButton />
           </div>
         </div>
@@ -164,7 +165,7 @@ export default function LandingPage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#03EF62]/20 backdrop-blur-sm rounded-full text-[#03EF62] text-sm font-medium mb-6">
               <span className="w-2 h-2 bg-[#03EF62] rounded-full animate-pulse" />
-              2025년 상반기 모집 중
+              2026년 상반기 모집 중
             </div>
 
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
@@ -182,7 +183,7 @@ export default function LandingPage() {
 
             <div className="flex flex-wrap gap-4">
               <Link
-                href="/learn/week/python-advanced"
+                href="/learn/phase/3"
                 className="px-8 py-4 bg-[#03EF62] text-gray-900 rounded-xl font-semibold text-lg hover:bg-[#00D956] transition shadow-lg shadow-[#03EF62]/30"
               >
                 무료 체험 시작

@@ -23,8 +23,8 @@ const adminPaths = [
 ]
 
 // 유료 회원만 접근 가능한 경로
+// Phase 3는 무료 체험용으로 개방
 const premiumPaths = [
-  '/learn/phase/3',
   '/learn/phase/4',
   '/learn/phase/5',
   '/learn/phase/6',

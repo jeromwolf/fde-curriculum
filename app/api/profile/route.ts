@@ -22,6 +22,21 @@ export async function GET() {
             skill: true,
           },
         },
+        experiences: {
+          orderBy: { startDate: 'desc' },
+        },
+        educations: {
+          orderBy: { startDate: 'desc' },
+        },
+        projects: {
+          orderBy: { createdAt: 'desc' },
+        },
+        services: {
+          orderBy: { createdAt: 'desc' },
+        },
+        certifications: {
+          orderBy: { issueDate: 'desc' },
+        },
         user: {
           select: {
             id: true,
@@ -72,46 +87,80 @@ export async function PUT(request: NextRequest) {
 
     const data = await request.json()
     const {
+      // 기본 정보
+      headline,
       bio,
+      roleType,
+      industry,
+      location,
+      // 경력 정보
       jobTitle,
       company,
       yearsOfExp,
+      // 네트워킹 정보
       isOpenToCollab,
+      lookingFor,
       interests,
+      canOffer,
+      // 외부 링크
       githubUrl,
       linkedinUrl,
       portfolioUrl,
       blogUrl,
+      youtubeUrl,
+      twitterUrl,
+      companyUrl,
+      personalUrl,
     } = data
 
     // 프로필 업데이트 또는 생성
     const profile = await prisma.profile.upsert({
       where: { userId: session.user.id },
       update: {
+        headline,
         bio,
+        roleType: roleType || 'DEVELOPER',
+        industry,
+        location,
         jobTitle,
         company,
         yearsOfExp: yearsOfExp ? parseInt(yearsOfExp) : null,
         isOpenToCollab: isOpenToCollab ?? false,
+        lookingFor: lookingFor || [],
         interests: interests || [],
+        canOffer: canOffer || [],
         githubUrl,
         linkedinUrl,
         portfolioUrl,
         blogUrl,
+        youtubeUrl,
+        twitterUrl,
+        companyUrl,
+        personalUrl,
         updatedAt: new Date(),
       },
       create: {
         userId: session.user.id,
+        headline,
         bio,
+        roleType: roleType || 'DEVELOPER',
+        industry,
+        location,
         jobTitle,
         company,
         yearsOfExp: yearsOfExp ? parseInt(yearsOfExp) : null,
         isOpenToCollab: isOpenToCollab ?? false,
+        lookingFor: lookingFor || [],
         interests: interests || [],
+        canOffer: canOffer || [],
         githubUrl,
         linkedinUrl,
         portfolioUrl,
         blogUrl,
+        youtubeUrl,
+        twitterUrl,
+        companyUrl,
+        personalUrl,
       },
       include: {
         skills: {
@@ -119,6 +168,11 @@ export async function PUT(request: NextRequest) {
             skill: true,
           },
         },
+        experiences: true,
+        educations: true,
+        projects: true,
+        services: true,
+        certifications: true,
       },
     })
 

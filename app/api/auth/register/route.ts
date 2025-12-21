@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import prisma from '@/lib/prisma'
 import { checkRateLimit, getIpFromRequest, createRateLimitKey } from '@/lib/rate-limiter'
 import { isValidEmail, checkPasswordStrength, sanitizeInput, truncate } from '@/lib/security'
+import { sendWelcomeEmail } from '@/lib/services/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +85,17 @@ export async function POST(request: NextRequest) {
         userId: user.id,
       },
     })
+
+    // 환영 이메일 발송 (비동기, 실패해도 회원가입은 성공)
+    sendWelcomeEmail(user.email, user.name || user.email.split('@')[0])
+      .then((result) => {
+        if (result.success) {
+          console.log('Welcome email sent to:', user.email)
+        } else {
+          console.warn('Welcome email failed:', result.error)
+        }
+      })
+      .catch((err) => console.error('Welcome email error:', err))
 
     return NextResponse.json({
       success: true,
