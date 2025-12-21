@@ -21,6 +21,9 @@ model User {
   image         String?
   emailVerified DateTime?
 
+  // 비밀번호 인증용 (OAuth 사용자는 null)
+  password      String?
+
   // FDE Academy 전용 필드
   accessLevel   AccessLevel @default(FREE)
 
@@ -29,6 +32,16 @@ model User {
   sessions      Session[]
   progress      Progress[]
   subscription  Subscription?
+  profile       Profile?
+
+  // Community Relations
+  posts         Post[]
+  comments      Comment[]
+  postLikes     PostLike[]
+  commentLikes  CommentLike[]
+  bookmarks     Bookmark[]
+  mentionedIn   Mention[]  @relation("MentionedUser")
+  mentionsMade  Mention[]  @relation("MentionerUser")
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -80,6 +93,75 @@ model VerificationToken {
 }
 
 // ============================================
+// Profile (리멤버형 프로필)
+// ============================================
+
+model Profile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 기본 정보
+  bio           String?   @db.Text  // 자기소개
+
+  // 경력 정보
+  jobTitle      String?   // 현재 직업
+  company       String?   // 회사명
+  yearsOfExp    Int?      // 경력 연차
+
+  // 협업 정보
+  isOpenToCollab  Boolean @default(false)  // 협업 가능 여부
+  interests       String[]  // 관심 분야 (배열)
+
+  // 외부 링크
+  githubUrl     String?
+  linkedinUrl   String?
+  portfolioUrl  String?
+  blogUrl       String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  skills        UserSkill[]
+
+  @@map("profiles")
+}
+
+// 기술 스택 마스터
+model Skill {
+  id        String   @id @default(cuid())
+  name      String   @unique  // 'Python', 'SQL', 'Neo4j' 등
+  category  String?  // 'Language', 'Database', 'Framework' 등
+  iconUrl   String?  // 아이콘 URL
+
+  users     UserSkill[]
+
+  @@map("skills")
+}
+
+// 사용자-기술 매핑
+model UserSkill {
+  id        String   @id @default(cuid())
+  profileId String
+  skillId   String
+  level     SkillLevel @default(BEGINNER)
+
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, skillId])
+  @@map("user_skills")
+}
+
+enum SkillLevel {
+  BEGINNER      // 초급
+  INTERMEDIATE  // 중급
+  ADVANCED      // 고급
+  EXPERT        // 전문가
+}
+
+// ============================================
 // Learning Progress (학습 진행)
 // ============================================
 
@@ -104,7 +186,7 @@ model Progress {
 }
 
 // ============================================
-// Subscription (구독 관리)
+// Subscription & Payment (구독 및 결제)
 // ============================================
 
 model Subscription {
@@ -117,17 +199,250 @@ model Subscription {
 
   // 결제 정보
   priceMonthly  Int?        // 월 구독료 (원)
-  paymentMethod String?     // 'card', 'bank', etc.
+  paymentMethod String?     // 'CARD', 'BANK', 'VIRTUAL_ACCOUNT'
+
+  // 토스페이먼츠 연동
+  tossCustomerKey String?   // 토스 고객키
+  tossBillingKey  String?   // 자동결제용 빌링키
 
   // 기간
-  startDate     DateTime    @default(now())
-  endDate       DateTime?
-  cancelledAt   DateTime?
+  startDate       DateTime    @default(now())
+  endDate         DateTime?
+  nextBillingDate DateTime?   // 다음 결제일
+  cancelledAt     DateTime?
+
+  // Relations
+  payments      Payment[]
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   @@map("subscriptions")
+}
+
+// 결제 내역
+model Payment {
+  id              String   @id @default(cuid())
+  subscriptionId  String
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+
+  // 토스페이먼츠 정보
+  tossPaymentKey  String   @unique  // 결제 고유키
+  orderId         String   @unique  // 주문번호
+  orderName       String             // 주문명
+
+  // 금액
+  amount          Int      // 결제 금액
+  discountAmount  Int      @default(0)  // 할인 금액
+
+  // 상태
+  status          PaymentStatus @default(READY)
+  method          String?  // CARD, BANK, VIRTUAL_ACCOUNT
+
+  // 카드 정보 (카드 결제 시)
+  cardCompany     String?
+  cardNumber      String?  // 마스킹된 번호
+
+  // 타임스탬프
+  requestedAt     DateTime @default(now())
+  approvedAt      DateTime?
+  cancelledAt     DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  READY            // 결제 대기
+  IN_PROGRESS      // 결제 진행 중
+  DONE             // 결제 완료
+  CANCELED         // 결제 취소
+  PARTIAL_CANCELED // 부분 취소
+  ABORTED          // 결제 승인 실패
+  EXPIRED          // 결제 만료
+}
+
+// ============================================
+// Community (커뮤니티)
+// ============================================
+
+// 카테고리
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique  // 'question', 'project', 'discussion'
+  displayName String             // '질문', '프로젝트 모집', '자유 토론'
+  description String?
+  color       String?  // HEX 색상
+  icon        String?  // 아이콘 이름
+  order       Int      @default(0)
+
+  posts       Post[]
+
+  createdAt   DateTime @default(now())
+
+  @@map("categories")
+}
+
+// 게시글
+model Post {
+  id          String   @id @default(cuid())
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  title       String
+  content     String   @db.Text
+  slug        String   @unique  // URL 슬러그
+
+  // 상태
+  isPublished Boolean  @default(true)
+  isPinned    Boolean  @default(false)  // 공지사항
+  isLocked    Boolean  @default(false)  // 댓글 잠금
+
+  // 통계
+  viewCount   Int      @default(0)
+  likeCount   Int      @default(0)
+  commentCount Int     @default(0)
+
+  // Relations
+  comments    Comment[]
+  likes       PostLike[]
+  bookmarks   Bookmark[]
+  mentions    Mention[]
+  tags        PostTag[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([authorId])
+  @@index([categoryId])
+  @@index([createdAt(sort: Desc)])
+  @@map("posts")
+}
+
+// 댓글
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  content   String   @db.Text
+
+  // 대댓글
+  parentId  String?
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  // 통계
+  likeCount Int      @default(0)
+
+  // Relations
+  likes     CommentLike[]
+  mentions  Mention[]
+
+  isDeleted Boolean  @default(false)  // 소프트 삭제
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+// 게시글 좋아요
+model PostLike {
+  id      String   @id @default(cuid())
+  postId  String
+  userId  String
+
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+}
+
+// 댓글 좋아요
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@map("comment_likes")
+}
+
+// 북마크
+model Bookmark {
+  id      String   @id @default(cuid())
+  postId  String
+  userId  String
+
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("bookmarks")
+}
+
+// 멘션 (@username)
+model Mention {
+  id            String   @id @default(cuid())
+  mentionedId   String   // 멘션된 사용자
+  mentionerId   String   // 멘션한 사용자
+
+  postId        String?
+  commentId     String?
+
+  post          Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment       Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  mentioned     User     @relation("MentionedUser", fields: [mentionedId], references: [id], onDelete: Cascade)
+  mentioner     User     @relation("MentionerUser", fields: [mentionerId], references: [id], onDelete: Cascade)
+
+  isRead        Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+
+  @@map("mentions")
+}
+
+// 태그
+model Tag {
+  id    String   @id @default(cuid())
+  name  String   @unique
+
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  id      String @id @default(cuid())
+  postId  String
+  tagId   String
+
+  post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tagId])
+  @@map("post_tags")
 }
 
 // ============================================
