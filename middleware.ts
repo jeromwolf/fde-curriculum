@@ -118,10 +118,13 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // 3. 인증 체크
+  // 3. 인증 체크 (Auth.js v5 호환)
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    cookieName: process.env.NODE_ENV === 'production'
+      ? '__Secure-authjs.session-token'
+      : 'authjs.session-token',
   })
 
   const isAuthenticated = !!token
