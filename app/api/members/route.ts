@@ -20,6 +20,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const skill = searchParams.get('skill') || ''
     const isOpenToCollab = searchParams.get('openToCollab') === 'true'
+    const roleType = searchParams.get('roleType') || ''
+    const lookingFor = searchParams.get('lookingFor') || ''
+    const canOffer = searchParams.get('canOffer') || ''
 
     const skip = (page - 1) * limit
 
@@ -31,13 +34,16 @@ export async function GET(request: NextRequest) {
       },
     }
 
-    // 검색 조건
+    // 검색 조건 (확장: headline, location, industry 추가)
     if (search) {
       whereClause.OR = [
         { name: { contains: search, mode: 'insensitive' } },
+        { profile: { headline: { contains: search, mode: 'insensitive' } } },
         { profile: { jobTitle: { contains: search, mode: 'insensitive' } } },
         { profile: { company: { contains: search, mode: 'insensitive' } } },
         { profile: { bio: { contains: search, mode: 'insensitive' } } },
+        { profile: { location: { contains: search, mode: 'insensitive' } } },
+        { profile: { industry: { contains: search, mode: 'insensitive' } } },
       ]
     }
 
@@ -46,6 +52,30 @@ export async function GET(request: NextRequest) {
       whereClause.profile = {
         ...whereClause.profile,
         isOpenToCollab: true,
+      }
+    }
+
+    // 역할 유형 필터
+    if (roleType) {
+      whereClause.profile = {
+        ...whereClause.profile,
+        roleType: roleType,
+      }
+    }
+
+    // 찾는 것 필터 (배열에 포함)
+    if (lookingFor) {
+      whereClause.profile = {
+        ...whereClause.profile,
+        lookingFor: { has: lookingFor },
+      }
+    }
+
+    // 제공 가능 필터 (배열에 포함)
+    if (canOffer) {
+      whereClause.profile = {
+        ...whereClause.profile,
+        canOffer: { has: canOffer },
       }
     }
 
@@ -85,11 +115,17 @@ export async function GET(request: NextRequest) {
         createdAt: true,
         profile: {
           select: {
+            headline: true,
             bio: true,
+            roleType: true,
             jobTitle: true,
             company: true,
+            location: true,
+            industry: true,
             yearsOfExp: true,
             isOpenToCollab: true,
+            lookingFor: true,
+            canOffer: true,
             interests: true,
             githubUrl: true,
             linkedinUrl: true,
@@ -98,6 +134,15 @@ export async function GET(request: NextRequest) {
                 skill: true,
               },
               take: 5, // 상위 5개 스킬만
+            },
+            services: {
+              where: { status: 'ACTIVE' },
+              take: 2,
+              select: {
+                id: true,
+                name: true,
+                url: true,
+              },
             },
           },
         },
