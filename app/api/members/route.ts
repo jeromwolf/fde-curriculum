@@ -118,8 +118,16 @@ export async function GET(request: NextRequest) {
             githubUrl: true,
             linkedinUrl: true,
             skills: {
-              include: {
-                skill: true,
+              select: {
+                id: true,
+                level: true,
+                skill: {
+                  select: {
+                    id: true,
+                    name: true,
+                    category: true,
+                  },
+                },
               },
               take: 5, // 상위 5개 스킬만
             },
