@@ -26,71 +26,59 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit
 
+    // 프로필 필터 조건 구성
+    const profileFilter: any = {}
+
+    // 협업 가능 필터
+    if (isOpenToCollab) {
+      profileFilter.isOpenToCollab = true
+    }
+
+    // 역할 유형 필터
+    if (roleType) {
+      profileFilter.roleType = roleType
+    }
+
+    // 찾는 것 필터 (배열에 포함)
+    if (lookingFor) {
+      profileFilter.lookingFor = { has: lookingFor }
+    }
+
+    // 제공 가능 필터 (배열에 포함)
+    if (canOffer) {
+      profileFilter.canOffer = { has: canOffer }
+    }
+
+    // 스킬 필터
+    if (skill) {
+      profileFilter.skills = {
+        some: {
+          skill: {
+            name: { equals: skill, mode: 'insensitive' },
+          },
+        },
+      }
+    }
+
     // 기본 조건
     const whereClause: any = {
       // 프로필이 있는 사용자만 표시
-      profile: {
-        isNot: null,
-      },
+      profile: Object.keys(profileFilter).length > 0
+        ? { is: profileFilter }
+        : { isNot: null },
     }
 
     // 검색 조건 (확장: headline, location, industry 추가)
     if (search) {
       whereClause.OR = [
         { name: { contains: search, mode: 'insensitive' } },
-        { profile: { headline: { contains: search, mode: 'insensitive' } } },
-        { profile: { jobTitle: { contains: search, mode: 'insensitive' } } },
-        { profile: { company: { contains: search, mode: 'insensitive' } } },
-        { profile: { bio: { contains: search, mode: 'insensitive' } } },
-        { profile: { location: { contains: search, mode: 'insensitive' } } },
-        { profile: { industry: { contains: search, mode: 'insensitive' } } },
+        { profile: { is: { headline: { contains: search, mode: 'insensitive' } } } },
+        { profile: { is: { jobTitle: { contains: search, mode: 'insensitive' } } } },
+        { profile: { is: { company: { contains: search, mode: 'insensitive' } } } },
+        { profile: { is: { bio: { contains: search, mode: 'insensitive' } } } },
+        { profile: { is: { location: { contains: search, mode: 'insensitive' } } } },
+        { profile: { is: { industry: { contains: search, mode: 'insensitive' } } } },
       ]
-    }
-
-    // 협업 가능 필터
-    if (isOpenToCollab) {
-      whereClause.profile = {
-        ...whereClause.profile,
-        isOpenToCollab: true,
-      }
-    }
-
-    // 역할 유형 필터
-    if (roleType) {
-      whereClause.profile = {
-        ...whereClause.profile,
-        roleType: roleType,
-      }
-    }
-
-    // 찾는 것 필터 (배열에 포함)
-    if (lookingFor) {
-      whereClause.profile = {
-        ...whereClause.profile,
-        lookingFor: { has: lookingFor },
-      }
-    }
-
-    // 제공 가능 필터 (배열에 포함)
-    if (canOffer) {
-      whereClause.profile = {
-        ...whereClause.profile,
-        canOffer: { has: canOffer },
-      }
-    }
-
-    // 스킬 필터
-    if (skill) {
-      whereClause.profile = {
-        ...whereClause.profile,
-        skills: {
-          some: {
-            skill: {
-              name: { equals: skill, mode: 'insensitive' },
-            },
-          },
-        },
-      }
     }
 
     // 전체 수 조회

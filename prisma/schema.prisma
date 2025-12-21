@@ -154,6 +154,7 @@ enum RoleType {
   DATA_SCIENTIST  // 데이터 사이언티스트
   RESEARCHER      // 연구자/교수
   FOUNDER         // 창업자
+  CEO             // 대표/CEO
   INVESTOR        // 투자자
   STUDENT         // 학생
   OTHER           // 기타

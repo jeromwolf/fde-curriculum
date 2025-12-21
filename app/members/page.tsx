@@ -68,6 +68,7 @@ const ROLE_TYPES = [
   { value: 'DATA_SCIENTIST', label: '데이터 사이언티스트', icon: '📊' },
   { value: 'RESEARCHER', label: '연구자/교수', icon: '🔬' },
   { value: 'FOUNDER', label: '창업자', icon: '🚀' },
+  { value: 'CEO', label: '대표/CEO', icon: '👔' },
   { value: 'INVESTOR', label: '투자자', icon: '💰' },
   { value: 'STUDENT', label: '학생', icon: '📚' },
   { value: 'OTHER', label: '기타', icon: '👤' },
