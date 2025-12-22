@@ -259,9 +259,9 @@ export default function MembersPage() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#03EF62] focus:border-transparent"
                     >
                       <option value="">모든 스킬</option>
-                      {popularSkills.map((skill) => (
-                        <option key={skill.id} value={skill.name}>
-                          {skill.name} ({skill._count.users})
+                      {popularSkills.map((skill, idx) => (
+                        <option key={skill?.id || idx} value={skill?.name || ''}>
+                          {skill?.name || '스킬'} ({skill?._count?.users || 0})
                         </option>
                       ))}
                     </select>
@@ -459,7 +459,7 @@ export default function MembersPage() {
                             <span className="text-xs text-gray-500">찾는:</span>
                             {member.profile?.lookingFor?.slice(0, 2).map((item, i) => (
                               <span key={i} className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">
-                                {item}
+                                {typeof item === 'string' ? item : String(item)}
                               </span>
                             ))}
                             {(member.profile?.lookingFor?.length ?? 0) > 2 && (
@@ -472,7 +472,7 @@ export default function MembersPage() {
                             <span className="text-xs text-gray-500">제공:</span>
                             {member.profile?.canOffer?.slice(0, 2).map((item, i) => (
                               <span key={i} className="px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded text-xs">
-                                {item}
+                                {typeof item === 'string' ? item : String(item)}
                               </span>
                             ))}
                             {(member.profile?.canOffer?.length ?? 0) > 2 && (
@@ -486,12 +486,12 @@ export default function MembersPage() {
                     {/* 스킬 */}
                     {member.profile?.skills && member.profile.skills.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {member.profile.skills.slice(0, 4).map((skill) => (
+                        {member.profile.skills.slice(0, 4).map((skill, idx) => (
                           <span
-                            key={skill.id}
+                            key={skill?.id || idx}
                             className="px-2 py-0.5 bg-[#03EF62]/10 text-[#02a846] rounded text-xs font-medium"
                           >
-                            {skill.skill.name}
+                            {skill?.skill?.name || '스킬'}
                           </span>
                         ))}
                         {member.profile.skills.length > 4 && (
@@ -506,9 +506,9 @@ export default function MembersPage() {
                     {member.profile?.services && member.profile.services.length > 0 && (
                       <div className="flex flex-wrap gap-1 pt-2 border-t border-gray-100">
                         <span className="text-xs text-gray-500">🚀 서비스:</span>
-                        {member.profile.services.map((service) => (
-                          <span key={service.id} className="px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded text-xs">
-                            {service.name}
+                        {member.profile.services.map((service, idx) => (
+                          <span key={service?.id || idx} className="px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded text-xs">
+                            {service?.name || '서비스'}
                           </span>
                         ))}
                       </div>
