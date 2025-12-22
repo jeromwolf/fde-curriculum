@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 
 interface Member {
   id: string
@@ -82,7 +83,7 @@ const CAN_OFFER_OPTIONS = [
   '멘토링', '투자', '기술지원', '디자인지원', '마케팅지원', '사업조언', '네트워크소개', '취업멘토링'
 ]
 
-export default function MembersPage() {
+function MembersContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
@@ -90,6 +91,7 @@ export default function MembersPage() {
   const [popularSkills, setPopularSkills] = useState<PopularSkill[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [renderError, setRenderError] = useState<string | null>(null)
 
   // Filters
   const [search, setSearch] = useState('')
@@ -134,10 +136,15 @@ export default function MembersPage() {
         throw new Error(data.error || '회원 목록을 불러올 수 없습니다')
       }
 
-      setMembers(data.members)
-      setPopularSkills(data.popularSkills)
-      setTotal(data.pagination.total)
-      setTotalPages(data.pagination.totalPages)
+      // 데이터 유효성 검사
+      const validMembers = Array.isArray(data.members) ? data.members : []
+      const validSkills = Array.isArray(data.popularSkills) ? data.popularSkills : []
+      const validPagination = data.pagination || { total: 0, totalPages: 1 }
+
+      setMembers(validMembers)
+      setPopularSkills(validSkills)
+      setTotal(validPagination.total || 0)
+      setTotalPages(validPagination.totalPages || 1)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -582,4 +589,31 @@ export default function MembersPage() {
       </div>
     </div>
   )
+}
+
+// 에러 경계를 포함한 메인 컴포넌트
+export default function MembersPage() {
+  const [hasError, setHasError] = useState(false)
+
+  if (hasError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">오류가 발생했습니다</h1>
+          <p className="text-gray-600 mb-4">페이지를 로드하는 중 문제가 발생했습니다.</p>
+          <button
+            onClick={() => {
+              setHasError(false)
+              window.location.reload()
+            }}
+            className="px-4 py-2 bg-[#03EF62] text-black font-semibold rounded-lg hover:bg-[#02d654] transition"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <MembersContent />
 }
