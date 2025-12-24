@@ -645,6 +645,13 @@ CREATE (p:Person {
               '관계는 반드시 방향, 타입, 두 노드 연결을 가짐',
               '속성은 노드와 관계 모두에 다양한 타입으로 저장 가능',
               '명사→노드, 동사→관계, 형용사→속성 규칙으로 모델링'
+            ],
+            simulators: [
+              {
+                id: 'knowledge-graph',
+                title: 'Knowledge Graph Visualizer',
+                description: 'Property Graph를 2D/3D로 시각화하며 탐색해보세요'
+              }
             ]
           }
         },

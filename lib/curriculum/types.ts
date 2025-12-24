@@ -11,11 +11,19 @@ export interface QuizQuestion {
   explanation?: string
 }
 
+// 시뮬레이터 링크 타입
+export interface SimulatorLink {
+  id: string           // 'knowledge-graph', 'rdf-editor', 'sparql-playground', 'reasoning-engine'
+  title: string
+  description?: string
+}
+
 // Task 콘텐츠 타입
 export interface TaskContent {
   // 공통
   objectives?: string[]      // 학습 목표
   keyPoints?: string[]       // 핵심 포인트
+  simulators?: SimulatorLink[]  // 연결된 시뮬레이터
 
   // video
   videoUrl?: string          // YouTube/Vimeo URL
