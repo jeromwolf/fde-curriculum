@@ -1,6 +1,6 @@
 import './globals.css'
 import SessionProvider from '@/components/SessionProvider'
-import Header from '@/components/Header'
+import ConditionalHeader from '@/components/ConditionalHeader'
 
 export const metadata = {
   title: 'FDE Academy - Forward Deployed Engineer 교육 과정',
@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ko">
       <body className="bg-white text-gray-900">
         <SessionProvider>
-          <Header />
+          <ConditionalHeader />
           <main>{children}</main>
         </SessionProvider>
       </body>

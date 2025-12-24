@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import {
   getTaskById,
   getNextTask,
@@ -13,9 +14,30 @@ import {
   type TaskContent,
   type QuizQuestion,
 } from '@/lib/curriculum'
+import AuthButton from '@/components/AuthButton'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useProgress } from '@/lib/useProgress'
+
+// 코드 에디터 (클라이언트 전용)
+const CodeEditor = dynamic(() => import('@/components/CodeEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-xl overflow-hidden border border-gray-700 bg-[#282c34] p-5 min-h-[200px]">
+      <div className="text-gray-500 text-sm">에디터 로딩 중...</div>
+    </div>
+  ),
+})
+
+// 마크다운 코드 에디터 (클라이언트 전용)
+const MarkdownCodeEditor = dynamic(() => import('@/components/MarkdownCodeEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="rounded-xl overflow-hidden border border-gray-700 bg-[#282c34] p-5 min-h-[100px] my-4">
+      <div className="text-gray-500 text-sm">에디터 로딩 중...</div>
+    </div>
+  ),
+})
 
 // FDE Logo
 const FDELogo = ({ size = 32 }: { size?: number }) => (
@@ -33,9 +55,43 @@ export default function TaskPage() {
   const taskId = params.taskId as string
   const contentRef = useRef<HTMLDivElement>(null)
   const [isPdfGenerating, setIsPdfGenerating] = useState(false)
+  const codeBlockIndexRef = useRef(0)
 
   const taskInfo = getTaskById(taskId)
   const weekSlug = taskInfo?.week.slug || ''
+
+  // 마크다운 코드 블록 커스텀 렌더러 (taskId별로 고유 ID 생성)
+  const markdownComponents = useMemo(() => {
+    // 렌더링마다 인덱스 리셋
+    let blockIndex = 0
+
+    return {
+      code({ inline, className, children, ...props }: any) {
+        const match = /language-(\w+)/.exec(className || '')
+        const language = match ? match[1] : 'text'
+        const codeString = String(children).replace(/\n$/, '')
+
+        if (!inline) {
+          const currentIndex = blockIndex++
+          const blockId = `${taskId}_block_${currentIndex}`
+
+          return (
+            <MarkdownCodeEditor
+              initialCode={codeString}
+              language={language}
+              blockId={blockId}
+            />
+          )
+        }
+
+        return (
+          <code className="bg-gray-800 text-emerald-400 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+            {children}
+          </code>
+        )
+      }
+    }
+  }, [taskId])
 
   const { isTaskComplete, toggleTaskComplete, loading } = useProgress(weekSlug)
   const completed = isTaskComplete(taskId)
@@ -153,22 +209,65 @@ export default function TaskPage() {
   const renderContent = () => {
     switch (task.type) {
       case 'video':
+        // YouTube URL에서 video ID 추출
+        const getYouTubeId = (url?: string) => {
+          if (!url) return null
+          const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)
+          return match ? match[1] : null
+        }
+        const videoId = getYouTubeId(content?.videoUrl)
+
         return (
           <div className="space-y-6">
             {renderObjectives()}
             {/* 영상 플레이어 */}
-            <div className="aspect-video bg-gray-900 rounded-xl flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="text-6xl mb-4">▶️</div>
-                <p className="text-lg">영상 플레이어</p>
-                <p className="text-sm text-gray-400 mt-2">{task.duration}분</p>
+            {content?.videoUrl && videoId ? (
+              <a
+                href={content.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block aspect-video bg-gray-900 rounded-xl overflow-hidden relative group"
+              >
+                {/* YouTube 썸네일 */}
+                <img
+                  src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+                  alt={task.title}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    // maxresdefault가 없으면 hqdefault로 대체
+                    (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+                  }}
+                />
+                {/* 재생 버튼 오버레이 */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition">
+                  <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition shadow-lg">
+                    <svg className="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </div>
+                {/* YouTube 로고 */}
+                <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                  </svg>
+                  YouTube에서 보기
+                </div>
+              </a>
+            ) : (
+              <div className="aspect-video bg-gray-900 rounded-xl flex items-center justify-center">
+                <div className="text-center text-white">
+                  <div className="text-6xl mb-4">▶️</div>
+                  <p className="text-lg">영상 준비 중</p>
+                  <p className="text-sm text-gray-400 mt-2">{task.duration}분</p>
+                </div>
               </div>
-            </div>
+            )}
             {/* 영상 스크립트 (마크다운) */}
             {content?.transcript && (
               <div className="prose prose-sm max-w-none bg-gray-50 p-6 rounded-xl border">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {content.transcript}
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {content.transcript.trim()}
                 </ReactMarkdown>
               </div>
             )}
@@ -189,7 +288,7 @@ export default function TaskPage() {
             {/* 마크다운 콘텐츠 */}
             {content?.markdown ? (
               <div className="prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                   {content.markdown}
                 </ReactMarkdown>
               </div>
@@ -216,18 +315,17 @@ export default function TaskPage() {
             {/* 실습 지시사항 */}
             {content?.instructions && (
               <div className="prose prose-sm max-w-none bg-blue-50 p-4 rounded-xl border border-blue-200">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                   {content.instructions}
                 </ReactMarkdown>
               </div>
             )}
-            {/* 시작 코드 */}
-            <div className="bg-gray-900 rounded-xl p-6 font-mono text-sm overflow-x-auto">
-              <div className="text-gray-400 mb-2 text-xs">// 시작 코드</div>
-              <pre className="text-green-400 whitespace-pre-wrap">
-                {content?.starterCode || `// ${task.title}\n// 여기에 코드를 작성하세요`}
-              </pre>
-            </div>
+            {/* 코드 에디터 */}
+            <CodeEditor
+              taskId={taskId}
+              initialCode={content?.starterCode || `# ${task.title}\n# 여기에 코드를 작성하세요`}
+              language="python"
+            />
             {/* 힌트 */}
             {content?.hints && content.hints.length > 0 && (
               <details className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
@@ -241,11 +339,27 @@ export default function TaskPage() {
             )}
             {/* 정답 코드 (접기) */}
             {content?.solutionCode && (
-              <details className="bg-gray-100 rounded-xl border">
+              <details className="bg-gray-100 rounded-xl border overflow-hidden">
                 <summary className="p-4 font-bold cursor-pointer">📝 정답 보기</summary>
-                <div className="bg-gray-900 rounded-b-xl p-6 font-mono text-sm overflow-x-auto">
-                  <pre className="text-green-400 whitespace-pre-wrap">{content.solutionCode}</pre>
-                </div>
+                <SyntaxHighlighter
+                  language="python"
+                  style={oneDark}
+                  showLineNumbers
+                  customStyle={{
+                    borderRadius: 0,
+                    padding: '1.25rem',
+                    fontSize: '0.875rem',
+                    margin: 0,
+                  }}
+                  lineNumberStyle={{
+                    minWidth: '2.5em',
+                    paddingRight: '1em',
+                    color: '#636d83',
+                    userSelect: 'none',
+                  }}
+                >
+                  {content.solutionCode}
+                </SyntaxHighlighter>
               </details>
             )}
           </div>
@@ -339,7 +453,7 @@ export default function TaskPage() {
             {/* 상세 지시사항 */}
             {content?.instructions && (
               <div className="prose prose-sm max-w-none bg-gray-50 p-6 rounded-xl border">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                   {content.instructions}
                 </ReactMarkdown>
               </div>
@@ -363,7 +477,7 @@ export default function TaskPage() {
             </div>
             {content?.instructions && (
               <div className="prose prose-sm max-w-none bg-gray-50 p-6 rounded-xl border">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                   {content.instructions}
                 </ReactMarkdown>
               </div>
@@ -392,12 +506,13 @@ export default function TaskPage() {
             <span className="text-gray-300">/</span>
             <span className="text-gray-500 text-sm">Day {dayIndex + 1}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             {progress && (
               <span className="text-sm text-gray-500">
                 {progress.current} / {progress.total}
               </span>
             )}
+            <AuthButton />
           </div>
         </div>
       </nav>

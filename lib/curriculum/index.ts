@@ -146,14 +146,19 @@ export function getPrevTask(currentTaskId: string): { task: Task; week: Week; da
   return allTasks[currentIndex - 1]
 }
 
-// 태스크 인덱스 정보
+// 태스크 인덱스 정보 (Week 내에서의 순서)
 export function getTaskProgress(taskId: string): { current: number; total: number } | undefined {
-  const allTasks = getAllTasks()
-  const currentIndex = allTasks.findIndex(t => t.task.id === taskId)
+  // 먼저 해당 태스크가 속한 Week을 찾음
+  const taskInfo = getTaskById(taskId)
+  if (!taskInfo) return undefined
+
+  // 해당 Week의 모든 태스크 목록
+  const weekTasks = getTasksInWeek(taskInfo.week.slug)
+  const currentIndex = weekTasks.findIndex(t => t.task.id === taskId)
 
   if (currentIndex === -1) {
     return undefined
   }
 
-  return { current: currentIndex + 1, total: allTasks.length }
+  return { current: currentIndex + 1, total: weekTasks.length }
 }

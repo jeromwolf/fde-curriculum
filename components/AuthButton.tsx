@@ -32,24 +32,24 @@ export default function AuthButton() {
       <div className="relative" ref={menuRef}>
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex items-center gap-3 hover:opacity-80 transition"
+          className="flex items-center gap-2 hover:opacity-80 transition"
         >
-          <div className="hidden md:block text-right">
-            <div className="text-sm font-medium text-gray-900">{session.user.name}</div>
-          </div>
           {session.user.image ? (
             <Image
               src={session.user.image}
               alt={session.user.name || 'User'}
-              width={36}
-              height={36}
+              width={32}
+              height={32}
               className="rounded-full"
             />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-[#03EF62] flex items-center justify-center text-gray-900 font-bold">
+            <div className="w-8 h-8 rounded-full bg-[#03EF62] flex items-center justify-center text-gray-900 font-bold text-sm">
               {session.user.name?.[0] || 'U'}
             </div>
           )}
+          <span className="text-sm font-medium text-gray-900 max-w-[120px] truncate">
+            {session.user.name}
+          </span>
           <svg
             className={`w-4 h-4 text-gray-500 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`}
             fill="none"
@@ -62,7 +62,7 @@ export default function AuthButton() {
 
         {/* Dropdown Menu */}
         {isMenuOpen && (
-          <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+          <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-[100]">
             {/* User Info */}
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="text-sm font-medium text-gray-900">{session.user.name}</div>

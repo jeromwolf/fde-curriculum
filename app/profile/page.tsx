@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { curriculum, getTasksInWeek } from '@/lib/curriculum'
 
 interface Service {
   id: string
@@ -149,13 +150,37 @@ export default function ProfilePage() {
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null)
   const [isAddingService, setIsAddingService] = useState(false)
 
+  // 학습 진행률 상태
+  const [learningProgress, setLearningProgress] = useState<{
+    completedTasks: Set<string>
+    loading: boolean
+  }>({ completedTasks: new Set(), loading: true })
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/login?callbackUrl=/profile')
     } else if (status === 'authenticated') {
       fetchProfile()
+      fetchLearningProgress()
     }
   }, [status, router])
+
+  // 학습 진행률 조회
+  const fetchLearningProgress = async () => {
+    try {
+      const res = await fetch('/api/progress')
+      if (res.ok) {
+        const data = await res.json()
+        const taskIds = data.progress
+          .filter((p: { completed: boolean }) => p.completed)
+          .map((p: { taskId: string }) => p.taskId)
+        setLearningProgress({ completedTasks: new Set(taskIds), loading: false })
+      }
+    } catch (error) {
+      console.error('Failed to fetch learning progress:', error)
+      setLearningProgress({ completedTasks: new Set(), loading: false })
+    }
+  }
 
   const fetchProfile = async () => {
     try {
@@ -449,6 +474,7 @@ export default function ProfilePage() {
             <nav className="flex">
               {[
                 { id: 'basic', label: '기본 정보' },
+                { id: 'learning', label: '학습 진행률' },
                 { id: 'network', label: '네트워킹' },
                 { id: 'skills', label: '기술 스택' },
                 { id: 'links', label: '링크' },
@@ -557,6 +583,101 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* 학습 진행률 탭 */}
+            {activeTab === 'learning' && (
+              <div className="space-y-6">
+                {learningProgress.loading ? (
+                  <div className="text-center py-8 text-gray-500">로딩 중...</div>
+                ) : (
+                  <>
+                    {/* 전체 진행률 요약 */}
+                    {(() => {
+                      const totalTasks = curriculum.reduce((sum, week) => sum + getTasksInWeek(week.slug).length, 0)
+                      const completedCount = learningProgress.completedTasks.size
+                      const overallPercent = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0
+
+                      return (
+                        <div className="bg-gradient-to-r from-[#03EF62]/10 to-[#03EF62]/5 p-6 rounded-xl border border-[#03EF62]/20">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-gray-900">📚 전체 학습 진행률</h3>
+                            <span className="text-2xl font-bold text-[#03EF62]">{overallPercent}%</span>
+                          </div>
+                          <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-[#03EF62] transition-all duration-500"
+                              style={{ width: `${overallPercent}%` }}
+                            />
+                          </div>
+                          <p className="text-sm text-gray-600 mt-2">
+                            {completedCount} / {totalTasks} 태스크 완료
+                          </p>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Week별 진행률 */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-bold text-gray-900">📅 Week별 진행률</h3>
+                      {curriculum.map((week) => {
+                        const weekTasks = getTasksInWeek(week.slug)
+                        const completedInWeek = weekTasks.filter(t => learningProgress.completedTasks.has(t.task.id)).length
+                        const weekPercent = weekTasks.length > 0 ? Math.round((completedInWeek / weekTasks.length) * 100) : 0
+
+                        return (
+                          <div key={week.slug} className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-sm transition">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-3">
+                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${weekPercent === 100 ? 'bg-[#03EF62] text-black' : 'bg-gray-100 text-gray-600'}`}>
+                                  {weekPercent === 100 ? '✓' : `P${week.phase}`}
+                                </span>
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{week.title}</h4>
+                                  <p className="text-xs text-gray-500">Phase {week.phase} · Week {week.week}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className={`text-lg font-bold ${weekPercent === 100 ? 'text-[#03EF62]' : 'text-gray-700'}`}>
+                                  {weekPercent}%
+                                </span>
+                                <p className="text-xs text-gray-500">{completedInWeek}/{weekTasks.length}</p>
+                              </div>
+                            </div>
+                            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full transition-all duration-500 ${weekPercent === 100 ? 'bg-[#03EF62]' : 'bg-blue-500'}`}
+                                style={{ width: `${weekPercent}%` }}
+                              />
+                            </div>
+                            {weekPercent < 100 && (
+                              <Link
+                                href={`/learn/week/${week.slug}`}
+                                className="inline-flex items-center gap-1 text-sm text-[#03EF62] hover:underline mt-2"
+                              >
+                                계속 학습하기 →
+                              </Link>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    {/* 학습 시작 안내 (진행률이 0인 경우) */}
+                    {learningProgress.completedTasks.size === 0 && (
+                      <div className="text-center py-8 bg-gray-50 rounded-xl">
+                        <p className="text-gray-500 mb-4">아직 완료한 학습이 없습니다</p>
+                        <Link
+                          href="/curriculum"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-[#03EF62] text-black font-semibold rounded-xl hover:bg-[#02d654] transition"
+                        >
+                          학습 시작하기 →
+                        </Link>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             )}
 

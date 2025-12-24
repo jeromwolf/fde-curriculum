@@ -28,7 +28,7 @@ export const graphIntroWeek: Week = {
               '그래프 사고(Graph Thinking)의 개념을 파악한다',
               '그래프 DB가 적합한 문제 유형을 식별할 수 있다'
             ],
-            videoUrl: 'https://www.youtube.com/watch?v=placeholder',
+            videoUrl: 'https://www.youtube.com/watch?v=vY0-BcEz1_0',
             transcript: `
 ## 왜 그래프 데이터베이스인가?
 
@@ -70,6 +70,19 @@ RETURN DISTINCT friend.name
 - 데이터는 원래 **연결**되어 있다
 - 관계가 **일급 시민(first-class citizen)**이다
 - 패턴 매칭으로 직관적인 쿼리 가능
+
+> **일급 시민(First-Class Citizen)이란?**
+>
+> 프로그래밍에서 "일급 시민"은 다른 요소들과 동등한 권리를 가진 존재를 의미합니다:
+> - **변수에 저장** 가능
+> - **함수의 인자**로 전달 가능
+> - **함수의 반환값**으로 사용 가능
+> - **고유한 식별자**를 가짐
+>
+> 관계형 DB에서 "관계"는 외래키(FK)로 간접 표현되는 **이급 시민**입니다.
+> 반면 그래프 DB에서 "관계"는 노드와 동등하게 **속성, 타입, 방향**을 가진 독립적 객체입니다.
+>
+> 예: \`(Alice)-[:KNOWS {since: 2020}]->(Bob)\`에서 KNOWS 관계는 "since" 속성을 가진 실체입니다.
 
 ### 그래프 DB가 빛나는 순간
 
