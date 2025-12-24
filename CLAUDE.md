@@ -42,6 +42,52 @@
    - `property-graph-video`: JNhDJTVdGnY
    - `realworld-cases-video`: GMaNgYPBaM4
 
+### 🚀 Google Cloud Run 배포 (v2.3)
+
+**배포 URL**: https://fde-academy.ai.kr
+
+**배포 명령어**:
+```bash
+# 1. 이미지 빌드 (Cloud Build)
+gcloud builds submit --tag gcr.io/kss-platform-jerom-2024/fde-academy:v2.3 --project=kss-platform-jerom-2024
+
+# 2. Cloud Run 배포
+gcloud run deploy fde-academy \
+  --image=gcr.io/kss-platform-jerom-2024/fde-academy:v2.3 \
+  --region=asia-northeast3 \
+  --allow-unauthenticated \
+  --memory=512Mi \
+  --cpu=1 \
+  --port=3000 \
+  --project=kss-platform-jerom-2024
+```
+
+**배포 정보**:
+- **프로젝트**: kss-platform-jerom-2024
+- **리전**: asia-northeast3 (서울)
+- **서비스명**: fde-academy
+- **메모리**: 512Mi
+- **CPU**: 1
+- **포트**: 3000
+
+**도메인 설정**:
+- Cloud Run URL: https://fde-academy-827760573017.asia-northeast3.run.app
+- 커스텀 도메인: https://fde-academy.ai.kr (이미 설정됨)
+
+**주의사항**:
+1. `gcloud run deploy --source .` 사용 시 간헐적 실패 발생
+2. 해결책: 빌드와 배포를 분리하여 실행
+   - `gcloud builds submit` → 이미지 빌드
+   - `gcloud run deploy --image=...` → 이미지 배포
+3. 타입 에러 발생 시 `types/prismjs.d.ts` 파일 확인
+
+**배포 이력**:
+| 날짜 | 버전 | 리비전 | 변경사항 |
+|------|------|--------|---------|
+| 2025-12-24 | v2.3 | fde-academy-00028-pmv | 퀴즈 기능, YouTube 플레이어, 콘텐츠 보강 |
+
+---
+
 ### 🔴 백로그: YouTube 임베딩 문제
 
 **현상:**
@@ -292,4 +338,4 @@ Week
 
 ---
 
-*최종 업데이트: 2025-12-16*
+*최종 업데이트: 2025-12-24*
