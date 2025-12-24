@@ -1,6 +1,6 @@
 # FDE Academy - 개발 로그
 
-## 2025-12-24: UI 개선 및 YouTube 임베딩 이슈
+## 2025-12-24: UI 개선, 퀴즈 기능, 콘텐츠 보강
 
 ### 완료된 작업
 
@@ -18,6 +18,29 @@
    - videoUrl에서 YouTube ID 자동 추출
    - 썸네일 + 재생 버튼 방식으로 구현
    - 클릭 시 YouTube 새 탭에서 열림
+
+4. **퀴즈 정답 체크 기능** (`app/learn/task/[taskId]/page.tsx`)
+   - 즉시 정답/오답 피드백 (색상 표시)
+   - 정답: 초록, 오답: 빨강 테두리
+   - 해설 자동 표시
+   - 진행 상황 표시 (예: "진행: 2/5 | 정답: 1개")
+   - 최종 결과 카드 (완벽해요/잘했어요/다시 도전해보세요)
+   - "다시 풀기" 버튼
+
+5. **콘텐츠 개선**
+   - `graph-vs-rdb-video`: 친구의 친구 예제 → **사기 탐지(Ring Fraud)** 예제로 변경 (중복 제거)
+   - `property-graph-video`: 내용 대폭 보강
+     - Property Graph 시각적 다이어그램
+     - 노드/관계/속성 상세 설명
+     - 데이터 타입 표
+     - Property Graph vs RDF 비교
+     - 도메인별 모델링 예시 4가지
+
+6. **YouTube URL 추가**
+   - `graph-intro-video`: vY0-BcEz1_0
+   - `graph-vs-rdb-video`: Axdg3avChI8
+   - `property-graph-video`: JNhDJTVdGnY
+   - `realworld-cases-video`: GMaNgYPBaM4
 
 ### 🔴 백로그: YouTube 임베딩 문제
 
