@@ -220,99 +220,145 @@ Property Graph 모델은 4가지 핵심 요소로 구성됩니다.
         {
           id: 'graph-vs-rdb-video',
           type: 'video',
-          title: '관계형 DB vs 그래프 DB 비교 (JOIN vs 패턴)',
+          title: '관계형 DB vs 그래프 DB 비교 (사기 탐지 사례)',
           duration: 15,
           content: {
             objectives: [
               'RDBMS와 Graph DB의 데이터 저장 방식 차이를 이해한다',
-              'JOIN과 패턴 매칭의 성능 차이를 파악한다',
+              '사기 탐지 시나리오에서 두 DB의 쿼리 방식을 비교한다',
               '각 DB가 적합한 상황을 구분할 수 있다'
             ],
-            videoUrl: 'https://www.youtube.com/watch?v=placeholder',
+            videoUrl: 'https://www.youtube.com/watch?v=Axdg3avChI8',
             transcript: `
-## 관계형 DB vs 그래프 DB
+## 관계형 DB vs 그래프 DB: 사기 탐지 사례
+
+### 시나리오: 금융 사기 탐지
+
+은행에서 **순환 거래 사기(Ring Fraud)**를 탐지하려고 합니다.
+
+범죄자들은 돈세탁을 위해 여러 계좌를 거쳐 돈을 이체합니다:
+\`\`\`
+계좌A → 계좌B → 계좌C → 계좌D → 계좌A (다시 원점!)
+\`\`\`
+
+이런 **순환 패턴**을 찾아야 합니다.
 
 ### 데이터 저장 방식 비교
 
 **관계형 DB (RDBMS)**
 \`\`\`
-users 테이블          friendships 테이블
-+----+-------+       +----+------+-----------+
-| id | name  |       | id | user | friend_id |
-+----+-------+       +----+------+-----------+
-| 1  | Alice |       | 1  | 1    | 2         |
-| 2  | Bob   |       | 2  | 2    | 3         |
-| 3  | Carol |       | 3  | 1    | 3         |
-+----+-------+       +----+------+-----------+
+accounts 테이블         transactions 테이블
++----+--------+        +----+------+--------+--------+
+| id | owner  |        | id | from | to     | amount |
++----+--------+        +----+------+--------+--------+
+| 1  | 김철수 |        | 1  | 1    | 2      | 1000만 |
+| 2  | 이영희 |        | 2  | 2    | 3      | 950만  |
+| 3  | 박민수 |        | 3  | 3    | 4      | 900만  |
+| 4  | 최지영 |        | 4  | 4    | 1      | 850만  |
++----+--------+        +----+------+--------+--------+
 \`\`\`
 
 **그래프 DB**
 \`\`\`
-(Alice)-[:KNOWS]->(Bob)-[:KNOWS]->(Carol)
-       \\                          /
-        -------[:KNOWS]-----------
+(김철수)--[1000만]-->(이영희)--[950만]-->(박민수)
+    ^                                      |
+    |                                      v
+    +-------[850만]---(최지영)<--[900만]---+
 \`\`\`
 
 ### JOIN vs 패턴 매칭
 
-**"Alice의 친구의 친구 찾기"**
+**"3~5단계를 거쳐 원래 계좌로 돌아오는 순환 거래 찾기"**
 
 SQL (JOIN 사용):
 \`\`\`sql
-SELECT DISTINCT u3.name
-FROM users u1
-JOIN friendships f1 ON u1.id = f1.user_id
-JOIN users u2 ON f1.friend_id = u2.id
-JOIN friendships f2 ON u2.id = f2.user_id
-JOIN users u3 ON f2.friend_id = u3.id
-WHERE u1.name = 'Alice'
-  AND u3.id != u1.id;
+-- 4단계 순환만 찾아도 이렇게 복잡...
+SELECT a1.owner, a2.owner, a3.owner, a4.owner
+FROM transactions t1
+JOIN transactions t2 ON t1.to_account = t2.from_account
+JOIN transactions t3 ON t2.to_account = t3.from_account
+JOIN transactions t4 ON t3.to_account = t4.from_account
+JOIN accounts a1 ON t1.from_account = a1.id
+JOIN accounts a2 ON t2.from_account = a2.id
+JOIN accounts a3 ON t3.from_account = a3.id
+JOIN accounts a4 ON t4.from_account = a4.id
+WHERE t4.to_account = t1.from_account  -- 순환 조건
+  AND t1.amount > 500만
+  AND t1.created_at > NOW() - INTERVAL '24 hours';
 \`\`\`
 
 Cypher (패턴 매칭):
 \`\`\`cypher
-MATCH (alice:Person {name: 'Alice'})-[:KNOWS*2]->(fof)
-WHERE fof <> alice
-RETURN DISTINCT fof.name
+// 3~5단계 순환 거래 탐지 - 한 줄!
+MATCH path = (start:Account)-[:TRANSFER*3..5]->(start)
+WHERE ALL(t IN relationships(path) WHERE t.amount > 5000000)
+  AND ALL(t IN relationships(path) WHERE t.timestamp > datetime() - duration('P1D'))
+RETURN path, [t IN relationships(path) | t.amount] AS amounts
 \`\`\`
 
-### 성능 비교
+**차이점:**
+- SQL: 순환 길이(3,4,5)마다 별도 쿼리 필요
+- Cypher: \`*3..5\`로 가변 길이 패턴 한 번에 탐색
 
-| 관계 깊이 | RDBMS | Graph DB |
+### 성능 비교 (100만 계좌, 1000만 거래)
+
+| 쿼리 유형 | RDBMS | Graph DB |
 |----------|-------|----------|
-| 2 hop | 0.01초 | 0.001초 |
-| 3 hop | 0.1초 | 0.002초 |
-| 4 hop | 10초 | 0.01초 |
-| 5 hop | 수 분 | 0.1초 |
+| 단순 조회 (1 hop) | 0.01초 | 0.01초 |
+| 2단계 거래 추적 | 0.5초 | 0.02초 |
+| 3단계 순환 탐지 | 30초 | 0.1초 |
+| **4단계 순환 탐지** | **5분+** | **0.5초** |
+| 5단계 순환 탐지 | 타임아웃 | 2초 |
 
 **왜 이런 차이가?**
-- RDBMS: 모든 데이터를 스캔하며 JOIN
-- Graph DB: 연결된 노드만 따라가며 탐색 (Index-free adjacency)
+- RDBMS: 모든 거래 테이블을 반복 스캔 (Cartesian Product)
+- Graph DB: 연결된 노드만 따라가며 탐색 (Index-free Adjacency)
+
+### 추가 사기 패턴들
+
+그래프 DB가 빛나는 다른 사기 탐지 패턴:
+
+**1. 공유 정보 탐지**
+\`\`\`cypher
+// 같은 전화번호/주소를 공유하는 계좌들
+MATCH (a1:Account)-[:HAS_PHONE]->(phone)<-[:HAS_PHONE]-(a2:Account)
+WHERE a1 <> a2
+RETURN a1, a2, phone
+\`\`\`
+
+**2. 대포통장 네트워크**
+\`\`\`cypher
+// 짧은 시간 내 다수 계좌로 분산 이체
+MATCH (source:Account)-[t:TRANSFER]->(targets:Account)
+WHERE t.timestamp > datetime() - duration('PT1H')
+WITH source, COUNT(DISTINCT targets) AS target_count
+WHERE target_count > 10
+RETURN source, target_count
+\`\`\`
 
 ### 언제 무엇을 쓸까?
 
 | 상황 | 추천 DB |
 |-----|---------|
-| 정형 데이터, 트랜잭션 | RDBMS |
-| 복잡한 관계 쿼리 | Graph DB |
-| 집계/분석 (SUM, AVG) | RDBMS |
-| 경로 탐색, 추천 | Graph DB |
-| 스키마 고정 | RDBMS |
-| 스키마 유연성 필요 | Graph DB |
+| 거래 기록 저장 (ACID) | RDBMS |
+| 일별/월별 거래 집계 | RDBMS |
+| **순환 거래 탐지** | **Graph DB** |
+| **관계 패턴 분석** | **Graph DB** |
+| 실시간 사기 알림 | Graph DB + 스트리밍 |
 
 ### 함께 쓰기 (Polyglot Persistence)
 
 실무에서는 여러 DB를 함께 사용합니다:
-- **PostgreSQL**: 주문, 결제 (트랜잭션)
-- **Neo4j**: 추천, 소셜 그래프
-- **Elasticsearch**: 검색
-- **Redis**: 캐싱
+- **PostgreSQL**: 거래 원장 (트랜잭션 보장)
+- **Neo4j**: 사기 패턴 탐지, 관계 분석
+- **Kafka**: 실시간 거래 스트리밍
+- **Redis**: 알림 캐싱
             `,
             keyPoints: [
-              'RDBMS는 테이블과 JOIN, Graph DB는 노드와 패턴 매칭',
-              '관계 깊이가 깊어질수록 Graph DB가 압도적으로 빠름',
-              'Index-free adjacency: 연결된 노드만 탐색',
-              '실무에서는 Polyglot Persistence (다중 DB 사용)'
+              '순환 거래 같은 복잡한 패턴은 Graph DB가 압도적으로 유리',
+              'SQL은 순환 길이마다 별도 쿼리, Cypher는 가변 길이 한 번에 탐색',
+              'Index-free Adjacency: 연결된 노드만 탐색하여 성능 우위',
+              '실무에서는 RDBMS(원장) + Graph DB(분석) 함께 사용'
             ]
           }
         },
@@ -391,81 +437,214 @@ RETURN DISTINCT fof.name
           duration: 15,
           content: {
             objectives: [
-              'Property Graph 모델을 깊이 이해한다',
+              'Property Graph의 4가지 핵심 구성 요소를 완벽히 이해한다',
               '관계의 방향성과 그 의미를 파악한다',
               '실제 도메인을 Property Graph로 모델링할 수 있다'
             ],
-            videoUrl: 'https://www.youtube.com/watch?v=placeholder',
+            videoUrl: 'https://www.youtube.com/watch?v=JNhDJTVdGnY',
             transcript: `
 ## Property Graph 모델 심화
 
-### 관계의 방향성
+### Property Graph란?
+
+Property Graph는 데이터를 **노드(Nodes)**와 **관계(Relationships)**로 표현하며,
+둘 다 **속성(Properties)**을 가질 수 있는 그래프 모델입니다.
+
+\`\`\`
+┌─────────────────────────────────────────────────────────┐
+│                    Property Graph                        │
+│                                                          │
+│   ┌──────────┐        [:KNOWS]          ┌──────────┐   │
+│   │  :Person │  ──────────────────────> │  :Person │   │
+│   │──────────│      since: 2020         │──────────│   │
+│   │name:Alice│      strength: "best"    │name: Bob │   │
+│   │ age: 30  │                          │ age: 28  │   │
+│   │city:Seoul│                          │city:Busan│   │
+│   └──────────┘                          └──────────┘   │
+│      노드              관계 (속성 포함)        노드       │
+│    (레이블+속성)                           (레이블+속성)  │
+└─────────────────────────────────────────────────────────┘
+\`\`\`
+
+### 1. 노드 (Nodes) - 개체
+
+노드는 그래프의 **핵심 개체**입니다.
+
+**특징:**
+- **레이블(Label)**: 노드의 종류/타입 (예: Person, Product, Company)
+- **속성(Properties)**: key-value 쌍 (예: name: "Alice", age: 30)
+- **고유 ID**: 시스템이 자동 부여
+
+\`\`\`cypher
+// 노드 생성 예시
+CREATE (alice:Person {name: 'Alice', age: 30, city: 'Seoul'})
+CREATE (neo4j:Company {name: 'Neo4j', founded: 2007})
+CREATE (laptop:Product {name: 'MacBook', price: 2000000})
+
+// 다중 레이블 (노드가 여러 역할)
+CREATE (elon:Person:CEO:Founder {name: 'Elon Musk'})
+\`\`\`
+
+**레이블 vs 속성 선택 기준:**
+| 기준 | 레이블 사용 | 속성 사용 |
+|------|-----------|----------|
+| 값의 종류 | 적음 (10개 미만) | 많음 (수백~무한) |
+| 쿼리 패턴 | 자주 필터링 | 가끔 필터링 |
+| 예시 | :Customer, :Admin | status: "active" |
+
+### 2. 관계 (Relationships) - 연결
+
+관계는 노드 간의 **의미 있는 연결**입니다.
+
+**관계의 3요소:**
+\`\`\`
+(시작 노드)-[관계 타입 {속성}]->(끝 노드)
+     ↓           ↓         ↓        ↓
+   Start      Type    Properties   End
+\`\`\`
+
+**필수 특성:**
+1. **방향(Direction)**: 반드시 시작과 끝이 있음
+2. **타입(Type)**: 반드시 하나의 타입을 가짐
+3. **연결**: 반드시 두 노드를 연결 (허공에 떠 있을 수 없음)
+
+\`\`\`cypher
+// 관계 생성 예시
+CREATE (alice)-[:KNOWS {since: 2020, strength: 'best_friend'}]->(bob)
+CREATE (alice)-[:WORKS_AT {role: 'Engineer', since: 2019}]->(company)
+CREATE (alice)-[:PURCHASED {date: date('2024-01-15')}]->(laptop)
+\`\`\`
+
+### 3. 방향성 (Direction)
 
 모든 관계는 **시작 노드**와 **끝 노드**를 가집니다.
 
 \`\`\`
-(alice)-[:FOLLOWS]->(bob)
-  시작        타입      끝
+(alice)-[:FOLLOWS]->(bob)      Alice → Bob 팔로우
+(bob)-[:FOLLOWS]->(alice)      Bob → Alice 팔로우 (다른 관계!)
 \`\`\`
 
-**중요**: 방향은 의미를 부여합니다!
-- \`(alice)-[:FOLLOWS]->(bob)\`: Alice가 Bob을 팔로우
-- \`(bob)-[:FOLLOWS]->(alice)\`: Bob이 Alice를 팔로우
-- 둘은 **완전히 다른 관계**입니다
+**방향의 의미:**
+| 관계 | 방향 의미 |
+|------|----------|
+| FOLLOWS | 팔로우 하는 방향 |
+| REPORTS_TO | 보고 체계 |
+| PURCHASED | 구매자 → 상품 |
+| LOCATED_IN | 위치 포함 관계 |
 
-### 방향과 쿼리
+**쿼리에서 방향 다루기:**
+\`\`\`cypher
+// 나가는 방향 (outgoing)
+MATCH (a)-[:FOLLOWS]->(b) RETURN b
+
+// 들어오는 방향 (incoming)
+MATCH (a)<-[:FOLLOWS]-(b) RETURN b
+
+// 방향 무시 (양방향)
+MATCH (a)-[:KNOWS]-(b) RETURN b
+\`\`\`
+
+### 4. 속성 (Properties)
+
+노드와 관계 모두 **key-value 속성**을 가질 수 있습니다.
+
+**지원하는 데이터 타입:**
+| 타입 | 예시 |
+|------|------|
+| String | \`"Alice"\`, \`"서울"\` |
+| Integer | \`30\`, \`2024\` |
+| Float | \`3.14\`, \`99.9\` |
+| Boolean | \`true\`, \`false\` |
+| Date/DateTime | \`date('2024-01-01')\` |
+| List | \`['a', 'b', 'c']\` |
+| Point (공간) | \`point({x:1, y:2})\` |
 
 \`\`\`cypher
-// Alice가 팔로우하는 사람
-MATCH (alice:Person {name: 'Alice'})-[:FOLLOWS]->(followed)
-RETURN followed.name
-
-// Alice를 팔로우하는 사람
-MATCH (alice:Person {name: 'Alice'})<-[:FOLLOWS]-(follower)
-RETURN follower.name
-
-// 방향 무시 (상호 친구 찾기)
-MATCH (alice:Person {name: 'Alice'})-[:KNOWS]-(friend)
-RETURN friend.name
+// 다양한 속성 타입
+CREATE (p:Person {
+  name: 'Alice',           // String
+  age: 30,                 // Integer
+  salary: 5000000.50,      // Float
+  isActive: true,          // Boolean
+  skills: ['Python', 'Neo4j'],  // List
+  joinDate: date('2020-03-15')  // Date
+})
 \`\`\`
 
-### 다중 관계
+### 5. 다중 관계와 자기 참조
 
-같은 노드 쌍 사이에 **여러 관계** 가능:
-
+**같은 노드 쌍 사이에 여러 관계:**
 \`\`\`
 (alice)-[:KNOWS]->(bob)
 (alice)-[:WORKS_WITH]->(bob)
 (alice)-[:MANAGES]->(bob)
 \`\`\`
 
-### 자기 참조 관계
-
-노드가 자기 자신을 참조할 수 있습니다:
-
+**자기 참조 관계:**
 \`\`\`
-(company)-[:SUBSIDIARY_OF]->(company)  // 자회사 구조
-(person)-[:MENTOR_OF]->(person)        // 멘토링
+(company)-[:SUBSIDIARY_OF]->(company)  // 지주회사 구조
+(category)-[:PARENT_OF]->(category)    // 카테고리 계층
+(person)-[:FRIEND_OF]->(person)        // 친구 관계
 \`\`\`
 
-### 모델링 팁
+### Property Graph vs RDF
 
-1. **명사 → 노드**: 사람, 장소, 사물, 개념
-2. **동사 → 관계**: 행동, 연결, 상태
-3. **형용사 → 속성**: 특징, 값
+| 특성 | Property Graph | RDF |
+|------|---------------|-----|
+| 데이터 단위 | 노드 + 관계 | Triple (S-P-O) |
+| 속성 | 노드/관계에 직접 | 별도 Triple로 표현 |
+| 쿼리 언어 | Cypher, Gremlin | SPARQL |
+| 주요 DB | Neo4j, Memgraph | Virtuoso, Stardog |
+| 강점 | 직관적, 성능 | 표준화, 추론 |
 
-**예시: 이커머스**
+### 도메인별 모델링 예시
+
+**1. 소셜 네트워크:**
+\`\`\`
+(:User)-[:FOLLOWS]->(:User)
+(:User)-[:POSTED]->(:Post)
+(:User)-[:LIKED]->(:Post)
+(:Post)-[:TAGGED]->(:Topic)
+\`\`\`
+
+**2. 이커머스:**
 \`\`\`
 (:Customer)-[:PURCHASED]->(:Order)-[:CONTAINS]->(:Product)
-(:Customer)-[:LIVES_IN]->(:City)
 (:Product)-[:BELONGS_TO]->(:Category)
+(:Customer)-[:REVIEWED {rating: 5}]->(:Product)
 \`\`\`
+
+**3. 금융/사기 탐지:**
+\`\`\`
+(:Account)-[:TRANSFER {amount: 1000}]->(:Account)
+(:Person)-[:OWNS]->(:Account)
+(:Person)-[:HAS_ADDRESS]->(:Address)
+(:Account)-[:FLAGGED_AS]->(:RiskLevel)
+\`\`\`
+
+**4. IT 인프라:**
+\`\`\`
+(:Server)-[:CONNECTS_TO]->(:Server)
+(:Application)-[:RUNS_ON]->(:Server)
+(:Service)-[:DEPENDS_ON]->(:Service)
+\`\`\`
+
+### 모델링 베스트 프랙티스
+
+1. **명사 → 노드**: 사람, 장소, 사물, 개념
+2. **동사 → 관계**: 행동, 연결, 상태 변화
+3. **형용사/부사 → 속성**: 특징, 수량, 시간
+
+**좋은 모델의 특징:**
+- 비즈니스 질문에 쉽게 답할 수 있음
+- 화이트보드 그림이 코드로 자연스럽게 변환됨
+- 과도한 노드/관계 없이 간결함
             `,
             keyPoints: [
-              '관계는 항상 시작 노드와 끝 노드를 가진다',
-              '방향은 관계의 의미를 결정한다',
-              '같은 노드 쌍에 여러 관계 가능',
-              '명사→노드, 동사→관계, 형용사→속성'
+              '노드는 레이블(타입)과 속성(key-value)을 가진 개체',
+              '관계는 반드시 방향, 타입, 두 노드 연결을 가짐',
+              '속성은 노드와 관계 모두에 다양한 타입으로 저장 가능',
+              '명사→노드, 동사→관계, 형용사→속성 규칙으로 모델링'
             ]
           }
         },
@@ -750,7 +929,7 @@ ex:relationship1 a rdf:Statement ;
               '그래프 DB의 실제 산업 활용 사례를 파악한다',
               '각 사례에서 그래프 모델이 어떻게 적용되는지 이해한다'
             ],
-            videoUrl: 'https://www.youtube.com/watch?v=placeholder',
+            videoUrl: 'https://www.youtube.com/watch?v=GMaNgYPBaM4',
             transcript: `
 ## 그래프 DB 실제 활용 사례
 

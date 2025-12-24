@@ -17,6 +17,8 @@ import {
 import AuthButton from '@/components/AuthButton'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import { useProgress } from '@/lib/useProgress'
 
 // 코드 에디터 (클라이언트 전용)
@@ -56,6 +58,12 @@ export default function TaskPage() {
   const contentRef = useRef<HTMLDivElement>(null)
   const [isPdfGenerating, setIsPdfGenerating] = useState(false)
   const codeBlockIndexRef = useRef(0)
+  const [quizAnswers, setQuizAnswers] = useState<Record<number, number | null>>({})
+
+  // 퀴즈 답변 선택 핸들러
+  const handleQuizAnswer = (questionIndex: number, selectedOption: number) => {
+    setQuizAnswers(prev => ({ ...prev, [questionIndex]: selectedOption }))
+  }
 
   const taskInfo = getTaskById(taskId)
   const weekSlug = taskInfo?.week.slug || ''
@@ -367,6 +375,11 @@ export default function TaskPage() {
 
       case 'quiz':
         const questions = content?.questions || []
+        const answeredCount = Object.keys(quizAnswers).length
+        const correctCount = Object.entries(quizAnswers).filter(
+          ([qIdx, ans]) => questions[Number(qIdx)]?.answer === ans
+        ).length
+
         return (
           <div className="space-y-6">
             {renderObjectives()}
@@ -375,31 +388,113 @@ export default function TaskPage() {
               <p className="text-yellow-700 text-sm">
                 학습한 내용을 확인하는 퀴즈입니다. ({questions.length}문제)
               </p>
+              {answeredCount > 0 && (
+                <p className="text-yellow-800 text-sm mt-2 font-medium">
+                  진행: {answeredCount}/{questions.length} | 정답: {correctCount}개
+                </p>
+              )}
             </div>
             <div className="space-y-4">
-              {questions.map((q, qIndex) => (
-                <div key={qIndex} className="bg-white p-6 rounded-xl border border-gray-200">
-                  <p className="font-medium mb-4">Q{qIndex + 1}. {q.question}</p>
-                  <div className="space-y-2">
-                    {q.options.map((opt, optIndex) => (
-                      <label key={optIndex} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-[#03EF62] cursor-pointer transition">
-                        <input type="radio" name={`q${qIndex}`} className="w-4 h-4 text-[#03EF62]" />
-                        <span>{String.fromCharCode(65 + optIndex)}. {opt}</span>
-                      </label>
-                    ))}
+              {questions.map((q, qIndex) => {
+                const selectedAnswer = quizAnswers[qIndex]
+                const isAnswered = selectedAnswer !== undefined && selectedAnswer !== null
+                const isCorrect = isAnswered && selectedAnswer === q.answer
+
+                return (
+                  <div key={qIndex} className={`bg-white p-6 rounded-xl border-2 transition ${
+                    isAnswered
+                      ? isCorrect
+                        ? 'border-green-400 bg-green-50/30'
+                        : 'border-red-400 bg-red-50/30'
+                      : 'border-gray-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="font-medium">Q{qIndex + 1}. {q.question}</p>
+                      {isAnswered && (
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {isCorrect ? '✓ 정답' : '✗ 오답'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {q.options.map((opt, optIndex) => {
+                        const isSelected = selectedAnswer === optIndex
+                        const isCorrectOption = q.answer === optIndex
+                        const showResult = isAnswered
+
+                        let optionClass = 'border-gray-200 hover:border-[#03EF62]'
+                        if (showResult) {
+                          if (isCorrectOption) {
+                            optionClass = 'border-green-500 bg-green-50'
+                          } else if (isSelected && !isCorrectOption) {
+                            optionClass = 'border-red-500 bg-red-50'
+                          } else {
+                            optionClass = 'border-gray-200 opacity-60'
+                          }
+                        } else if (isSelected) {
+                          optionClass = 'border-[#03EF62] bg-[#03EF62]/10'
+                        }
+
+                        return (
+                          <label
+                            key={optIndex}
+                            className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition ${optionClass} ${isAnswered ? 'cursor-default' : ''}`}
+                          >
+                            <input
+                              type="radio"
+                              name={`q${qIndex}`}
+                              className="w-4 h-4 text-[#03EF62]"
+                              checked={isSelected}
+                              onChange={() => !isAnswered && handleQuizAnswer(qIndex, optIndex)}
+                              disabled={isAnswered}
+                            />
+                            <span className="flex-1">{String.fromCharCode(65 + optIndex)}. {opt}</span>
+                            {showResult && isCorrectOption && (
+                              <span className="text-green-600 font-bold">✓</span>
+                            )}
+                            {showResult && isSelected && !isCorrectOption && (
+                              <span className="text-red-600 font-bold">✗</span>
+                            )}
+                          </label>
+                        )
+                      })}
+                    </div>
+                    {isAnswered && q.explanation && (
+                      <div className={`mt-4 p-3 rounded-lg ${isCorrect ? 'bg-green-100' : 'bg-blue-100'}`}>
+                        <p className={`text-sm ${isCorrect ? 'text-green-800' : 'text-blue-800'}`}>
+                          <strong>해설:</strong> {q.explanation}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {q.explanation && (
-                    <details className="mt-4 bg-blue-50 p-3 rounded-lg">
-                      <summary className="text-blue-800 text-sm cursor-pointer">정답 및 해설 보기</summary>
-                      <p className="text-blue-700 text-sm mt-2">
-                        <strong>정답: {String.fromCharCode(65 + q.answer)}</strong><br/>
-                        {q.explanation}
-                      </p>
-                    </details>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
+            {answeredCount === questions.length && (
+              <div className={`p-6 rounded-xl text-center ${
+                correctCount === questions.length
+                  ? 'bg-green-100 border-2 border-green-400'
+                  : correctCount >= questions.length / 2
+                    ? 'bg-yellow-100 border-2 border-yellow-400'
+                    : 'bg-red-100 border-2 border-red-400'
+              }`}>
+                <p className="text-2xl font-bold mb-2">
+                  {correctCount === questions.length ? '🎉 완벽해요!' : correctCount >= questions.length / 2 ? '👍 잘했어요!' : '💪 다시 도전해보세요!'}
+                </p>
+                <p className="text-lg mb-4">
+                  {questions.length}문제 중 <strong>{correctCount}개</strong> 정답
+                  ({Math.round(correctCount / questions.length * 100)}%)
+                </p>
+                <button
+                  onClick={() => setQuizAnswers({})}
+                  className="px-6 py-2 bg-white border-2 border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition"
+                >
+                  🔄 다시 풀기
+                </button>
+              </div>
+            )}
           </div>
         )
 
