@@ -1,7 +1,8 @@
-// 커리큘럼 타입 정의
+// 커리큘럼 타입 정의 (v3.6)
 
 export type TaskType = 'video' | 'reading' | 'code' | 'quiz' | 'challenge' | 'project'
-export type AccessLevel = 'free' | 'basic' | 'pro' | 'enterprise'
+export type AccessLevel = 'free' | 'core' | 'pro' | 'enterprise'
+export type TrackType = 'core' | 'specialization' | 'capstone'
 
 // Quiz 문제 타입
 export interface QuizQuestion {
@@ -16,6 +17,7 @@ export interface SimulatorLink {
   id: string           // 'knowledge-graph', 'rdf-editor', 'sparql-playground', 'reasoning-engine'
   title: string
   description?: string
+  url?: string         // 시뮬레이터 페이지 URL
 }
 
 // Task 콘텐츠 타입
@@ -92,9 +94,10 @@ export interface Phase {
   phase: number
   title: string
   description: string
-  duration: string     // '2개월'
+  duration: string     // '2개월', '2.5개월'
   color: string        // 'blue', 'teal', 'purple', ...
   access: AccessLevel  // 이 Phase에 접근 가능한 최소 레벨
+  track: TrackType     // 'core' | 'specialization' | 'capstone'
   weeks: string[]      // Week slug 목록
 }
 
@@ -132,7 +135,7 @@ export const taskTypeColors: Record<TaskType, string> = {
 // Access Level 색상
 export const accessColors: Record<AccessLevel, string> = {
   free: 'bg-green-100 text-green-700',
-  basic: 'bg-blue-100 text-blue-700',
+  core: 'bg-blue-100 text-blue-700',
   pro: 'bg-purple-100 text-purple-700',
   enterprise: 'bg-gray-100 text-gray-700'
 }
@@ -140,7 +143,7 @@ export const accessColors: Record<AccessLevel, string> = {
 // Access Level 라벨
 export const accessLabels: Record<AccessLevel, string> = {
   free: '무료',
-  basic: 'Basic',
+  core: 'Core',
   pro: 'Pro',
   enterprise: 'Enterprise'
 }

@@ -109,6 +109,151 @@ RETURN DISTINCT friend.name
           }
         },
         {
+          id: 'ontology-kg-graphdb-reading',
+          type: 'reading',
+          title: 'Ontology vs Knowledge Graph vs Graph DB (개념 정리)',
+          duration: 12,
+          content: {
+            objectives: [
+              'Ontology, Knowledge Graph, Graph Database의 차이를 명확히 구분한다',
+              '각 개념이 어떤 문제를 해결하는지 이해한다',
+              'Palantir Ontology의 위치를 파악한다'
+            ],
+            markdown: `
+# Ontology vs Knowledge Graph vs Graph DB
+
+이 세 가지 용어는 자주 혼용되지만, 각각 **다른 계층**의 개념입니다.
+
+## 계층 구조
+
+\`\`\`
+┌─────────────────────────────────────────────────┐
+│  Ontology (온톨로지)                              │
+│  "개념과 관계의 정의" - 스키마, 설계도              │
+├─────────────────────────────────────────────────┤
+│  Knowledge Graph (지식 그래프)                    │
+│  "실제 데이터 인스턴스" - 온톨로지 기반 데이터       │
+├─────────────────────────────────────────────────┤
+│  Graph Database (그래프 데이터베이스)              │
+│  "저장소/엔진" - Neo4j, TypeDB, Neptune 등         │
+└─────────────────────────────────────────────────┘
+\`\`\`
+
+## 1. Ontology (온톨로지)
+
+**정의**: 도메인 내 **개념(concept)**과 **관계(relation)**를 명시적으로 정의한 것
+
+**비유**: 건축 **설계도** - "이 건물에는 어떤 방이 있고, 방들은 어떻게 연결되는가?"
+
+\`\`\`yaml
+# 온톨로지 예시 (고객 도메인)
+concepts:
+  - Customer (고객)
+  - Product (상품)
+  - Order (주문)
+
+relations:
+  - Customer --PURCHASED--> Product
+  - Customer --PLACED--> Order
+  - Order --CONTAINS--> Product
+
+rules:
+  - "VIP 고객은 연간 구매액 1000만원 이상인 Customer"
+  - "Order는 반드시 1개 이상의 Product를 포함해야 함"
+\`\`\`
+
+**핵심**: 온톨로지는 **데이터가 없어도** 존재할 수 있음. 순수한 정의(definition)
+
+## 2. Knowledge Graph (지식 그래프)
+
+**정의**: 온톨로지 기반으로 **실제 데이터**를 노드와 엣지로 표현한 것
+
+**비유**: 건축 **완성된 건물** - 설계도(온톨로지)에 따라 지은 실제 구조물
+
+\`\`\`
+// Knowledge Graph 예시 (실제 데이터)
+(Alice:Customer {name: "Alice", vip: true})
+  -[:PURCHASED]->
+(iPhone:Product {name: "iPhone 15", price: 1500000})
+
+(Alice)-[:PLACED]->(Order001:Order {date: "2024-01-15"})
+(Order001)-[:CONTAINS]->(iPhone)
+\`\`\`
+
+**핵심**: Knowledge Graph는 온톨로지의 **인스턴스(instance)**
+
+## 3. Graph Database (그래프 데이터베이스)
+
+**정의**: 그래프 데이터를 저장하고 쿼리하는 **소프트웨어 시스템**
+
+**비유**: 건축 **시공 장비** - 건물을 짓는 도구 (포크레인, 크레인 등)
+
+| DB | 특징 | 스키마 |
+|----|------|--------|
+| Neo4j | Property Graph 모델, Cypher 쿼리 | 유연 (optional) |
+| TypeDB | Entity-Relationship 모델, 추론 내장 | 강타입 (필수) |
+| Amazon Neptune | RDF + Property Graph | 표준 기반 |
+| Memgraph | Neo4j 호환, 실시간 처리 | 유연 |
+
+**핵심**: Graph DB는 **도구**일 뿐, 온톨로지나 KG의 품질을 보장하지 않음
+
+## 왜 이 구분이 중요한가?
+
+### 흔한 실수
+
+| 실수 | 결과 |
+|------|------|
+| Neo4j 설치했으니 KG 완성! | 스키마 없이 데이터만 넣어서 쿼리 불가능 |
+| 노드/관계 많이 만들었으니 Ontology 완성! | 비즈니스 규칙이 없어서 추론 불가능 |
+| 데이터 구조만 정의했으니 Ontology 완성! | 실제 데이터가 없어서 가치 창출 불가 |
+
+### 올바른 접근
+
+\`\`\`
+1. Ontology 설계 (개념, 관계, 규칙 정의)
+      ↓
+2. Knowledge Graph 구축 (실제 데이터 인스턴스)
+      ↓
+3. Graph Database 선택 (저장 및 쿼리 엔진)
+\`\`\`
+
+## Palantir Ontology의 위치
+
+Palantir Foundry에서 말하는 "Ontology"는:
+
+| 역할 | Palantir 용어 | 이 강의 |
+|------|--------------|--------|
+| 개념 정의 | Object Type | 온톨로지 |
+| 관계 정의 | Link Type | 온톨로지 |
+| 실제 데이터 | Object | Knowledge Graph |
+| 저장소 | Foundry Backend | Graph Database |
+
+**핵심 메시지**: Palantir FDE가 하는 일의 핵심은 **Ontology 설계** - 어떤 Object Type이 필요하고, 어떻게 연결되는지 정의하는 것
+
+## 핵심 정리
+
+| 개념 | 정의 | 비유 | 예시 |
+|------|-----|------|------|
+| Ontology | 개념과 관계의 정의 | 설계도 | "Customer는 Order를 생성한다" |
+| Knowledge Graph | 실제 데이터 인스턴스 | 완성된 건물 | "Alice가 Order001을 생성했다" |
+| Graph Database | 저장/쿼리 엔진 | 시공 장비 | Neo4j, TypeDB |
+
+> **기억하세요**: 좋은 Graph Database를 써도 Ontology가 없으면 혼란, Ontology가 좋아도 데이터가 없으면 무용지물
+            `,
+            externalLinks: [
+              { title: 'What is an Ontology? (Stanford)', url: 'https://protege.stanford.edu/publications/ontology_development/ontology101.pdf' },
+              { title: 'Knowledge Graph vs Graph Database', url: 'https://www.ontotext.com/knowledgehub/fundamentals/what-is-a-knowledge-graph/' },
+              { title: 'Palantir Ontology Overview', url: 'https://www.palantir.com/docs/foundry/ontology/overview/' }
+            ],
+            keyPoints: [
+              'Ontology: 개념과 관계의 정의 (스키마, 설계도)',
+              'Knowledge Graph: 온톨로지 기반 실제 데이터 인스턴스',
+              'Graph Database: 그래프 데이터 저장/쿼리 엔진 (도구)',
+              'FDE의 핵심 역할은 Ontology 설계 - Object Type과 Link Type 정의'
+            ]
+          }
+        },
+        {
           id: 'graph-concepts-reading',
           type: 'reading',
           title: 'Property Graph 구성 요소 (노드, 관계, 속성, 레이블)',
@@ -650,8 +795,212 @@ CREATE (p:Person {
               {
                 id: 'knowledge-graph',
                 title: 'Knowledge Graph Visualizer',
-                description: 'Property Graph를 2D/3D로 시각화하며 탐색해보세요'
+                description: 'Property Graph를 2D/3D로 시각화하며 탐색해보세요',
+                url: '/simulators/knowledge-graph'
+              },
+              {
+                id: 'cypher-playground',
+                title: 'Cypher Query Playground',
+                description: 'Neo4j 없이 브라우저에서 Cypher 쿼리를 직접 실습해보세요',
+                url: '/simulators/cypher-playground'
               }
+            ]
+          }
+        },
+        {
+          id: 'object-type-template-reading',
+          type: 'reading',
+          title: 'Object Type 정의 템플릿 (Palantir 스타일 스키마 설계)',
+          duration: 15,
+          content: {
+            objectives: [
+              'Object Type을 체계적으로 정의하는 방법을 익힌다',
+              'Palantir Foundry 스타일의 스키마 문서를 작성할 수 있다',
+              '좋은 스키마와 나쁜 스키마의 차이를 구분한다'
+            ],
+            markdown: `
+# Object Type 정의 템플릿
+
+Neo4j에서 노드와 관계를 만들기 전에, **무엇을 만들 것인지** 먼저 정의해야 합니다.
+이것이 **Object Type 정의** - Palantir FDE의 핵심 업무입니다.
+
+## Object Type 정의서 템플릿
+
+\`\`\`yaml
+# Object Type 정의서 v1.0
+# 작성일: 2024-01-15
+# 작성자: FDE Team
+
+object_type:
+  name: Customer              # 시스템 이름 (영문, PascalCase)
+  display_name: "고객"          # 화면 표시 이름
+  description: |
+    서비스를 이용하는 개인 또는 기업 고객.
+    회원가입을 완료한 사용자만 Customer로 등록됨.
+
+  # 속성 정의
+  properties:
+    - name: customer_id
+      type: string
+      primary_key: true        # 고유 식별자
+      description: "고객 고유 ID (UUID)"
+      example: "cust_abc123"
+
+    - name: name
+      type: string
+      required: true
+      description: "고객 이름"
+      example: "김철수"
+
+    - name: email
+      type: string
+      required: true
+      unique: true             # 중복 불가
+      description: "이메일 주소"
+
+    - name: vip_status
+      type: boolean
+      default: false
+      description: "VIP 고객 여부"
+
+    - name: created_at
+      type: datetime
+      auto_generated: true
+      description: "가입 일시"
+
+  # 관계 정의 (Link Types)
+  relationships:
+    - name: PURCHASED
+      target: Product
+      direction: outgoing      # Customer → Product
+      cardinality: many        # 1:N
+      description: "고객이 구매한 상품"
+      properties:
+        - name: purchased_at
+          type: datetime
+        - name: quantity
+          type: integer
+
+    - name: BELONGS_TO
+      target: Segment
+      direction: outgoing
+      cardinality: one         # 1:1 (하나의 세그먼트에만 속함)
+      description: "고객이 속한 세그먼트"
+
+  # 비즈니스 규칙
+  business_rules:
+    - "고객은 최소 1개 이상의 주문을 해야 활성 고객으로 분류"
+    - "VIP 고객은 최근 1년간 구매액 1000만원 이상"
+    - "이메일은 반드시 유효한 형식이어야 함"
+
+  # 인덱스 (성능 최적화)
+  indexes:
+    - properties: [email]
+      unique: true
+    - properties: [created_at]
+      purpose: "가입일 기준 조회 최적화"
+\`\`\`
+
+## 좋은 스키마 vs 나쁜 스키마
+
+### ❌ 나쁜 스키마 예시
+
+\`\`\`cypher
+// 문제 1: 관계에 너무 많은 속성
+(:Person)-[:KNOWS {
+  since: 2020,
+  how: "work",
+  trust_level: 5,
+  last_contact: "2024-01-01",
+  common_friends: 3,
+  relationship_type: "colleague",
+  notes: "met at conference",
+  ...30개 이상 속성
+}]->(:Person)
+
+// 문제 2: 레이블이 너무 구체적
+(:VIPCustomerFromSeoulWhoLikesElectronics)
+
+// 문제 3: 속성으로 관계를 표현
+(:Person {friends: ["alice", "bob", "charlie"]})
+\`\`\`
+
+**왜 나쁜가?**
+- 관계 속성 과다: 쿼리 복잡, 유지보수 어려움
+- 레이블 과다 구체화: 확장성 없음
+- 배열로 관계 표현: 그래프 탐색 불가능
+
+### ✅ 좋은 스키마 예시
+
+\`\`\`cypher
+// 관계는 단순하게, 컨텍스트는 별도 노드로
+(:Person)-[:KNOWS]->(:Person)
+(:Person)-[:HAS_RELATIONSHIP]->(:Relationship {
+  type: "colleague",
+  since: 2020,
+  context: "work"
+})
+
+// 레이블은 일반적으로, 속성으로 분류
+(:Customer {region: "Seoul", tier: "VIP", interest: "Electronics"})
+
+// 관계는 명시적인 엣지로
+(:Person)-[:FRIENDS_WITH]->(:Person)
+\`\`\`
+
+**왜 좋은가?**
+- 관계 단순화: 빠른 탐색, 명확한 의미
+- 레이블 일반화: 속성으로 세부 분류
+- 명시적 관계: 그래프 알고리즘 활용 가능
+
+## Object Type 설계 원칙
+
+### 1. 명사 → 노드, 동사 → 관계
+
+| 도메인 문장 | 노드 | 관계 |
+|------------|------|------|
+| "고객이 상품을 구매한다" | Customer, Product | PURCHASED |
+| "직원이 부서에 소속된다" | Employee, Department | BELONGS_TO |
+| "영화에 배우가 출연한다" | Movie, Actor | ACTED_IN |
+
+### 2. 관계 방향 결정 가이드
+
+| 질문 | 방향 결정 |
+|------|----------|
+| "누가 행동의 주체인가?" | 주체 → 대상 |
+| "자연어로 읽을 때 순서는?" | 자연스러운 방향 |
+| "쿼리에서 자주 시작하는 노드는?" | 시작 노드 → 타겟 노드 |
+
+### 3. 속성 vs 관계 판단
+
+| 상황 | 선택 | 이유 |
+|------|------|------|
+| 단일 값 (이름, 나이) | 속성 | 탐색 불필요 |
+| 다른 엔티티 참조 | 관계 | 그래프 탐색 필요 |
+| 값이 자주 변경 | 속성 | 관계보다 업데이트 쉬움 |
+| 값에 대한 메타데이터 필요 | 관계 + 노드 | 관계에 속성 추가 |
+
+## 핵심 정리
+
+| 원칙 | 설명 |
+|------|------|
+| 문서화 먼저 | 코드 전에 Object Type 정의서 작성 |
+| 단순한 관계 | 관계 속성은 최소화 (3개 이하 권장) |
+| 명확한 명명 | KNOWS, WORKS_AT 등 동사형 관계명 |
+| 비즈니스 규칙 명시 | "VIP는 1000만원 이상" 같은 규칙 문서화 |
+
+> **FDE 팁**: 도메인 전문가와 Object Type 정의서를 함께 검토하세요. 기술 용어보다 비즈니스 언어로 설명된 스키마가 좋은 스키마입니다.
+            `,
+            externalLinks: [
+              { title: 'Neo4j Data Modeling Guidelines', url: 'https://neo4j.com/developer/data-modeling/' },
+              { title: 'Palantir Object Type Reference', url: 'https://www.palantir.com/docs/foundry/ontology/object-types/' },
+              { title: 'Graph Data Modeling Best Practices', url: 'https://neo4j.com/blog/data-modeling-basics/' }
+            ],
+            keyPoints: [
+              'Object Type 정의서: 노드/관계를 코드화하기 전에 작성하는 스키마 문서',
+              '좋은 스키마: 관계는 단순하게, 레이블은 일반적으로, 비즈니스 규칙 명시',
+              '나쁜 스키마: 관계 속성 과다, 레이블 과다 구체화, 배열로 관계 표현',
+              '명사→노드, 동사→관계, 형용사→속성 원칙 적용'
             ]
           }
         },
@@ -2303,6 +2652,14 @@ RETURN DISTINCT friend.name
               'Cypher = Neo4j의 선언적 그래프 쿼리 언어',
               'ASCII Art 패턴: (노드)-[:관계]->(노드)',
               'SQL JOIN vs Cypher 패턴 매칭: 코드량 70-80% 감소'
+            ],
+            simulators: [
+              {
+                id: 'cypher-playground',
+                title: 'Cypher Query Playground',
+                description: 'Neo4j 없이 브라우저에서 Cypher 쿼리를 직접 실습해보세요',
+                url: '/simulators/cypher-playground'
+              }
             ]
           }
         },

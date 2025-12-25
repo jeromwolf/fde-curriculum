@@ -217,37 +217,38 @@ export default function TaskPage() {
   const renderSimulators = () => {
     if (!content?.simulators?.length) return null
 
-    const SIMULATOR_BASE_URL = 'https://kss-ontology-827760573017.asia-northeast3.run.app/simulators'
-
     return (
       <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-xl border border-purple-200 mt-6">
         <h4 className="font-bold mb-3 text-purple-900 flex items-center gap-2">
           <span className="text-lg">🎮</span> 인터랙티브 시뮬레이터
         </h4>
         <div className="space-y-2">
-          {content.simulators.map((sim, i) => (
-            <a
-              key={i}
-              href={`${SIMULATOR_BASE_URL}/${sim.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block p-3 bg-white rounded-lg border border-purple-100 hover:border-purple-300 hover:shadow-md transition-all group"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-purple-800 group-hover:text-purple-600">{sim.title}</div>
-                  {sim.description && (
-                    <div className="text-sm text-gray-600 mt-0.5">{sim.description}</div>
-                  )}
+          {content.simulators.map((sim, i) => {
+            // 로컬 URL이 있으면 사용, 없으면 외부 URL 사용
+            const simulatorUrl = sim.url || `/simulators/${sim.id}`
+            const isExternal = !sim.url
+
+            return (
+              <a
+                key={i}
+                href={simulatorUrl}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noopener noreferrer" : undefined}
+                className="block p-3 bg-white rounded-lg border border-purple-100 hover:border-purple-300 hover:shadow-md transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium text-purple-800 group-hover:text-purple-600">{sim.title}</div>
+                    {sim.description && (
+                      <div className="text-sm text-gray-600 mt-0.5">{sim.description}</div>
+                    )}
+                  </div>
+                  <span className="text-purple-500 group-hover:translate-x-1 transition-transform">→</span>
                 </div>
-                <span className="text-purple-500 group-hover:translate-x-1 transition-transform">→</span>
-              </div>
-            </a>
-          ))}
+              </a>
+            )
+          })}
         </div>
-        <p className="text-xs text-gray-500 mt-3">
-          * 시뮬레이터는 KSS-Ontology 플랫폼에서 제공됩니다
-        </p>
       </div>
     )
   }

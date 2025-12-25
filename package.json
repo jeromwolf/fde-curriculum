@@ -14,6 +14,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "bcryptjs": "^3.0.3",
     "html2pdf.js": "^0.12.1",
+    "lucide-react": "^0.562.0",
     "next": "14",
     "next-auth": "^5.0.0-beta.30",
     "nodemailer": "^7.0.11",
@@ -21,10 +22,14 @@
     "prismjs": "^1.30.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-force-graph-3d": "^1.29.0",
     "react-markdown": "^8.0.7",
     "react-simple-code-editor": "^0.14.1",
     "react-syntax-highlighter": "^16.1.0",
-    "remark-gfm": "^3.0.1"
+    "remark-gfm": "^3.0.1",
+    "three": "^0.182.0",
+    "vis-data": "^8.0.3",
+    "vis-network": "^10.0.2"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",

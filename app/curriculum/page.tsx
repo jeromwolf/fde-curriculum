@@ -45,7 +45,7 @@ export default function CurriculumPage() {
           month: 1,
           title: 'Python & SQL 심화',
           weeks: [
-            { week: 1, title: 'Python 심화', topics: ['제너레이터 & 이터레이터', '데코레이터 패턴', '컨텍스트 매니저', 'Type Hints & mypy'], practice: '데코레이터 기반 로깅 & 캐싱 시스템' },
+            { week: 1, title: 'Python 심화 + Docker 기초', topics: ['제너레이터 & 이터레이터', '데코레이터 패턴', 'Type Hints & mypy', 'Docker 기초 (Dockerfile, Compose)'], practice: '로깅 시스템 + Python 앱 컨테이너화' },
             { week: 2, title: 'pandas & 데이터 처리', topics: ['대용량 데이터 처리 (chunk)', '고급 pandas (MultiIndex, pivot)', '성능 최적화 (vectorize)', 'Polars 소개'], practice: '1GB+ CSV 처리 파이프라인' },
             { week: 3, title: 'SQL 심화', topics: ['윈도우 함수 (ROW_NUMBER, LAG/LEAD)', 'CTE & 재귀 쿼리', '실행 계획 분석 & 튜닝', '트랜잭션 & 락'], practice: '복잡한 분석 쿼리 20개' },
             { week: 4, title: '데이터 모델링', topics: ['정규화 (1NF~3NF)', 'Star Schema vs Snowflake', 'SCD (Type 1/2/3)', '실무 설계 패턴'], practice: '이커머스 데이터 웨어하우스 설계' }
@@ -58,7 +58,7 @@ export default function CurriculumPage() {
           weeks: [
             { week: 1, title: 'Apache Spark', topics: ['Spark 아키텍처 (Driver, Executor)', 'DataFrame API 마스터', 'Catalyst & Tungsten 최적화', 'PySpark UDF'], practice: '대용량 로그 분석 파이프라인' },
             { week: 2, title: 'Spark 심화 & Delta Lake', topics: ['Structured Streaming', 'Delta Lake (ACID, Time Travel)', '성능 튜닝 (파티션, 캐싱)', 'Spark UI 모니터링'], practice: '실시간 처리 + Delta Lake 저장' },
-            { week: 3, title: '워크플로우 오케스트레이션', topics: ['Apache Airflow (DAG, Operator)', '스케줄링 & 에러 핸들링', 'Prefect, Dagster 비교', '모니터링 & 알림'], practice: 'ETL 워크플로우 자동화' },
+            { week: 3, title: 'Airflow & dbt', topics: ['Apache Airflow (DAG, Operator)', 'dbt 기초 (models, tests, docs)', 'Airflow + dbt 통합', '모니터링 & 알림'], practice: 'ETL + dbt transformation 레이어' },
             { week: 4, title: 'E2E 파이프라인 프로젝트', topics: ['아키텍처 설계', '데이터 품질 (Great Expectations)', '모니터링 & 로깅', '문서화'], practice: '포트폴리오 #1: E2E 데이터 파이프라인' }
           ],
           output: '포트폴리오 #1: E2E 데이터 파이프라인'
@@ -100,8 +100,8 @@ export default function CurriculumPage() {
     },
     {
       phase: 3,
-      title: '지식 그래프',
-      duration: '6주',
+      title: '지식 그래프 & GraphRAG',
+      duration: '2개월',
       color: 'bg-purple-500',
       borderColor: 'border-purple-500',
       lightBg: 'bg-purple-50',
@@ -111,9 +111,10 @@ export default function CurriculumPage() {
           month: 5,
           title: 'Neo4j & Cypher 마스터',
           weeks: [
-            { week: 1, title: '그래프 이론 & Neo4j 입문', topics: ['그래프 vs 관계형 DB (언제 쓰는가)', 'Property Graph 모델 (Node, Relationship)', 'Neo4j 설치 & Aura / Memgraph', 'Cypher 기초 (CRUD, 패턴 매칭)'], practice: 'Neo4j 환경 구축 + 소셜 네트워크 그래프' },
-            { week: 2, title: 'Cypher 마스터 & 데이터 모델링', topics: ['Cypher 심화 (WITH, APOC, 서브쿼리)', '그래프 데이터 모델링 원칙', '관계형 → 그래프 마이그레이션', '성능 최적화 (인덱스, PROFILE)'], practice: '이커머스 Knowledge Graph 구축' },
-            { week: 3, title: '그래프 알고리즘', topics: ['중심성 (PageRank, Betweenness, Degree)', '커뮤니티 탐지 (Louvain, Label Propagation)', '유사도 & 링크 예측 (Jaccard, KNN)', '경로 탐색 (Dijkstra, All Paths)'], practice: '소셜 네트워크 분석 (인플루언서 찾기)' }
+            { week: 1, title: '그래프 이론 & Neo4j 입문', topics: ['Ontology vs KG vs Graph DB', 'Property Graph 모델 (Node, Relationship)', 'Neo4j 설치 & Aura / Memgraph', 'Cypher 기초 (CRUD, 패턴 매칭)'], practice: 'Neo4j 환경 구축 + 소셜 네트워크 그래프' },
+            { week: 2, title: 'Cypher 심화 & 데이터 모델링', topics: ['Cypher 심화 (WITH, APOC, 서브쿼리)', '그래프 데이터 모델링 원칙', '관계형 → 그래프 마이그레이션', '성능 최적화 (인덱스, PROFILE)'], practice: '이커머스 Knowledge Graph 구축' },
+            { week: 3, title: '그래프 알고리즘', topics: ['중심성 (PageRank, Betweenness, Degree)', '커뮤니티 탐지 (Louvain, Label Propagation)', '유사도 & 링크 예측 (Jaccard, KNN)', '경로 탐색 (Dijkstra, All Paths)'], practice: '소셜 네트워크 분석 (인플루언서 찾기)' },
+            { week: 4, title: 'Entity Resolution & Python', topics: ['Entity Resolution (중복 탐지, 병합)', 'Neo4j Python Driver & py2neo', 'NetworkX & PyVis 시각화', '다중 소스 KG 구축'], practice: '기업 Knowledge Graph + 시각화' }
           ],
           output: 'Cypher 치트시트, 도메인 KG'
         },
@@ -121,9 +122,10 @@ export default function CurriculumPage() {
           month: 6,
           title: 'GraphRAG & 프로젝트',
           weeks: [
-            { week: 1, title: 'Entity Resolution & Python 통합', topics: ['Entity Resolution (중복 탐지, 병합)', 'Neo4j Python Driver & py2neo', 'NetworkX & PyVis 시각화', '다중 소스 KG 구축'], practice: '기업 Knowledge Graph + Streamlit 대시보드' },
-            { week: 2, title: 'GraphRAG & LLM 통합', topics: ['GraphRAG 개념 (왜 KG + RAG인가)', 'LangChain + Neo4j 구현', '자연어 → Cypher (LLM 변환)', '하이브리드 검색 (벡터 + 그래프)'], practice: 'GraphRAG Q&A 챗봇 시스템' },
-            { week: 3, title: '도메인 KG 프로젝트', topics: ['프로젝트 설계 (300+ 노드, 2+ 소스)', 'E2E 파이프라인 (수집→ER→KG→RAG)', 'Streamlit 앱 배포', '발표 & 문서화'], practice: '포트폴리오 #3: 도메인 KG + GraphRAG' }
+            { week: 1, title: 'RAG 기초', topics: ['RAG 아키텍처 개요', '임베딩 & 벡터 DB (Chroma, Pinecone)', '청킹 전략 & 검색 최적화', 'LangChain RAG 파이프라인'], practice: '문서 Q&A RAG 시스템' },
+            { week: 2, title: 'GraphRAG', topics: ['GraphRAG 개념 (왜 KG + RAG인가)', 'LangChain + Neo4j 구현', '하이브리드 검색 (벡터 + 그래프)', '멀티홉 추론 & 컨텍스트 확장'], practice: 'GraphRAG Q&A 챗봇 시스템' },
+            { week: 3, title: '자연어 → Cypher', topics: ['LLM 기반 Cypher 생성', '스키마 프롬프팅 기법', '쿼리 검증 & 에러 처리', '자연어 인터페이스 설계'], practice: 'Text2Cypher 인터페이스 구축' },
+            { week: 4, title: '도메인 KG 프로젝트', topics: ['프로젝트 설계 (300+ 노드, 2+ 소스)', 'E2E 파이프라인 (수집→ER→KG→RAG)', 'Streamlit 앱 배포', '발표 & 문서화'], practice: '포트폴리오 #3: 도메인 KG + GraphRAG' }
           ],
           output: '포트폴리오 #3: 도메인 Knowledge Graph + GraphRAG 시스템'
         }
@@ -155,7 +157,7 @@ export default function CurriculumPage() {
             { week: 1, title: 'Docker 심화', topics: ['Dockerfile (Multi-stage, 캐싱)', 'Docker Compose (멀티 컨테이너)', '이미지 최적화 & 레지스트리', '보안 (루트리스, 시크릿)'], practice: '마이크로서비스 컨테이너화' },
             { week: 2, title: 'Kubernetes 기초', topics: ['아키텍처 (Control Plane, Node)', '워크로드 (Pod, Deployment, ReplicaSet)', '서비스 (ClusterIP, NodePort, LB)', 'ConfigMap & Secret'], practice: '로컬 K8s 클러스터' },
             { week: 3, title: 'Kubernetes 심화', topics: ['스토리지 (PV, PVC, StorageClass)', 'Ingress & NetworkPolicy', 'Helm & Kustomize', 'HPA & 리소스 관리'], practice: 'Helm 차트 작성' },
-            { week: 4, title: '프로덕션 K8s', topics: ['EKS/GKE 관리형 K8s', 'Prometheus & Grafana 모니터링', 'GitHub Actions CI/CD', 'GitOps (ArgoCD)'], practice: '포트폴리오 #4: 클라우드 인프라' }
+            { week: 4, title: '프로덕션 K8s & AI 인프라', topics: ['EKS/GKE 관리형 K8s', 'GitOps (ArgoCD)', 'LLM 서빙 (vLLM, TGI)', '벡터 DB 운영 (Pinecone, Weaviate)'], practice: '포트폴리오 #4: 클라우드 AI 인프라' }
           ],
           output: '포트폴리오 #4: 클라우드 인프라'
         }
@@ -185,7 +187,7 @@ export default function CurriculumPage() {
           title: 'AI 에이전트 & 프로덕션',
           weeks: [
             { week: 1, title: 'AI 에이전트 기초', topics: ['에이전트 개념 (자율성, 도구 사용)', 'Function Calling (OpenAI, Claude)', 'ReAct 패턴 (Reasoning + Acting)', 'LangGraph (상태 기반 워크플로우)'], practice: '도구 사용 에이전트 구축' },
-            { week: 2, title: '고급 에이전트', topics: ['멀티 에이전트 (협업, 위임)', '메모리 (단기/장기, 요약)', '계획 & 반성 (Plan-and-Execute)', '에이전트 평가'], practice: '멀티 에이전트 시스템' },
+            { week: 2, title: '고급 에이전트 & MCP', topics: ['멀티 에이전트 (협업, 위임)', 'MCP (Model Context Protocol)', 'MCP 서버 구축 & 클라이언트 연동', '에이전트 평가'], practice: 'MCP 기반 도구 통합 시스템' },
             { week: 3, title: '프로덕션 배포', topics: ['FastAPI 서버 & 스트리밍', '캐싱 (Semantic 캐시, Redis)', '모니터링 (LangSmith, 비용 추적)', '보안 (Rate limiting, Input validation)'], practice: 'RAG API 서버 배포' },
             { week: 4, title: 'GenAI 프로젝트', topics: ['프로젝트 설계 & 아키텍처', 'RAG + Agent 통합', '평가 & 개선 (A/B 테스트)', '발표 & 문서화'], practice: '포트폴리오 #5: AI 애플리케이션' }
           ],
@@ -372,7 +374,7 @@ export default function CurriculumPage() {
             ) : (
               <span className="px-3 py-1 bg-purple-500 rounded-full text-sm font-bold">SPECIAL COURSE</span>
             )}
-            <span className="px-3 py-1 bg-green-500 rounded-full text-sm font-bold">v3.0</span>
+            <span className="px-3 py-1 bg-green-500 rounded-full text-sm font-bold">v3.6</span>
           </div>
           <h1 className="text-4xl font-bold">{activeTab === 'main' ? 'FDE Academy' : 'Palantir Foundry 스페셜'}</h1>
           <p className={`${activeTab === 'main' ? 'text-blue-100' : 'text-purple-100'} mt-2 text-lg`}>
@@ -428,28 +430,53 @@ export default function CurriculumPage() {
               </div>
             </div>
 
-            {/* v2.2 변경 사항 하이라이트 */}
+            {/* v3.6 변경 사항 하이라이트 */}
             <div className="bg-gradient-to-r from-green-50 to-teal-50 rounded-xl p-6 mb-8 border-2 border-green-200">
               <h2 className="text-xl font-bold text-green-800 mb-4 flex items-center gap-2">
-                <span className="px-2 py-1 bg-green-500 text-white rounded text-sm">v3.0</span>
+                <span className="px-2 py-1 bg-green-500 text-white rounded text-sm">v3.6</span>
                 주요 변경 사항
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-lg p-4 border border-green-100">
-                  <div className="text-teal-700 font-bold mb-1">Phase 2 강화</div>
-                  <div className="text-sm text-gray-600">문제 정의 + 컨설팅 역량 통합</div>
+                  <div className="text-blue-700 font-bold mb-1">Core 6개월</div>
+                  <div className="text-sm text-gray-600">필수 과정 집중 학습</div>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-green-100">
-                  <div className="text-teal-600 font-bold mb-1">비즈니스 역량</div>
-                  <div className="text-sm text-gray-600">5 Whys, MECE, 경영진 발표</div>
+                  <div className="text-purple-600 font-bold mb-1">Phase 3 확장</div>
+                  <div className="text-sm text-gray-600">6주 → 8주 (GraphRAG 심화)</div>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-green-100">
-                  <div className="text-purple-600 font-bold mb-1">Phase 3 실무화</div>
-                  <div className="text-sm text-gray-600">Neo4j/Cypher + GraphRAG</div>
+                  <div className="text-teal-600 font-bold mb-1">AI-Native</div>
+                  <div className="text-sm text-gray-600">Copilot/Claude Day 1부터 활용</div>
                 </div>
                 <div className="bg-white rounded-lg p-4 border border-green-100">
-                  <div className="text-blue-600 font-bold mb-1">포트폴리오 6개</div>
-                  <div className="text-sm text-gray-600">각 Phase별 실무 프로젝트</div>
+                  <div className="text-orange-600 font-bold mb-1">Specialization</div>
+                  <div className="text-sm text-gray-600">선택 과정으로 분리 (Foundry 등)</div>
+                </div>
+              </div>
+            </div>
+
+            {/* AI-Native 학습 안내 */}
+            <div className="bg-gradient-to-r from-violet-50 to-purple-50 rounded-xl p-6 mb-8 border-2 border-violet-200">
+              <h2 className="text-xl font-bold text-violet-800 mb-4 flex items-center gap-2">
+                <span className="text-2xl">🤖</span>
+                AI-Native 학습 방식
+              </h2>
+              <p className="text-gray-700 mb-4">
+                FDE Academy는 처음부터 AI 도구를 적극 활용합니다. 코드 작성, 디버깅, 문서화 모든 과정에서 AI와 협업하세요.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg p-4 border border-violet-100">
+                  <div className="font-bold text-violet-700 mb-2">GitHub Copilot</div>
+                  <div className="text-sm text-gray-600">코드 자동완성, 리팩토링, 테스트 생성</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-violet-100">
+                  <div className="font-bold text-violet-700 mb-2">Claude / ChatGPT</div>
+                  <div className="text-sm text-gray-600">개념 설명, 디버깅, 아키텍처 설계</div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border border-violet-100">
+                  <div className="font-bold text-violet-700 mb-2">Cursor / Windsurf</div>
+                  <div className="text-sm text-gray-600">AI 통합 IDE로 생산성 극대화</div>
                 </div>
               </div>
             </div>
@@ -868,10 +895,10 @@ export default function CurriculumPage() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full text-gray-600 text-sm">
             <span>FDE Academy 커리큘럼</span>
             <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-            <span className="text-green-600 font-bold">v3.0</span>
+            <span className="text-green-600 font-bold">v3.6</span>
           </div>
           <div className="mt-3 text-xs text-gray-400">
-            마지막 업데이트: 2025-12-15 | Phase 3 지식 그래프 커리큘럼 강화
+            마지막 업데이트: 2025-12-25 | Core 6개월 + Specialization 구조, Phase 3 8주 확장
           </div>
         </div>
       </main>
