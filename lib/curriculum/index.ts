@@ -8,6 +8,7 @@ export * from './packages'
 import { pythonAdvancedWeek } from './weeks/python-advanced'
 import { graphIntroWeek } from './weeks/graph-intro'
 import { cypherModelingWeek } from './weeks/cypher-modeling'
+import { week3GraphAlgorithms } from './weeks/week3-graph-algorithms'
 // 추후 추가:
 // import { pandasDataWeek } from './weeks/pandas-data'
 // import { sqlDeepWeek } from './weeks/sql-deep'
@@ -19,6 +20,7 @@ export const curriculum: Week[] = [
   pythonAdvancedWeek,
   graphIntroWeek,
   cypherModelingWeek,
+  week3GraphAlgorithms,
   // 추후 추가...
 ]
 
