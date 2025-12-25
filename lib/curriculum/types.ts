@@ -1,6 +1,6 @@
 // 커리큘럼 타입 정의 (v3.6)
 
-export type TaskType = 'video' | 'reading' | 'code' | 'quiz' | 'challenge' | 'project'
+export type TaskType = 'video' | 'reading' | 'code' | 'quiz' | 'challenge' | 'project' | 'simulator'
 export type AccessLevel = 'free' | 'core' | 'pro' | 'enterprise'
 export type TrackType = 'core' | 'specialization' | 'capstone'
 
@@ -48,6 +48,9 @@ export interface TaskContent {
   requirements?: string[]    // 요구사항
   evaluationCriteria?: string[]  // 평가 기준
   bonusPoints?: string[]     // 보너스 포인트
+
+  // simulator
+  simulatorId?: string       // 시뮬레이터 ID
 }
 
 export interface Task {
@@ -119,7 +122,8 @@ export const taskTypeIcons: Record<TaskType, string> = {
   code: '',
   quiz: '✅',
   challenge: '🏆',
-  project: '🚀'
+  project: '🚀',
+  simulator: '🎮'
 }
 
 // Task 유형별 색상 (배경 없음, 아이콘만)
@@ -129,7 +133,8 @@ export const taskTypeColors: Record<TaskType, string> = {
   code: '',
   quiz: '',
   challenge: '',
-  project: ''
+  project: '',
+  simulator: ''
 }
 
 // Access Level 색상
