@@ -11,9 +11,9 @@ import { cypherModelingWeek } from './weeks/cypher-modeling'
 import { week3GraphAlgorithms } from './weeks/week3-graph-algorithms'
 import { week4EntityResolution } from './weeks/week4-entity-resolution'
 import { week5RagBasics } from './weeks/week5-rag-basics'
-// 추후 추가:
-// import { pandasDataWeek } from './weeks/pandas-data'
-// import { sqlDeepWeek } from './weeks/sql-deep'
+import { week6GraphRag } from './weeks/week6-graph-rag'
+import { week7Text2Cypher } from './weeks/week7-text2cypher'
+import { week8KgProject } from './weeks/week8-kg-project'
 
 import type { Week, Task, Day, Module, Course, TaskContent, QuizQuestion } from './types'
 
@@ -25,7 +25,9 @@ export const curriculum: Week[] = [
   week3GraphAlgorithms,
   week4EntityResolution,
   week5RagBasics,
-  // 추후 추가...
+  week6GraphRag,
+  week7Text2Cypher,
+  week8KgProject,
 ]
 
 // Week slug로 찾기

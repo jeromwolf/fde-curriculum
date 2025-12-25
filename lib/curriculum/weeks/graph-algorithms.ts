@@ -129,7 +129,15 @@ CALL gds.pageRank.mutate('myGraph', {mutateProperty: 'pagerank'})
 // 4. 정리
 CALL gds.graph.drop('myGraph')
 \`\`\`
-            `
+            `,
+            simulators: [
+              {
+                id: 'graph-algorithms',
+                title: 'Graph Algorithms Simulator',
+                description: '중심성, 커뮤니티 탐지, 유사도, 경로 탐색 알고리즘을 시각적으로 실습해보세요',
+                url: '/simulators/graph-algorithms'
+              }
+            ]
           }
         },
         {

@@ -98,7 +98,15 @@ Documents
 - **Local Search**: 특정 엔티티 기반 검색
 - **Global Search**: 커뮤니티 요약 기반 검색
 - **Community Summaries**: 주제별 요약 사전 생성
-            `
+            `,
+            simulators: [
+              {
+                id: 'graphrag-pipeline',
+                title: 'GraphRAG Pipeline Simulator',
+                description: 'Local/Global/Hybrid 검색 전략과 그래프 순회를 시각적으로 체험해보세요',
+                url: '/simulators/graphrag-pipeline'
+              }
+            ]
           }
         },
         {

@@ -109,7 +109,15 @@ response = client.embeddings.create(
 
 embeddings = [item.embedding for item in response.data]
 \`\`\`
-            `
+            `,
+            simulators: [
+              {
+                id: 'embedding-visualizer',
+                title: 'Embedding Visualizer',
+                description: '텍스트 임베딩과 RAG 파이프라인을 시각적으로 체험해보세요',
+                url: '/simulators/embedding-visualizer'
+              }
+            ]
           }
         },
         {

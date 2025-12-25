@@ -34,6 +34,14 @@ export const text2CypherWeek: Week = {
               'LLM이 DB 스키마를 이해해야 정확한 쿼리를 생성할 수 있습니다',
               '스키마 프롬프팅, Few-shot 예제, 쿼리 검증이 핵심 기법입니다',
               '보안을 위해 DELETE, CREATE 등 위험한 연산을 차단해야 합니다'
+            ],
+            simulators: [
+              {
+                id: 'text2cypher',
+                title: 'Text2Cypher Simulator',
+                description: '자연어 질문을 Cypher 쿼리로 변환하는 과정을 직접 체험해보세요',
+                url: '/simulators/text2cypher'
+              }
             ]
           }
         },
