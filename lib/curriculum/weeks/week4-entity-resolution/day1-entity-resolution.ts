@@ -20,9 +20,8 @@ import {
 // ============================================
 
 export const day1EntityResolution: Day = {
-  day: 1,
+  slug: 'entity-resolution-basics',
   title: 'Entity Resolution 기초',
-  description: '중복 엔티티를 탐지하고 병합하는 Entity Resolution 기법을 학습합니다.',
   totalDuration: 240,
   tasks: [
     // Task 1: Entity Resolution 개요 (25분)

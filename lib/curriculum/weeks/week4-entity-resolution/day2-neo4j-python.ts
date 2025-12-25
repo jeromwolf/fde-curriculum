@@ -10,9 +10,8 @@ import {
 } from './types'
 
 export const day2Neo4jPython: Day = {
-  day: 2,
+  slug: 'neo4j-python-driver',
   title: 'Neo4j Python Driver',
-  description: 'Python에서 Neo4j를 연동하고 데이터를 다루는 방법을 학습합니다.',
   totalDuration: 240,
   tasks: [
     createVideoTask('w4d2-neo4j-driver-overview', 'Neo4j Python Driver 개요', 25, {

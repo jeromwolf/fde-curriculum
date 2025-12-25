@@ -10,9 +10,8 @@ import {
 } from './types'
 
 export const day4MultiSourceKG: Day = {
-  day: 4,
+  slug: 'multi-source-kg',
   title: '다중 소스 KG 구축',
-  description: '여러 데이터 소스에서 Knowledge Graph를 구축하는 파이프라인을 학습합니다.',
   totalDuration: 240,
   tasks: [
     createVideoTask('w4d4-multi-source-overview', '다중 소스 KG 아키텍처', 30, {

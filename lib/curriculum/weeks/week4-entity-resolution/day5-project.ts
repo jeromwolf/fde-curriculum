@@ -11,9 +11,8 @@ import {
 } from './types'
 
 export const day5Project: Day = {
-  day: 5,
+  slug: 'enterprise-kg-project',
   title: '기업 KG 프로젝트',
-  description: '이번 주 학습 내용을 종합하여 기업 Knowledge Graph와 시각화 대시보드를 구축합니다.',
   totalDuration: 360,
   tasks: [
     createVideoTask('w4d5-project-overview', '프로젝트 개요 및 설계', 30, {

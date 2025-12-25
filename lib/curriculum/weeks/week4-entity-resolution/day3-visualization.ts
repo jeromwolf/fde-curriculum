@@ -10,9 +10,8 @@ import {
 } from './types'
 
 export const day3Visualization: Day = {
-  day: 3,
+  slug: 'networkx-pyvis-visualization',
   title: 'NetworkX & PyVis 시각화',
-  description: 'Python으로 그래프를 분석하고 인터랙티브하게 시각화합니다.',
   totalDuration: 240,
   tasks: [
     createVideoTask('w4d3-networkx-intro', 'NetworkX 기초', 30, {
