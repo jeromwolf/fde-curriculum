@@ -1,6 +1,6 @@
 // Week 4: Entity Resolution & Python - 공통 타입 및 헬퍼
 
-import type { Day, Task, TaskContent } from '../../types'
+import type { Day, Task } from '../../types'
 
 // Week 4 메타데이터
 export const WEEK4_META = {
@@ -17,19 +17,41 @@ export const WEEK4_META = {
 // Day 타입 재export
 export type { Day }
 
+// Week 4 퀴즈 질문 타입
+interface Week4QuizQuestion {
+  id: string
+  question: string
+  options: string[]
+  correctAnswer: number
+  explanation?: string
+}
+
+// Week 4 확장 콘텐츠 타입
+interface Week4TaskContent {
+  introduction?: string           // 소개 및 개요 (마크다운)
+  keyPoints?: string[]            // 핵심 포인트
+  practiceGoal?: string           // 실습 목표
+  codeExample?: string            // 코드 예시
+  questions?: Week4QuizQuestion[] // 퀴즈 질문
+}
+
 // Task 생성 헬퍼 함수들
 export function createVideoTask(
   id: string,
   title: string,
   duration: number,
-  content: TaskContent
+  content: Week4TaskContent
 ): Task {
   return {
     id,
     type: 'video',
     title,
     duration,
-    content,
+    content: {
+      transcript: content.introduction,
+      keyPoints: content.keyPoints,
+      objectives: content.practiceGoal ? [content.practiceGoal] : [],
+    },
   }
 }
 
@@ -37,14 +59,18 @@ export function createReadingTask(
   id: string,
   title: string,
   duration: number,
-  content: TaskContent
+  content: Week4TaskContent
 ): Task {
   return {
     id,
     type: 'reading',
     title,
     duration,
-    content,
+    content: {
+      markdown: content.introduction,
+      keyPoints: content.keyPoints,
+      objectives: content.practiceGoal ? [content.practiceGoal] : [],
+    },
   }
 }
 
@@ -52,14 +78,19 @@ export function createCodeTask(
   id: string,
   title: string,
   duration: number,
-  content: TaskContent
+  content: Week4TaskContent
 ): Task {
   return {
     id,
     type: 'code',
     title,
     duration,
-    content,
+    content: {
+      instructions: content.introduction,
+      starterCode: content.codeExample,
+      keyPoints: content.keyPoints,
+      objectives: content.practiceGoal ? [content.practiceGoal] : [],
+    },
   }
 }
 
@@ -67,14 +98,26 @@ export function createQuizTask(
   id: string,
   title: string,
   duration: number,
-  content: TaskContent
+  content: Week4TaskContent
 ): Task {
+  // correctAnswer를 answer로 변환
+  const mappedQuestions = content.questions?.map(q => ({
+    question: q.question,
+    options: q.options,
+    answer: q.correctAnswer,
+    explanation: q.explanation,
+  }))
+
   return {
     id,
     type: 'quiz',
     title,
     duration,
-    content,
+    content: {
+      questions: mappedQuestions,
+      keyPoints: content.keyPoints,
+      objectives: content.practiceGoal ? [content.practiceGoal] : [],
+    },
   }
 }
 
@@ -82,14 +125,18 @@ export function createChallengeTask(
   id: string,
   title: string,
   duration: number,
-  content: TaskContent
+  content: Week4TaskContent
 ): Task {
   return {
     id,
     type: 'challenge',
     title,
     duration,
-    content,
+    content: {
+      requirements: content.introduction ? [content.introduction] : [],
+      keyPoints: content.keyPoints,
+      objectives: content.practiceGoal ? [content.practiceGoal] : [],
+    },
   }
 }
 
@@ -97,14 +144,18 @@ export function createSimulatorTask(
   id: string,
   title: string,
   duration: number,
-  content: TaskContent
+  content: Week4TaskContent
 ): Task {
   return {
     id,
     type: 'simulator',
     title,
     duration,
-    content,
+    content: {
+      instructions: content.introduction,
+      keyPoints: content.keyPoints,
+      objectives: content.practiceGoal ? [content.practiceGoal] : [],
+    },
   }
 }
 
