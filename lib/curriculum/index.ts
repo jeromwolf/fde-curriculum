@@ -10,7 +10,7 @@ import { graphIntroWeek } from './weeks/graph-intro'
 import { cypherModelingWeek } from './weeks/cypher-modeling'
 import { week3GraphAlgorithms } from './weeks/week3-graph-algorithms'
 import { week4EntityResolution } from './weeks/week4-entity-resolution'
-import { week5RdfOwl } from './weeks/week5-rdf-owl'
+import { week5RagBasics } from './weeks/week5-rag-basics'
 // 추후 추가:
 // import { pandasDataWeek } from './weeks/pandas-data'
 // import { sqlDeepWeek } from './weeks/sql-deep'
@@ -24,7 +24,7 @@ export const curriculum: Week[] = [
   cypherModelingWeek,
   week3GraphAlgorithms,
   week4EntityResolution,
-  week5RdfOwl,
+  week5RagBasics,
   // 추후 추가...
 ]
 
