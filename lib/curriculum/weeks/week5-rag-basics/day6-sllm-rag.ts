@@ -350,21 +350,29 @@ df -h
     // ========================================
     createCodeTask('w5d6-ollama-setup', 'Ollama 설치와 모델 관리', 45, {
       introduction: `
-## Ollama란?
+## 🎯 왜 Ollama가 필요한가?
 
-**Ollama**는 로컬 LLM을 쉽게 실행할 수 있게 해주는 도구입니다.
+### 문제 상황
+sLLM을 직접 설치하려면:
+- 🔧 PyTorch, CUDA, cuDNN 버전 맞추기
+- 📦 모델 파일 찾고 다운로드하기
+- ⚙️ 양자화, 메모리 설정 직접 조정하기
+- 😓 "왜 안 되지?" 에러와 싸우기...
 
-> "Docker for LLMs" — Ollama의 핵심 컨셉
+### 해결책: Ollama
+> 🍳 **비유**: 라면 끓이기 vs 요리 재료 사기
+>
+> 직접 설치 = 밀가루부터 면 뽑기
+> Ollama = 라면 봉지 뜯고 물 끓이기
 
-### Ollama의 장점
+**Ollama**는 로컬 LLM을 한 줄 명령어로 실행할 수 있게 해주는 도구입니다.
 
-| 특징 | 설명 |
-|------|------|
-| **간편한 설치** | 한 줄 명령어로 설치 |
-| **모델 관리** | \`ollama pull\`로 모델 다운로드 |
-| **자동 양자화** | GGUF 자동 최적화 |
-| **REST API** | OpenAI 호환 API 제공 |
-| **크로스 플랫폼** | Mac, Linux, Windows 지원 |
+| 직접 설치 | Ollama 사용 |
+|----------|-------------|
+| PyTorch 설치 + CUDA 설정 | \`brew install ollama\` |
+| HuggingFace에서 모델 검색 | \`ollama pull llama3.1\` |
+| 양자화 변환 스크립트 실행 | 자동 최적화 |
+| API 서버 직접 구축 | \`ollama serve\` → 바로 사용
 
 ## 설치 가이드
 
@@ -679,164 +687,47 @@ OLLAMA_MODELS=/path/to/models ollama serve
 | API 연결 실패 | Ollama 미실행 | \`ollama serve\` 실행 |
 | CUDA 오류 | 드라이버 불일치 | CUDA 드라이버 업데이트 |
 `,
-      codeExample: `# Ollama 실습 코드
-
+      codeExample: `# ========================================
+# Ollama 핵심 사용법 (3단계)
+# ========================================
 import ollama
+
+# 📌 Step 1: 기본 텍스트 생성
+response = ollama.generate(
+    model='llama3.1',
+    prompt='RAG란 무엇인가요?'
+)
+print(response['response'])
+
+# 📌 Step 2: 채팅 형식 (시스템 프롬프트 포함)
+response = ollama.chat(
+    model='llama3.1',
+    messages=[
+        {'role': 'system', 'content': '한국어로 답변하세요.'},
+        {'role': 'user', 'content': 'sLLM의 장점은?'}
+    ]
+)
+print(response['message']['content'])
+
+# 📌 Step 3: OpenAI SDK로 Ollama 사용 (기존 코드 재사용)
 from openai import OpenAI
 
-# ========================================
-# 1. 기본 Ollama 사용
-# ========================================
+client = OpenAI(
+    base_url="http://localhost:11434/v1",
+    api_key="ollama"  # 아무 값이나 OK
+)
 
-def basic_ollama_usage():
-    """Ollama 기본 사용법"""
-
-    # 간단한 텍스트 생성
-    response = ollama.generate(
-        model='llama3.1',
-        prompt='Python에서 RAG를 구현하는 방법을 간단히 설명해주세요.'
-    )
-
-    print("=== 기본 생성 ===")
-    print(response['response'])
-    print(f"\\n처리 시간: {response['total_duration'] / 1e9:.2f}초")
-    print(f"토큰 수: {response['eval_count']}")
-
-# ========================================
-# 2. 채팅 인터페이스
-# ========================================
-
-def chat_with_ollama():
-    """대화형 채팅"""
-
-    messages = [
-        {'role': 'system', 'content': '당신은 RAG 전문가입니다. 한국어로 답변합니다.'},
-        {'role': 'user', 'content': 'RAG에서 chunking이 중요한 이유는?'}
-    ]
-
-    response = ollama.chat(
-        model='llama3.1',
-        messages=messages
-    )
-
-    print("=== 채팅 응답 ===")
-    print(response['message']['content'])
-
-# ========================================
-# 3. 스트리밍 응답
-# ========================================
-
-def streaming_response():
-    """스트리밍으로 실시간 출력"""
-
-    print("=== 스트리밍 응답 ===")
-
-    stream = ollama.chat(
-        model='llama3.1',
-        messages=[{'role': 'user', 'content': 'LangChain의 핵심 기능 3가지를 설명해주세요.'}],
-        stream=True
-    )
-
-    for chunk in stream:
-        print(chunk['message']['content'], end='', flush=True)
-    print()
-
-# ========================================
-# 4. OpenAI 호환 API 사용
-# ========================================
-
-def openai_compatible_usage():
-    """OpenAI SDK로 Ollama 사용"""
-
-    client = OpenAI(
-        base_url="http://localhost:11434/v1",
-        api_key="ollama"
-    )
-
-    response = client.chat.completions.create(
-        model="llama3.1",
-        messages=[
-            {"role": "system", "content": "당신은 코드 리뷰 전문가입니다."},
-            {"role": "user", "content": "Python에서 타입 힌트를 사용해야 하는 이유는?"}
-        ],
-        temperature=0.7,
-        max_tokens=500
-    )
-
-    print("=== OpenAI 호환 API ===")
-    print(response.choices[0].message.content)
-
-# ========================================
-# 5. 임베딩 생성
-# ========================================
-
-def generate_embeddings():
-    """텍스트 임베딩 생성"""
-
-    texts = [
-        "RAG는 검색 증강 생성입니다.",
-        "벡터 데이터베이스는 임베딩을 저장합니다.",
-        "LangChain은 LLM 애플리케이션 프레임워크입니다."
-    ]
-
-    print("=== 임베딩 생성 ===")
-
-    for text in texts:
-        result = ollama.embeddings(
-            model='llama3.1',
-            prompt=text
-        )
-        embedding = result['embedding']
-        print(f"'{text[:30]}...' → 차원: {len(embedding)}, 첫 5값: {embedding[:5]}")
-
-# ========================================
-# 6. 모델 정보 조회
-# ========================================
-
-def check_models():
-    """설치된 모델 확인"""
-
-    print("=== 설치된 모델 ===")
-
-    models = ollama.list()
-
-    for model in models['models']:
-        size_gb = model['size'] / (1024**3)
-        print(f"- {model['name']}: {size_gb:.2f}GB")
-
-# ========================================
-# 실행
-# ========================================
-
-if __name__ == "__main__":
-    # 모델 목록 확인
-    check_models()
-    print()
-
-    # 기본 사용
-    basic_ollama_usage()
-    print()
-
-    # 채팅
-    chat_with_ollama()
-    print()
-
-    # 스트리밍
-    streaming_response()
-    print()
-
-    # OpenAI 호환
-    openai_compatible_usage()
-    print()
-
-    # 임베딩
-    generate_embeddings()
+response = client.chat.completions.create(
+    model="llama3.1",
+    messages=[{"role": "user", "content": "안녕하세요!"}]
+)
+print(response.choices[0].message.content)
 `,
       keyPoints: [
-        'Ollama는 로컬 LLM 실행을 위한 가장 쉬운 도구',
-        'ollama pull로 모델 다운로드, ollama run으로 실행',
-        'OpenAI 호환 API로 기존 코드 재사용 가능',
-        'Modelfile로 커스텀 모델 생성 가능',
+        '💡 Ollama = "Docker for LLMs" (한 줄로 설치/실행)',
+        '⚡ ollama pull → 다운로드, ollama run → 실행',
+        '🔄 OpenAI 호환 API로 기존 코드 수정 없이 전환',
+        '🛠️ Modelfile로 시스템 프롬프트 고정 가능',
       ],
     }),
 
@@ -845,11 +736,49 @@ if __name__ == "__main__":
     // ========================================
     createCodeTask('w5d6-sllm-rag-integration', 'sLLM + RAG 통합 구현', 50, {
       introduction: `
-## sLLM을 RAG에 통합하기
+## 🎯 이번 태스크에서 배우는 것
 
-Day 1-5에서 배운 RAG 시스템에 sLLM을 통합합니다.
+**목표**: Cloud LLM 대신 로컬 sLLM을 사용하는 RAG 시스템 구축
 
-### 아키텍처 비교
+---
+
+## 💡 왜 sLLM + RAG인가?
+
+### 현실 문제
+> "우리 회사에서 RAG를 구축했는데, GPT-4 API 비용이 한 달에 500만원이 나왔어요..."
+
+이런 상황, 실제로 자주 발생합니다.
+
+### 해결책: sLLM
+**sLLM(Small Language Model)**을 사용하면:
+- API 비용: **$0** (전기료만)
+- 데이터 보안: 외부 전송 **없음**
+- 응답 속도: 네트워크 지연 **없음**
+
+> 📌 **핵심 포인트**
+>
+> sLLM은 "90%의 성능을 10%의 비용으로" 제공합니다.
+> 모든 작업에 GPT-4가 필요한 건 아닙니다!
+
+---
+
+## 🍕 비유로 이해하기: 피자 배달 vs 홈메이드
+
+| Cloud LLM (GPT-4) | sLLM (Llama) |
+|-------------------|--------------|
+| 피자 배달 주문 | 집에서 직접 만들기 |
+| 매번 배달비 발생 | 재료비만 (한 번만) |
+| 기다려야 함 | 바로 먹을 수 있음 |
+| 전문 셰프 품질 | 80-90% 수준 |
+| 메뉴 선택만 가능 | 원하는 대로 커스텀 |
+
+**언제 뭘 쓸까?**
+- 중요한 손님 대접 → 배달 (Cloud LLM)
+- 혼자 저녁 → 홈메이드 (sLLM) ✅
+
+---
+
+## 🔄 아키텍처 비교
 
 <svg viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto; background: #1e293b; border-radius: 12px;">
   <defs>
@@ -907,502 +836,266 @@ Day 1-5에서 배운 RAG 시스템에 sLLM을 통합합니다.
   <line x1="400" y1="50" x2="400" y2="440" stroke="#475569" stroke-width="1" stroke-dasharray="5,5"/>
 </svg>
 
-## LangChain + Ollama 통합
+---
 
-### 기본 설정
+## 🛠️ 실습: sLLM RAG 시스템 만들기
+
+이제 실제로 구현해봅시다. **4단계**로 나눠서 진행합니다.
+
+---
+
+### Step 1: 재료 준비 (Import)
+
+**무엇을 할까요?**
+필요한 도구들을 가져옵니다. 요리로 치면 재료와 조리도구를 꺼내는 단계입니다.
 
 \`\`\`python
-# 필요한 패키지 설치
-# pip install langchain langchain-community chromadb ollama
-
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-
-# Ollama LLM 설정
-llm = Ollama(
-    model="llama3.1",
-    temperature=0.7,
-    num_ctx=4096,  # 컨텍스트 길이
-)
-
-# Ollama 임베딩 설정
-embeddings = OllamaEmbeddings(
-    model="llama3.1",
-    # 또는 임베딩 전용 모델
-    # model="nomic-embed-text"
-)
 \`\`\`
 
-### 문서 로드 및 청킹
+> 🔍 **각 도구의 역할**
+> - \`Ollama\`: 로컬 LLM과 대화 (요리사)
+> - \`OllamaEmbeddings\`: 텍스트를 벡터로 변환 (재료 손질)
+> - \`Chroma\`: 벡터를 저장하고 검색 (냉장고)
+
+---
+
+### Step 2: LLM 연결하기
+
+**무엇을 할까요?**
+로컬에서 돌아가는 Ollama 서버와 연결합니다.
 
 \`\`\`python
-from langchain_community.document_loaders import TextLoader, PyPDFLoader
+# LLM (답변 생성용)
+llm = Ollama(model="llama3.2")
 
-# 문서 로드
-loader = PyPDFLoader("documents/rag_guide.pdf")
-documents = loader.load()
-
-# 텍스트 분할
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=50,
-    separators=["\\n\\n", "\\n", ".", "!", "?", ",", " "]
-)
-
-chunks = text_splitter.split_documents(documents)
-print(f"총 {len(chunks)}개 청크 생성")
+# 테스트: 잘 연결됐나?
+print(llm.invoke("안녕하세요!"))
 \`\`\`
 
-### 벡터 스토어 생성
+> ⚠️ **주의**
+> 이 코드를 실행하려면 먼저 \`ollama serve\`가 실행 중이어야 합니다!
+> (Task 3에서 배운 내용)
+
+**왜 llama3.2인가요?**
+- 가볍고 빠름 (3B 파라미터)
+- 한국어 기본 지원
+- 메모리 4GB면 충분
+
+---
+
+### Step 3: 문서 저장하기
+
+**무엇을 할까요?**
+우리의 문서를 LLM이 검색할 수 있도록 벡터로 변환해서 저장합니다.
 
 \`\`\`python
-# Chroma 벡터 스토어 생성 (Ollama 임베딩 사용)
-vectorstore = Chroma.from_documents(
-    documents=chunks,
+# 임베딩 모델 (텍스트 → 벡터)
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
+
+# 예시 문서들
+documents = [
+    "RAG는 Retrieval-Augmented Generation의 약자입니다.",
+    "벡터 검색은 의미적으로 유사한 문서를 찾습니다.",
+    "sLLM은 로컬에서 실행되는 소형 언어 모델입니다.",
+]
+
+# 벡터 스토어에 저장
+vectorstore = Chroma.from_texts(
+    texts=documents,
     embedding=embeddings,
-    persist_directory="./chroma_db"
-)
-
-# Retriever 설정
-retriever = vectorstore.as_retriever(
-    search_type="similarity",
-    search_kwargs={"k": 4}
 )
 \`\`\`
 
-### RAG 체인 구성
+> 💡 **무슨 일이 일어났나요?**
+>
+> 1. 각 문서가 숫자 배열(벡터)로 변환됨
+> 2. 비슷한 의미의 문서는 비슷한 벡터값을 가짐
+> 3. 나중에 질문하면 비슷한 벡터를 찾아서 반환
+
+---
+
+### Step 4: 질문하기 (RAG 실행!)
+
+**무엇을 할까요?**
+사용자 질문 → 관련 문서 검색 → LLM이 답변 생성
 
 \`\`\`python
-# 한국어 최적화 프롬프트
-prompt_template = """다음 컨텍스트를 참고하여 질문에 답변해주세요.
-답변할 수 없는 경우 "정보가 부족합니다"라고 말하세요.
+# 질문
+query = "RAG가 뭐야?"
 
-컨텍스트:
+# 1) 관련 문서 검색
+docs = vectorstore.similarity_search(query, k=2)
+context = "\\n".join([d.page_content for d in docs])
+
+# 2) 프롬프트 구성
+prompt = f"""다음 정보를 참고해서 답변해주세요.
+
+참고 정보:
 {context}
 
-질문: {question}
-
+질문: {query}
 답변:"""
 
-PROMPT = PromptTemplate(
-    template=prompt_template,
-    input_variables=["context", "question"]
-)
-
-# RAG 체인 생성
-qa_chain = RetrievalQA.from_chain_type(
-    llm=llm,
-    chain_type="stuff",
-    retriever=retriever,
-    chain_type_kwargs={"prompt": PROMPT},
-    return_source_documents=True
-)
-
-# 질의 실행
-result = qa_chain.invoke({"query": "RAG의 주요 컴포넌트는?"})
-print(result["result"])
+# 3) LLM에게 답변 요청
+answer = llm.invoke(prompt)
+print(answer)
 \`\`\`
 
-## 성능 최적화 전략
+> ✅ **축하합니다!**
+>
+> 방금 **완전 무료** RAG 시스템을 만들었습니다.
+> - 임베딩: Ollama (무료)
+> - LLM: Ollama (무료)
+> - 벡터DB: Chroma (무료)
 
-### 1. 임베딩 캐싱
+---
+
+## 📝 전체 코드 (복사용)
+
+위 4단계를 하나로 합친 완성 코드입니다:
+
+\`\`\`python
+from langchain_community.llms import Ollama
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_community.vectorstores import Chroma
+
+# 1. LLM과 임베딩 설정
+llm = Ollama(model="llama3.2")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
+
+# 2. 문서 저장
+documents = [
+    "RAG는 Retrieval-Augmented Generation의 약자입니다.",
+    "벡터 검색은 의미적으로 유사한 문서를 찾습니다.",
+    "sLLM은 로컬에서 실행되는 소형 언어 모델입니다.",
+]
+vectorstore = Chroma.from_texts(texts=documents, embedding=embeddings)
+
+# 3. 질문하기
+query = "RAG가 뭐야?"
+docs = vectorstore.similarity_search(query, k=2)
+context = "\\n".join([d.page_content for d in docs])
+
+prompt = f"""참고 정보:
+{context}
+
+질문: {query}
+답변:"""
+
+answer = llm.invoke(prompt)
+print(answer)
+\`\`\`
+
+---
+
+## 🚀 더 나아가기: 성능 최적화
+
+기본 구현이 끝났으니, 이제 최적화 방법을 알아봅시다.
+
+### 임베딩 캐싱 (반복 호출 방지)
+
+**문제**: 같은 문서를 여러 번 임베딩하면 시간 낭비
+
+\`\`\`python
+# 캐시가 없으면
+# "안녕하세요" → 임베딩 (0.5초)
+# "안녕하세요" → 또 임베딩 (0.5초) 😢
+
+# 캐시가 있으면
+# "안녕하세요" → 임베딩 (0.5초)
+# "안녕하세요" → 캐시에서 바로 반환 (0.001초) 😊
+\`\`\`
+
+**해결책**: 간단한 캐싱 추가
 
 \`\`\`python
 import hashlib
 import json
 from pathlib import Path
 
-class CachedOllamaEmbeddings:
-    """디스크 캐싱을 지원하는 Ollama 임베딩"""
-
-    def __init__(self, model: str = "llama3.1", cache_dir: str = ".embed_cache"):
-        self.model = model
-        self.cache_dir = Path(cache_dir)
+class CachedEmbeddings:
+    def __init__(self):
+        self.cache_dir = Path(".cache")
         self.cache_dir.mkdir(exist_ok=True)
-        self.embeddings = OllamaEmbeddings(model=model)
+        self.embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
-    def _get_cache_key(self, text: str) -> str:
-        return hashlib.md5(f"{self.model}:{text}".encode()).hexdigest()
+    def embed(self, text):
+        # 캐시 키 생성
+        key = hashlib.md5(text.encode()).hexdigest()
+        cache_file = self.cache_dir / f"{key}.json"
 
-    def _get_cache_path(self, text: str) -> Path:
-        return self.cache_dir / f"{self._get_cache_key(text)}.json"
+        # 캐시에 있으면 바로 반환
+        if cache_file.exists():
+            return json.loads(cache_file.read_text())
 
-    def embed_query(self, text: str) -> list[float]:
-        cache_path = self._get_cache_path(text)
-
-        # 캐시 확인
-        if cache_path.exists():
-            return json.loads(cache_path.read_text())
-
-        # 새로 생성
-        embedding = self.embeddings.embed_query(text)
-
-        # 캐시 저장
-        cache_path.write_text(json.dumps(embedding))
-
-        return embedding
-
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        embeddings = []
-        for text in texts:
-            embeddings.append(self.embed_query(text))
-        return embeddings
+        # 없으면 새로 생성 후 저장
+        vector = self.embeddings.embed_query(text)
+        cache_file.write_text(json.dumps(vector))
+        return vector
 \`\`\`
 
-### 2. 배치 처리
+> 💡 **효과**
+> - 첫 실행: 기존과 동일
+> - 두 번째 실행부터: **100배 이상 빨라짐!**
 
-\`\`\`python
-from concurrent.futures import ThreadPoolExecutor
-from typing import List
-import ollama
+---
 
-def batch_generate(prompts: List[str], model: str = "llama3.1", max_workers: int = 4):
-    """여러 프롬프트를 병렬 처리"""
+## 📋 정리: 오늘 배운 것
 
-    def generate_single(prompt):
-        response = ollama.generate(model=model, prompt=prompt)
-        return response['response']
+| 단계 | 내용 | 핵심 코드 |
+|------|------|----------|
+| 1 | Import | \`from langchain_community.llms import Ollama\` |
+| 2 | LLM 연결 | \`llm = Ollama(model="llama3.2")\` |
+| 3 | 문서 저장 | \`Chroma.from_texts(...)\` |
+| 4 | RAG 실행 | \`similarity_search() → llm.invoke()\` |
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        results = list(executor.map(generate_single, prompts))
-
-    return results
-
-# 사용 예시
-prompts = [
-    "RAG란?",
-    "임베딩이란?",
-    "벡터 DB란?"
-]
-
-results = batch_generate(prompts)
-for prompt, result in zip(prompts, results):
-    print(f"Q: {prompt}\\nA: {result[:100]}...\\n")
-\`\`\`
-
-### 3. 컨텍스트 압축
-
-\`\`\`python
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import LLMChainExtractor
-
-# 컨텍스트 압축기 설정
-compressor = LLMChainExtractor.from_llm(llm)
-
-# 압축 retriever 생성
-compression_retriever = ContextualCompressionRetriever(
-    base_compressor=compressor,
-    base_retriever=retriever
-)
-
-# 압축된 결과로 검색
-compressed_docs = compression_retriever.invoke("RAG의 장점")
-for doc in compressed_docs:
-    print(f"압축된 내용: {doc.page_content[:100]}...")
-\`\`\`
+> 🎉 **핵심 메시지**
+>
+> sLLM + RAG = **무료 + 빠름 + 안전**
+>
+> Cloud LLM이 필요 없는 경우가 생각보다 많습니다!
 `,
-      codeExample: `# sLLM RAG 시스템 전체 구현
+      codeExample: `# sLLM + RAG 기본 구현
+# 이 코드를 복사해서 실행해보세요!
 
-import os
-from pathlib import Path
-from typing import List, Optional
-from dataclasses import dataclass
-import ollama
 from langchain_community.llms import Ollama
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from langchain_community.document_loaders import TextLoader, DirectoryLoader
 
-# ========================================
-# 1. 설정
-# ========================================
+# 1. LLM과 임베딩 설정
+llm = Ollama(model="llama3.2")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
-@dataclass
-class RAGConfig:
-    """RAG 시스템 설정"""
-    llm_model: str = "llama3.1"
-    embedding_model: str = "llama3.1"
-    chunk_size: int = 500
-    chunk_overlap: int = 50
-    num_retrieve: int = 4
-    temperature: float = 0.7
-    persist_directory: str = "./sllm_chroma_db"
+# 2. 문서 저장
+documents = [
+    "RAG는 Retrieval-Augmented Generation의 약자입니다.",
+    "벡터 검색은 의미적으로 유사한 문서를 찾습니다.",
+    "sLLM은 로컬에서 실행되는 소형 언어 모델입니다.",
+]
+vectorstore = Chroma.from_texts(texts=documents, embedding=embeddings)
 
-# ========================================
-# 2. sLLM RAG 시스템 클래스
-# ========================================
+# 3. RAG 실행
+query = "RAG가 뭐야?"
+docs = vectorstore.similarity_search(query, k=2)
+context = "\\n".join([d.page_content for d in docs])
 
-class SLLMRagSystem:
-    """로컬 LLM 기반 RAG 시스템"""
-
-    def __init__(self, config: RAGConfig = RAGConfig()):
-        self.config = config
-        self.vectorstore = None
-        self.qa_chain = None
-
-        # LLM 초기화
-        self.llm = Ollama(
-            model=config.llm_model,
-            temperature=config.temperature,
-            num_ctx=4096,
-        )
-
-        # 임베딩 초기화
-        self.embeddings = OllamaEmbeddings(
-            model=config.embedding_model
-        )
-
-        # 텍스트 분할기
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=config.chunk_size,
-            chunk_overlap=config.chunk_overlap,
-            separators=["\\n\\n", "\\n", ".", "!", "?", ",", " "]
-        )
-
-        # 프롬프트 템플릿
-        self.prompt = PromptTemplate(
-            template=self._get_prompt_template(),
-            input_variables=["context", "question"]
-        )
-
-    def _get_prompt_template(self) -> str:
-        return """당신은 전문적인 AI 어시스턴트입니다.
-주어진 컨텍스트를 기반으로 질문에 정확하게 답변해주세요.
-
-## 규칙
-1. 컨텍스트에 있는 정보만 사용하세요.
-2. 확실하지 않으면 "정보가 부족합니다"라고 말하세요.
-3. 답변은 명확하고 구조화되게 작성하세요.
-
-## 컨텍스트
+prompt = f"""참고 정보:
 {context}
 
-## 질문
-{question}
+질문: {query}
+답변:"""
 
-## 답변"""
-
-    def add_documents(self, documents: List[str], metadatas: Optional[List[dict]] = None):
-        """문서를 벡터 스토어에 추가"""
-
-        # 텍스트 분할
-        from langchain.schema import Document
-
-        docs = []
-        for i, text in enumerate(documents):
-            metadata = metadatas[i] if metadatas else {}
-            docs.append(Document(page_content=text, metadata=metadata))
-
-        chunks = self.text_splitter.split_documents(docs)
-        print(f"총 {len(chunks)}개 청크 생성")
-
-        # 벡터 스토어 생성/업데이트
-        if self.vectorstore is None:
-            self.vectorstore = Chroma.from_documents(
-                documents=chunks,
-                embedding=self.embeddings,
-                persist_directory=self.config.persist_directory
-            )
-        else:
-            self.vectorstore.add_documents(chunks)
-
-        # RAG 체인 초기화
-        self._init_qa_chain()
-
-        return len(chunks)
-
-    def add_directory(self, directory: str, glob: str = "**/*.txt"):
-        """디렉토리의 모든 문서 추가"""
-
-        loader = DirectoryLoader(directory, glob=glob, loader_cls=TextLoader)
-        documents = loader.load()
-
-        chunks = self.text_splitter.split_documents(documents)
-        print(f"{directory}에서 {len(documents)}개 문서, {len(chunks)}개 청크 로드")
-
-        if self.vectorstore is None:
-            self.vectorstore = Chroma.from_documents(
-                documents=chunks,
-                embedding=self.embeddings,
-                persist_directory=self.config.persist_directory
-            )
-        else:
-            self.vectorstore.add_documents(chunks)
-
-        self._init_qa_chain()
-
-        return len(chunks)
-
-    def load_existing(self):
-        """기존 벡터 스토어 로드"""
-
-        if Path(self.config.persist_directory).exists():
-            self.vectorstore = Chroma(
-                persist_directory=self.config.persist_directory,
-                embedding_function=self.embeddings
-            )
-            self._init_qa_chain()
-            print(f"기존 벡터 스토어 로드 완료")
-            return True
-        return False
-
-    def _init_qa_chain(self):
-        """QA 체인 초기화"""
-
-        if self.vectorstore is None:
-            raise ValueError("벡터 스토어가 초기화되지 않았습니다.")
-
-        retriever = self.vectorstore.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": self.config.num_retrieve}
-        )
-
-        self.qa_chain = RetrievalQA.from_chain_type(
-            llm=self.llm,
-            chain_type="stuff",
-            retriever=retriever,
-            chain_type_kwargs={"prompt": self.prompt},
-            return_source_documents=True
-        )
-
-    def query(self, question: str) -> dict:
-        """질문에 대한 답변 생성"""
-
-        if self.qa_chain is None:
-            raise ValueError("QA 체인이 초기화되지 않았습니다. add_documents()를 먼저 호출하세요.")
-
-        result = self.qa_chain.invoke({"query": question})
-
-        return {
-            "answer": result["result"],
-            "sources": [
-                {
-                    "content": doc.page_content,
-                    "metadata": doc.metadata
-                }
-                for doc in result["source_documents"]
-            ]
-        }
-
-    def query_stream(self, question: str):
-        """스트리밍 답변 생성"""
-
-        if self.vectorstore is None:
-            raise ValueError("벡터 스토어가 초기화되지 않았습니다.")
-
-        # 관련 문서 검색
-        docs = self.vectorstore.similarity_search(question, k=self.config.num_retrieve)
-
-        # 컨텍스트 구성
-        context = "\\n\\n".join([doc.page_content for doc in docs])
-
-        # 프롬프트 생성
-        prompt = self.prompt.format(context=context, question=question)
-
-        # 스트리밍 생성
-        stream = ollama.generate(
-            model=self.config.llm_model,
-            prompt=prompt,
-            stream=True
-        )
-
-        for chunk in stream:
-            yield chunk['response']
-
-    def get_stats(self) -> dict:
-        """시스템 통계"""
-
-        if self.vectorstore is None:
-            return {"status": "not_initialized"}
-
-        collection = self.vectorstore._collection
-        return {
-            "status": "ready",
-            "model": self.config.llm_model,
-            "embedding_model": self.config.embedding_model,
-            "num_documents": collection.count(),
-            "persist_directory": self.config.persist_directory
-        }
-
-# ========================================
-# 3. 사용 예시
-# ========================================
-
-def main():
-    # 시스템 초기화
-    config = RAGConfig(
-        llm_model="llama3.1",
-        embedding_model="llama3.1",
-        chunk_size=500,
-        num_retrieve=4
-    )
-
-    rag = SLLMRagSystem(config)
-
-    # 샘플 문서 추가
-    sample_docs = [
-        """
-        RAG(Retrieval-Augmented Generation)는 검색 증강 생성 기술입니다.
-        LLM의 환각(hallucination) 문제를 해결하기 위해 외부 지식을 검색하여 활용합니다.
-        주요 구성요소는 Document Loader, Text Splitter, Embedding, Vector Store, Retriever, LLM입니다.
-        """,
-        """
-        벡터 데이터베이스는 고차원 벡터를 효율적으로 저장하고 검색하는 데이터베이스입니다.
-        대표적인 벡터 DB로는 Chroma, Pinecone, Weaviate, Milvus 등이 있습니다.
-        유사도 검색을 위해 코사인 유사도, 유클리드 거리 등의 메트릭을 사용합니다.
-        """,
-        """
-        청킹(Chunking)은 긴 문서를 작은 조각으로 나누는 과정입니다.
-        좋은 청킹 전략은 의미 단위를 보존하면서 적절한 크기로 분할합니다.
-        일반적으로 500-1000 토큰 크기가 권장되며, 오버랩을 통해 문맥을 보존합니다.
-        """,
-    ]
-
-    # 문서 추가
-    num_chunks = rag.add_documents(sample_docs)
-    print(f"\\n{num_chunks}개 청크 인덱싱 완료\\n")
-
-    # 통계 확인
-    stats = rag.get_stats()
-    print(f"시스템 통계: {stats}\\n")
-
-    # 질의 테스트
-    questions = [
-        "RAG란 무엇인가요?",
-        "벡터 데이터베이스의 종류는?",
-        "청킹할 때 권장되는 크기는?"
-    ]
-
-    for q in questions:
-        print(f"Q: {q}")
-        result = rag.query(q)
-        print(f"A: {result['answer'][:200]}...")
-        print(f"Sources: {len(result['sources'])}개")
-        print("-" * 50)
-
-    # 스트리밍 테스트
-    print("\\n=== 스트리밍 응답 ===")
-    print("Q: RAG의 핵심 구성요소를 설명해주세요.")
-    print("A: ", end="")
-    for chunk in rag.query_stream("RAG의 핵심 구성요소를 설명해주세요."):
-        print(chunk, end="", flush=True)
-    print()
-
-if __name__ == "__main__":
-    main()
+answer = llm.invoke(prompt)
+print(answer)
 `,
       keyPoints: [
-        'LangChain + Ollama로 완전 로컬 RAG 구현 가능',
-        'OllamaEmbeddings로 임베딩도 로컬 처리',
-        '임베딩 캐싱으로 중복 계산 방지',
-        '스트리밍으로 사용자 경험 향상',
+        'sLLM + RAG = 비용 $0 + 빠른 속도 + 데이터 보안',
+        '4단계: Import → LLM연결 → 문서저장 → RAG실행',
+        '모든 작업에 GPT-4가 필요한 건 아니다',
+        '임베딩 캐싱으로 반복 작업 100배 빨라짐',
       ],
     }),
 
@@ -1957,9 +1650,20 @@ sLLM 개요, 시스템 요구사항, Ollama, RAG 통합, 프로덕션 배포에 
     // ========================================
     createChallengeTask('w5d6-challenge', '하이브리드 RAG 시스템 구축', 50, {
       introduction: `
-## Challenge: Cloud + sLLM 하이브리드 RAG
+## 🎯 Challenge: Cloud + sLLM 하이브리드 RAG
 
-실제 프로덕션에서는 Cloud LLM과 sLLM을 상황에 따라 혼합 사용합니다.
+### 왜 하이브리드인가?
+
+> 🚗 **비유**: 출퇴근 vs 장거리 여행
+>
+> - **일상 출퇴근** = 자전거/지하철 (저렴, 빠름) → **sLLM**
+> - **장거리 여행** = 비행기 (비싸지만 필요) → **Cloud LLM**
+> - **중요 화물** = 직접 운전 (외부 위탁 불가) → **sLLM only**
+
+실무에서는 모든 쿼리에 GPT-4를 쓰면 비용이 폭발하고,
+모든 쿼리에 sLLM만 쓰면 복잡한 분석에서 품질이 떨어집니다.
+
+**해결책**: 쿼리 유형에 따라 최적의 모델을 자동 선택!
 
 ### 시나리오
 
@@ -2047,10 +1751,141 @@ test_queries = [
 3. **A/B 테스트**: 같은 쿼리를 양쪽으로 보내 품질 비교
 `,
       hints: [
-        '쿼리 복잡도는 키워드 기반 규칙 또는 sLLM으로 분류 가능',
-        'force_local은 민감 데이터 처리 시 필수',
-        '비용 추적은 토큰 수 × 단가로 계산',
-        'try-except로 Cloud LLM 실패 시 sLLM fallback 구현',
+        `**[Step 1] 기본 구조 설정**
+\`\`\`python
+from langchain_community.llms import Ollama
+from langchain_openai import ChatOpenAI
+from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import OllamaEmbeddings
+
+class HybridRAGSystem:
+    def __init__(self):
+        # sLLM (로컬)
+        self.local_llm = Ollama(model="llama3.2")
+
+        # Cloud LLM (API 키 필요)
+        self.cloud_llm = ChatOpenAI(model="gpt-4o-mini")
+
+        # 벡터 스토어
+        self.embeddings = OllamaEmbeddings(model="nomic-embed-text")
+        self.vectorstore = Chroma(embedding_function=self.embeddings)
+
+        # 비용 추적
+        self.cost_log = []
+\`\`\``,
+
+        `**[Step 2] 쿼리 분류 로직**
+\`\`\`python
+def classify_query(self, query: str) -> str:
+    query_lower = query.lower()
+
+    # 민감 데이터 키워드 체크 (최우선)
+    sensitive_keywords = ["고객", "환자", "계좌", "비밀번호", "주민번호", "개인정보"]
+    if any(kw in query_lower for kw in sensitive_keywords):
+        return "sensitive"
+
+    # 복잡한 쿼리 키워드 체크
+    complex_keywords = ["분석", "비교", "예측", "추론", "장단점", "전략"]
+    if any(kw in query_lower for kw in complex_keywords):
+        return "complex"
+
+    # 기본: 단순 쿼리
+    return "simple"
+\`\`\``,
+
+        `**[Step 3] 라우팅 로직 구현**
+\`\`\`python
+def route_query(self, query: str, force_local: bool = False) -> dict:
+    # 1. 쿼리 분류
+    query_type = self.classify_query(query)
+
+    # 2. 민감 데이터 또는 force_local이면 sLLM만 사용
+    if query_type == "sensitive" or force_local:
+        llm = self.local_llm
+        model_name = "llama3.2 (local)"
+        reason = "민감 데이터 - 로컬 처리" if query_type == "sensitive" else "강제 로컬 모드"
+        cost = 0.0
+
+    # 3. 복잡한 쿼리는 Cloud LLM
+    elif query_type == "complex":
+        llm = self.cloud_llm
+        model_name = "gpt-4o-mini (cloud)"
+        reason = "복잡한 분석 필요"
+        cost = 0.00015  # 예상 비용 (입력 토큰 기준)
+
+    # 4. 단순 쿼리는 sLLM
+    else:
+        llm = self.local_llm
+        model_name = "llama3.2 (local)"
+        reason = "단순 쿼리 - 비용 절감"
+        cost = 0.0
+
+    # 5. RAG 실행
+    docs = self.vectorstore.similarity_search(query, k=3)
+    context = "\\n".join([d.page_content for d in docs])
+
+    prompt = f"""Context: {context}
+
+Question: {query}
+
+Answer:"""
+
+    answer = llm.invoke(prompt)
+
+    # 6. 비용 기록
+    self.cost_log.append({"query": query, "cost": cost, "model": model_name})
+
+    return {
+        "answer": answer,
+        "model_used": model_name,
+        "reason": reason,
+        "cost": cost
+    }
+\`\`\``,
+
+        `**[Step 4] Fallback 구현 (보너스)**
+\`\`\`python
+def route_query_with_fallback(self, query: str) -> dict:
+    query_type = self.classify_query(query)
+
+    # 복잡한 쿼리: Cloud 먼저 시도
+    if query_type == "complex":
+        try:
+            return self._call_cloud_llm(query)
+        except Exception as e:
+            print(f"Cloud LLM 실패: {e}, sLLM으로 전환")
+            return self._call_local_llm(query, reason="Cloud 실패 - Fallback")
+
+    # 나머지는 로컬
+    return self._call_local_llm(query)
+\`\`\``,
+
+        `**[Step 5] 테스트 실행**
+\`\`\`python
+# 시스템 초기화
+rag = HybridRAGSystem()
+
+# 문서 추가 (예시)
+rag.vectorstore.add_texts([
+    "RAG는 Retrieval-Augmented Generation의 약자입니다.",
+    "벡터 검색은 임베딩을 사용하여 유사한 문서를 찾습니다.",
+    "고객 김철수의 계좌번호는 123-456-789입니다.",  # 민감 데이터
+])
+
+# 테스트
+queries = [
+    "RAG란 무엇인가요?",  # simple → sLLM
+    "벡터 검색과 키워드 검색의 장단점을 비교 분석해주세요",  # complex → Cloud
+    "고객 김철수의 정보를 알려주세요",  # sensitive → sLLM only
+]
+
+for q in queries:
+    result = rag.route_query(q)
+    print(f"Q: {q}")
+    print(f"Model: {result['model_used']}")
+    print(f"Reason: {result['reason']}")
+    print("---")
+\`\`\``,
       ],
       keyPoints: [
         '실무에서는 하이브리드 접근이 최적',

@@ -752,7 +752,16 @@ export default function TaskPage() {
             <div />
           )}
 
-          {nextTask ? (
+          {progress && progress.current === progress.total ? (
+            // Week의 마지막 태스크
+            <Link
+              href={`/learn/week/${week.slug}`}
+              className="flex items-center gap-2 px-6 py-3 bg-[#03EF62] text-gray-900 rounded-xl font-medium hover:bg-[#00D956] transition"
+            >
+              Week 완료! 🎉
+            </Link>
+          ) : nextTask ? (
+            // 다음 태스크로 이동
             <Link
               href={`/learn/task/${nextTask.task.id}`}
               className="flex items-center gap-2 px-6 py-3 bg-[#03EF62] text-gray-900 rounded-xl font-medium hover:bg-[#00D956] transition"
@@ -763,6 +772,7 @@ export default function TaskPage() {
               </svg>
             </Link>
           ) : (
+            // fallback
             <Link
               href={`/learn/week/${week.slug}`}
               className="flex items-center gap-2 px-6 py-3 bg-[#03EF62] text-gray-900 rounded-xl font-medium hover:bg-[#00D956] transition"
