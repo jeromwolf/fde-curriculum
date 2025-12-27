@@ -107,10 +107,10 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY')
   // Referrer 정책
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  // Content Security Policy
+  // Content Security Policy (Pyodide CDN 허용 추가)
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.tosspayments.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.tosspayments.com https://*.googleapis.com;"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.tosspayments.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.tosspayments.com https://*.googleapis.com https://cdn.jsdelivr.net; worker-src 'self' blob:;"
   )
 
   // API 라우트는 인증 체크 스킵 (API 내부에서 처리)

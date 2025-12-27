@@ -33,6 +33,7 @@ interface Week5TaskContent {
   practiceGoal?: string
   codeExample?: string
   questions?: Week5QuizQuestion[]
+  hints?: string[]
 }
 
 // Task 생성 헬퍼 함수들
@@ -132,9 +133,10 @@ export function createChallengeTask(
     title,
     duration,
     content: {
-      requirements: content.introduction ? [content.introduction] : [],
+      instructions: content.introduction,
       keyPoints: content.keyPoints,
       objectives: content.practiceGoal ? [content.practiceGoal] : [],
+      hints: content.hints,
     },
   }
 }

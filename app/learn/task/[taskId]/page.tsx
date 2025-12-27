@@ -17,6 +17,8 @@ import {
 import AuthButton from '@/components/AuthButton'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
+import type { PluggableList } from 'unified'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import { useProgress } from '@/lib/useProgress'
@@ -314,7 +316,7 @@ export default function TaskPage() {
             {/* 영상 스크립트 (마크다운) */}
             {content?.transcript && (
               <div className="prose prose-sm max-w-none bg-gray-50 p-6 rounded-xl border">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw] as PluggableList} components={markdownComponents}>
                   {content.transcript.trim()}
                 </ReactMarkdown>
               </div>
@@ -337,7 +339,7 @@ export default function TaskPage() {
             {/* 마크다운 콘텐츠 */}
             {content?.markdown ? (
               <div className="prose prose-sm max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw] as PluggableList} components={markdownComponents}>
                   {content.markdown}
                 </ReactMarkdown>
               </div>
@@ -365,7 +367,7 @@ export default function TaskPage() {
             {/* 실습 지시사항 */}
             {content?.instructions && (
               <div className="prose prose-sm max-w-none bg-blue-50 p-4 rounded-xl border border-blue-200">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw] as PluggableList} components={markdownComponents}>
                   {content.instructions}
                 </ReactMarkdown>
               </div>
@@ -551,10 +553,6 @@ export default function TaskPage() {
                 배운 내용을 종합하는 도전 과제입니다.
               </p>
             </div>
-            <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <h4 className="font-bold text-lg mb-4">{task.title}</h4>
-              {task.description && <p className="text-gray-600 mb-4">{task.description}</p>}
-            </div>
             {/* 요구사항 */}
             {content?.requirements && content.requirements.length > 0 && (
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
@@ -591,10 +589,21 @@ export default function TaskPage() {
             {/* 상세 지시사항 */}
             {content?.instructions && (
               <div className="prose prose-sm max-w-none bg-gray-50 p-6 rounded-xl border">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw] as PluggableList} components={markdownComponents}>
                   {content.instructions}
                 </ReactMarkdown>
               </div>
+            )}
+            {/* 힌트 */}
+            {content?.hints && content.hints.length > 0 && (
+              <details className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                <summary className="text-yellow-800 font-bold cursor-pointer">💡 힌트 보기 (Pseudocode)</summary>
+                <div className="mt-4 bg-yellow-100 text-yellow-900 p-4 rounded-lg font-mono text-sm overflow-x-auto border border-yellow-300">
+                  <pre className="whitespace-pre-wrap">
+                    {content.hints.join('\n')}
+                  </pre>
+                </div>
+              </details>
             )}
             {renderSimulators()}
           </div>
@@ -616,7 +625,7 @@ export default function TaskPage() {
             </div>
             {content?.instructions && (
               <div className="prose prose-sm max-w-none bg-gray-50 p-6 rounded-xl border">
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw] as PluggableList} components={markdownComponents}>
                   {content.instructions}
                 </ReactMarkdown>
               </div>

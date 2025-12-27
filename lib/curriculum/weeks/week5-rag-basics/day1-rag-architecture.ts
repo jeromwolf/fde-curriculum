@@ -1,4 +1,5 @@
-// Day 1: RAG 아키텍처 개요
+// Day 1: RAG 아키텍처 심화
+// 타겟: 중급 개발자 (Python, API 사용 경험 있음)
 
 import type { Day } from '../../types'
 import {
@@ -11,563 +12,1466 @@ import {
 
 export const day1RagArchitecture: Day = {
   slug: 'rag-architecture',
-  title: 'RAG 아키텍처 개요',
-  totalDuration: 240,
+  title: 'RAG 아키텍처 심화',
+  totalDuration: 280,
   tasks: [
-    createVideoTask('w5d1-rag-intro', 'RAG란 무엇인가?', 30, {
+    // ============================================
+    // Task 1: RAG의 역사와 발전
+    // ============================================
+    createVideoTask('w5d1-rag-intro', 'RAG의 탄생과 진화', 35, {
       introduction: `
-# RAG (Retrieval-Augmented Generation) 개요
+## RAG의 탄생 배경
 
-## RAG의 정의
+2020년 Facebook AI Research(현 Meta AI)가 발표한 논문
+**"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"**에서 RAG가 처음 소개되었습니다.
 
-**RAG**는 LLM의 생성 능력에 **외부 지식 검색**을 결합한 아키텍처입니다.
+### 논문이 해결하려 했던 문제
 
 \`\`\`
-전통적인 LLM:
-  질문 → [LLM] → 답변 (학습 데이터에만 의존)
+2020년 당시 LLM의 한계:
 
-RAG 시스템:
-  질문 → [검색] → 관련 문서 → [LLM + 컨텍스트] → 답변
+1. Parametric Memory만 의존
+   - 모델 파라미터에 저장된 지식만 사용
+   - 학습 후 지식 업데이트 불가능
+   - 수십억 파라미터에도 "모든 것"을 기억할 수 없음
+
+2. 환각(Hallucination) 문제
+   - 모르는 것도 자신있게 대답
+   - 사실과 다른 정보 생성
+   - 출처 추적 불가능
+
+3. 지식 업데이트의 어려움
+   - 새 정보 반영 = 전체 재학습 필요
+   - 비용: 수천만 달러
+   - 시간: 수주~수개월
 \`\`\`
 
-## RAG가 필요한 이유
+### RAG의 핵심 아이디어
 
-### 1. LLM의 한계
+**기존 LLM (Parametric Memory Only):**
 
-| 한계 | 설명 |
+| 구성 요소 | 설명 |
+|-----------|------|
+| **입력** | 질문 |
+| **처리** | LLM 파라미터 (학습 시점의 지식만 저장) |
+| **출력** | 답변 (파라미터에서 "추론") |
+
+> 한계: 학습 후 지식 업데이트 불가, 출처 추적 불가
+
+**RAG (Parametric + Non-parametric Memory):**
+
+| 단계 | 구성 요소 | 설명 |
+|------|-----------|------|
+| 1 | **External Knowledge Base** | 문서, DB (실시간 업데이트 가능!) |
+| 2 | **검색 (Retrieval)** | 질문과 관련된 문서 검색 |
+| 3 | **LLM 파라미터** | 질문 + 검색 결과를 입력 |
+| 4 | **출력** | 답변 ("근거 기반" 생성) |
+
+> 장점: 실시간 지식 업데이트, 출처 추적 가능, 환각 감소
+
+---
+
+## 2020년부터 2025년까지의 RAG 진화
+
+RAG는 3단계로 진화해 왔습니다. 여기서는 큰 그림만 파악하고, 각 기술의 상세 구현은 이후 학습에서 다룹니다.
+
+| Phase | 시기 | 핵심 특징 | 상세 학습 |
+|-------|------|----------|-----------|
+| **Naive RAG** | 2020-2021 | Query → Retrieve → Generate | Day 1 Task 3 |
+| **Advanced RAG** | 2022-2023 | Hybrid Search, Re-ranking, Query Rewriting | Day 3 (청킹 & 검색) |
+| **Agentic RAG** | 2024-2025 | Self-RAG, CRAG, GraphRAG | Day 4 (LangChain), Week 6 (GraphRAG) |
+
+> **학습 로드맵**: 이번 주(Week 5)에서 Naive → Advanced RAG를 마스터하고, Week 6에서 GraphRAG를 심화 학습합니다.
+
+---
+
+## 왜 지금 RAG가 핵심 기술인가?
+
+### 1. LLM의 한계는 구조적
+
+| 한계 | 원인 | RAG 해결책 |
+|------|------|-----------|
+| 환각 | 확률적 생성 | 문서 기반 생성으로 근거 제공 |
+| 지식 컷오프 | 학습 시점 고정 | 실시간 문서 업데이트 |
+| 도메인 부족 | 일반 학습 데이터 | 전문 문서 추가 |
+| 비용 | Fine-tuning 고비용 | 문서만 추가하면 됨 |
+
+### 2. 실제 기업 적용 사례
+
+| 서비스 | RAG 활용 | 사용자 경험 |
+|--------|---------|-------------|
+| **Notion AI** | 사용자 노트 검색 | "내 노트에서 프로젝트 마감일 찾아줘" |
+| **GitHub Copilot** | 레포지토리 인덱싱 | "이 프로젝트에서 인증은 어떻게 처리해?" |
+| **Perplexity AI** | 실시간 웹 검색 | 출처와 함께 최신 정보 제공 |
+| **Cursor IDE** | 코드베이스 RAG | 프로젝트 컨텍스트 기반 코드 수정 |
+
+### 3. FDE가 RAG를 알아야 하는 이유
+
+> **FDE의 핵심 역할**: "고객의 데이터를 AI로 가치화"
+
+| 고객사가 가진 것 | RAG 연결 후 가능한 것 |
+|-----------------|---------------------|
+| 사내 문서 (위키, 매뉴얼) | 자연어 Q&A 시스템 |
+| 고객 데이터 (FAQ, 티켓) | 자동 고객 응대 |
+| 도메인 지식 (규정, 전문 용어) | 전문가 수준 AI 어시스턴트 |
+
+**결론: FDE = RAG 전문가** - RAG는 고객 데이터를 LLM에 연결하는 핵심 브릿지입니다.
+      `,
+      keyPoints: [
+        'RAG는 2020년 Meta AI 논문에서 탄생 - LLM의 지식 한계를 외부 문서로 보완',
+        'RAG 진화: Naive(Day1) → Advanced(Day3) → Agentic(Day4, Week6)',
+        '실제 적용: Notion AI, GitHub Copilot, Perplexity, Cursor',
+        'FDE = RAG 전문가: 고객 데이터를 AI로 가치화하는 핵심 기술',
+      ],
+      practiceGoal: 'RAG의 큰 그림을 이해하고, Week 5-6 학습 로드맵을 파악한다',
+    }),
+
+    // ============================================
+    // Task 2: RAG vs Fine-tuning vs Prompt Engineering
+    // ============================================
+    createReadingTask('w5d1-rag-comparison', 'RAG vs Fine-tuning: 언제 무엇을 선택하나', 40, {
+      introduction: `
+## 세 가지 LLM 커스터마이징 방법
+
+LLM을 특정 도메인/용도에 맞게 조정하는 세 가지 주요 방법이 있습니다.
+각각의 작동 원리, 장단점, 적합한 상황을 깊이 이해해야 합니다.
+
+---
+
+## 1. Prompt Engineering
+
+### 작동 원리
+
+\`\`\`
+모델 파라미터: 변경 없음
+입력 프롬프트에 지시사항/예시를 추가
+
+System Prompt:
+"당신은 금융 전문가입니다. 다음 규칙을 따르세요:
+1. 숫자는 항상 쉼표로 구분
+2. 투자 조언은 면책 조항과 함께
+3. 한국어로 답변..."
+
+User: "삼성전자 주가 전망은?"
+\`\`\`
+
+### 장단점
+
+| 장점 | 단점 |
 |------|------|
-| **지식 컷오프** | 학습 이후 정보 모름 |
-| **환각(Hallucination)** | 사실이 아닌 내용 생성 |
-| **도메인 특화 부족** | 전문 분야 지식 한계 |
-| **비용** | 모든 것을 학습시키면 비용 폭발 |
+| 즉시 적용 가능 | 컨텍스트 길이 제한 |
+| 비용 없음 | 복잡한 지식 전달 어려움 |
+| 실험/반복 빠름 | 일관성 유지 어려움 |
+| 모델 변경 쉬움 | 프롬프트 엔지니어링 기술 필요 |
 
-### 2. RAG의 장점
+### 적합한 상황
 
-- ✅ **최신 정보 반영**: 검색 기반으로 실시간 업데이트
-- ✅ **사실 기반 답변**: 출처 명시 가능
-- ✅ **비용 효율적**: Fine-tuning 없이 지식 확장
-- ✅ **도메인 적응**: 회사 내부 문서 등 활용
+\`\`\`
+✅ 출력 형식/스타일 조정
+✅ 간단한 규칙 적용
+✅ Few-shot 예시로 충분한 경우
+✅ 빠른 프로토타이핑
 
-## RAG vs Fine-tuning
+❌ 대량의 도메인 지식 필요
+❌ 최신 정보 필요
+❌ 복잡한 전문 지식
+\`\`\`
 
-| 방식 | 장점 | 단점 |
-|------|------|------|
-| **RAG** | 빠른 업데이트, 출처 추적 | 검색 품질에 의존 |
-| **Fine-tuning** | 깊은 패턴 학습 | 비용, 시간, 재학습 필요 |
-| **RAG + Fine-tuning** | 최적의 조합 | 복잡도 증가 |
+---
 
-## 활용 사례
+## 2. Fine-tuning
 
-1. **기업 지식 챗봇**: 내부 문서 Q&A
-2. **고객 지원**: FAQ + 매뉴얼 검색
-3. **코드 어시스턴트**: 코드베이스 이해
-4. **연구 도우미**: 논문 검색 및 요약
+### 작동 원리
+
+\`\`\`
+모델 파라미터: 실제로 수정됨
+도메인 데이터로 추가 학습
+
+학습 데이터 예시 (JSONL):
+{"prompt": "환자가 두통을 호소합니다", "completion": "두통의 위치, 강도, 지속시간을..."}
+{"prompt": "혈압이 180/110입니다", "completion": "고혈압 응급 상황으로..."}
+
+학습 후:
+모델이 의료 도메인의 "어투", "용어", "추론 패턴"을 학습
+\`\`\`
+
+### 장단점
+
+| 장점 | 단점 |
+|------|------|
+| 깊은 도메인 이해 | 학습 비용 높음 ($1K~$100K+) |
+| 일관된 스타일/어투 | 학습 시간 필요 (시간~일) |
+| 복잡한 추론 가능 | 학습 데이터 준비 필요 |
+| 추론 속도 동일 | 환각 여전히 발생 |
+| | 지식 업데이트 = 재학습 |
+
+### 적합한 상황
+
+\`\`\`
+✅ 특정 어투/스타일 필수 (고객사 브랜드)
+✅ 복잡한 도메인 추론 (법률, 의료)
+✅ 고정된 지식 베이스
+✅ 대량 반복 사용
+
+❌ 자주 변경되는 정보
+❌ 출처 추적 필요
+❌ 예산 제한
+\`\`\`
+
+### Fine-tuning 유형
+
+\`\`\`
+1. Full Fine-tuning
+   - 전체 파라미터 수정
+   - 가장 비쌈, 가장 강력
+   - 대규모 학습 데이터 필요
+
+2. LoRA (Low-Rank Adaptation)
+   - 일부 레이어만 수정
+   - 비용 90% 절감
+   - 품질은 80-90% 수준
+
+3. QLoRA (Quantized LoRA)
+   - 양자화 + LoRA
+   - 더 저렴, 로컬 GPU 가능
+   - 오픈소스 모델에 인기
+\`\`\`
+
+---
+
+## 3. RAG (Retrieval-Augmented Generation)
+
+### 작동 원리
+
+\`\`\`
+모델 파라미터: 변경 없음
+외부 지식을 검색하여 프롬프트에 주입
+
+1. 문서 인덱싱 (오프라인)
+   문서 → 청킹 → 임베딩 → 벡터 DB 저장
+
+2. 쿼리 처리 (온라인)
+   질문 → 임베딩 → 유사 문서 검색 →
+   프롬프트 = 시스템 지시 + 검색 결과 + 질문 →
+   LLM 답변 생성
+\`\`\`
+
+### 장단점
+
+| 장점 | 단점 |
+|------|------|
+| 실시간 지식 업데이트 | 검색 품질에 의존 |
+| 출처 추적 가능 | 지연시간 증가 |
+| 환각 감소 | 복잡한 파이프라인 |
+| 비용 효율적 | 청킹/검색 최적화 필요 |
+| 민감 데이터 제어 | 임베딩 비용 발생 |
+
+### 적합한 상황
+
+\`\`\`
+✅ 자주 변경되는 정보
+✅ 출처 표시 필수 (법률, 의료, 금융)
+✅ 사내 문서 기반 Q&A
+✅ 최신 정보 반영 필요
+
+❌ 특정 어투 필수
+❌ 복잡한 도메인 추론
+❌ 지연시간 극도로 민감
+\`\`\`
+
+---
+
+## 결정 프레임워크
+
+### 질문으로 판단하기
+
+\`\`\`
+Q1: 지식이 자주 변경되나요?
+    예 → RAG 고려
+    아니오 → Q2로
+
+Q2: 출처 추적이 필요한가요?
+    예 → RAG 고려
+    아니오 → Q3로
+
+Q3: 특정 스타일/어투가 필수인가요?
+    예 → Fine-tuning 고려
+    아니오 → Q4로
+
+Q4: 복잡한 도메인 추론이 필요한가요?
+    예 → Fine-tuning + RAG 조합 고려
+    아니오 → Prompt Engineering으로 시작
+\`\`\`
+
+### 실전 조합 전략
+
+\`\`\`
+레벨 1: Prompt Engineering Only
+- 빠른 프로토타입
+- 간단한 용도
+- 비용: $0
+
+레벨 2: RAG
+- 사내 문서 Q&A
+- 지식 기반 챗봇
+- 비용: 임베딩 비용만
+
+레벨 3: Fine-tuning + RAG
+- 도메인 어투 + 최신 지식
+- 법률/의료/금융 전문 서비스
+- 비용: Fine-tuning + 임베딩
+
+레벨 4: Fine-tuning + RAG + Agents
+- 복잡한 워크플로우
+- 다단계 추론
+- 엔터프라이즈 솔루션
+\`\`\`
+
+---
+
+## 실제 사례: 법률 AI 서비스
+
+\`\`\`
+요구사항:
+- 법률 용어 정확한 사용
+- 최신 판례 반영
+- 출처 (조항, 판례번호) 필수
+- 법률 문서 스타일의 답변
+
+솔루션:
+1. Fine-tuning
+   - 법률 문서 스타일 학습
+   - 법률 추론 패턴 학습
+
+2. RAG
+   - 법령 DB 인덱싱
+   - 판례 DB 인덱싱
+   - 실시간 법률 뉴스 연동
+
+결과:
+Fine-tuned 모델이 RAG로 검색된 법령/판례를
+법률 문서 스타일로 정리하여 답변
+\`\`\`
       `,
-      keyPoints: ['RAG = 검색 + 생성의 결합', 'LLM 한계(환각, 컷오프) 해결', 'Fine-tuning 대비 비용 효율적'],
-      practiceGoal: 'RAG의 개념과 필요성을 이해한다',
+      keyPoints: [
+        'Prompt Engineering: 즉시 적용, 비용 없음, 복잡한 지식 전달 한계',
+        'Fine-tuning: 깊은 도메인 이해, 스타일 학습, 지식 업데이트 어려움',
+        'RAG: 실시간 업데이트, 출처 추적, 검색 품질에 의존',
+        '실전에서는 조합 전략 (Fine-tuning + RAG)이 최적인 경우 많음',
+      ],
+      practiceGoal: '세 가지 방법의 작동 원리와 트레이드오프를 이해하고, 상황에 맞는 선택 기준을 세운다',
     }),
 
-    createReadingTask('w5d1-rag-components', 'RAG 핵심 컴포넌트', 35, {
+    // ============================================
+    // Task 3: 프로덕션 RAG 아키텍처 패턴
+    // ============================================
+    createReadingTask('w5d1-production-patterns', '프로덕션 RAG 아키텍처 설계', 45, {
       introduction: `
-# RAG 핵심 컴포넌트
+## 프로덕션 RAG의 현실
 
-## 아키텍처 개요
+개발 환경의 RAG와 프로덕션 RAG는 다릅니다.
 
 \`\`\`
-┌─────────────────────────────────────────────────────────────┐
-│                     RAG 파이프라인                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  [문서]     [청킹]     [임베딩]     [벡터 DB]                  │
-│    ↓         ↓          ↓           ↓                       │
-│  PDF  →  Chunks  →  Vectors  →  저장/인덱싱                  │
-│  TXT     (500자)    (1536dim)                                │
-│  HTML                                                        │
-│                                                              │
-├─────────────────────────────────────────────────────────────┤
-│                     쿼리 시점                                 │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  [질문]  →  [임베딩]  →  [유사도 검색]  →  [Top-K 청크]       │
-│                              ↓                               │
-│              [프롬프트 + 컨텍스트]  →  [LLM]  →  [답변]       │
-│                                                              │
-└─────────────────────────────────────────────────────────────┘
+개발 환경:
+- 문서 100개
+- 동시 사용자 1명
+- 지연시간 무관
+- 비용 무관
+
+프로덕션:
+- 문서 100만개+
+- 동시 사용자 1000명+
+- 응답 2초 이내
+- 월 $10K 이내
 \`\`\`
 
-## 1. 문서 로더 (Document Loader)
+---
 
-다양한 소스에서 텍스트 추출:
+## 프로덕션 RAG 아키텍처
+
+### 전체 구조
+
+| Layer | Component | Description |
+|-------|-----------|-------------|
+| **1. Entry** | Load Balancer | 트래픽 분산 |
+| **2. Gateway** | API Gateway | Rate Limiting, Auth, Caching |
+| **3. Core** | RAG Orchestrator | Query Router → Retrieval → Rerank → Generate |
+| **4. Data** | Vector DB (Pinecone, Redis) | 벡터 검색 |
+| **4. Data** | LLM API | OpenAI / Anthropic / Self-hosted |
+| **5. Storage** | Document Store | S3 / PostgreSQL |
+
+**데이터 흐름:**
+1. **Client** → Load Balancer → API Gateway
+2. **API Gateway** → RAG Orchestrator (쿼리 분석)
+3. **Retrieval Service** → Vector DB (유사 문서 검색)
+4. **Rerank Service** → 검색 결과 재정렬
+5. **Generate Service** → LLM API (답변 생성)
+6. **Response** → Client
+
+---
+
+## 핵심 설계 원칙
+
+### 1. 검색과 생성의 분리
 
 \`\`\`python
-from langchain_community.document_loaders import (
-    PyPDFLoader,
-    TextLoader,
-    WebBaseLoader,
-    UnstructuredHTMLLoader,
-)
+# Bad: 모놀리식
+def answer(query):
+    docs = vectorstore.search(query)  # 검색
+    response = llm.generate(docs, query)  # 생성
+    return response
 
-# PDF 로드
-loader = PyPDFLoader("document.pdf")
-pages = loader.load()
+# Good: 마이크로서비스
+class RetrievalService:
+    def search(self, query: str, filters: dict) -> List[Document]:
+        # 검색 로직만 담당
+        pass
 
-# 웹페이지 로드
-web_loader = WebBaseLoader("https://example.com/article")
-docs = web_loader.load()
+class GenerationService:
+    def generate(self, context: str, query: str) -> str:
+        # 생성 로직만 담당
+        pass
+
+class RAGOrchestrator:
+    def answer(self, query: str):
+        docs = self.retrieval.search(query)
+        reranked = self.reranker.rerank(docs, query)
+        response = self.generation.generate(reranked, query)
+        return response
 \`\`\`
 
-## 2. 텍스트 분할기 (Text Splitter)
+**이점:**
+- 독립적 스케일링 (검색 트래픽 ≠ 생성 트래픽)
+- 독립적 업데이트 (검색 로직만 변경 가능)
+- 장애 격리 (생성 서비스 죽어도 검색 가능)
 
-문서를 적절한 크기의 청크로 분할:
+---
+
+### 2. 캐싱 전략
 
 \`\`\`python
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+# 다층 캐싱 구조
 
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,        # 청크 크기
-    chunk_overlap=50,      # 중첩 (문맥 유지)
-    separators=["\\n\\n", "\\n", " ", ""]
-)
+class MultiLayerCache:
+    def __init__(self):
+        self.l1_cache = {}  # 인메모리 (10초)
+        self.l2_cache = Redis()  # Redis (5분)
+        self.l3_cache = PostgreSQL()  # DB (1일)
 
-chunks = splitter.split_documents(pages)
+    def get(self, query: str):
+        # L1 체크
+        if query in self.l1_cache:
+            return self.l1_cache[query]
+
+        # L2 체크
+        cached = self.l2_cache.get(self.hash(query))
+        if cached:
+            self.l1_cache[query] = cached
+            return cached
+
+        # L3 체크 (정확한 쿼리만)
+        cached = self.l3_cache.get_exact(query)
+        if cached:
+            self.l2_cache.set(self.hash(query), cached)
+            self.l1_cache[query] = cached
+            return cached
+
+        return None
+
+# 캐싱 대상
+# 1. 임베딩 결과 (쿼리 임베딩)
+# 2. 검색 결과 (동일 쿼리)
+# 3. 최종 답변 (동일 쿼리)
 \`\`\`
 
-## 3. 임베딩 모델 (Embedding Model)
-
-텍스트를 벡터로 변환:
-
-\`\`\`python
-from langchain_openai import OpenAIEmbeddings
-
-embeddings = OpenAIEmbeddings(
-    model="text-embedding-3-small"  # 1536 차원
-)
-
-# 단일 텍스트 임베딩
-vector = embeddings.embed_query("RAG란 무엇인가?")
-print(len(vector))  # 1536
+**비용 절감 효과:**
+\`\`\`
+캐시 히트율 50% 가정:
+- LLM API 호출 50% 감소
+- 검색 비용 50% 감소
+- 응답 시간 90% 감소 (캐시 히트 시)
 \`\`\`
 
-## 4. 벡터 저장소 (Vector Store)
+---
 
-임베딩을 저장하고 검색:
+### 3. 비동기 처리
 
 \`\`\`python
-from langchain_community.vectorstores import Chroma
+import asyncio
 
-# 벡터 DB 생성
-vectorstore = Chroma.from_documents(
-    documents=chunks,
-    embedding=embeddings,
-    persist_directory="./chroma_db"
-)
+async def answer_query(query: str):
+    # 병렬 실행 가능한 작업들
+    embedding_task = asyncio.create_task(
+        embed_query(query)
+    )
 
-# 유사도 검색
-results = vectorstore.similarity_search(
-    "RAG 아키텍처",
-    k=3  # Top-3
-)
+    # 임베딩 완료 대기
+    query_embedding = await embedding_task
+
+    # 여러 소스에서 병렬 검색
+    search_tasks = [
+        asyncio.create_task(search_vectordb(query_embedding)),
+        asyncio.create_task(search_keyword_index(query)),
+        asyncio.create_task(search_knowledge_graph(query)),
+    ]
+
+    results = await asyncio.gather(*search_tasks)
+
+    # 결과 병합 및 Rerank
+    merged = merge_results(results)
+    reranked = await rerank(merged, query)
+
+    # 스트리밍 생성
+    async for chunk in generate_stream(reranked, query):
+        yield chunk
+
+# 응답 시간 비교
+# 동기: 임베딩(0.3s) + 검색(0.5s) + 생성(2s) = 2.8s
+# 비동기: 임베딩(0.3s) + 검색(0.5s) + 생성(2s) = 2.8s
+#         (but 검색이 병렬이면) = 0.3 + 0.2 + 2 = 2.5s
+# 스트리밍: 첫 토큰 0.8s 후 실시간 출력
 \`\`\`
 
-## 5. 검색기 (Retriever)
+---
 
-벡터 저장소를 검색 인터페이스로 래핑:
+### 4. 모니터링 & 관찰성
 
 \`\`\`python
-retriever = vectorstore.as_retriever(
-    search_type="similarity",
-    search_kwargs={"k": 4}
-)
+from dataclasses import dataclass
+from datetime import datetime
+import logging
 
-docs = retriever.invoke("RAG의 장점은?")
+@dataclass
+class RAGMetrics:
+    query_id: str
+    timestamp: datetime
+
+    # 검색 메트릭
+    retrieval_latency_ms: float
+    num_docs_retrieved: int
+    top_similarity_score: float
+
+    # 생성 메트릭
+    generation_latency_ms: float
+    input_tokens: int
+    output_tokens: int
+
+    # 품질 메트릭
+    user_feedback: Optional[int]  # 1-5
+    was_helpful: Optional[bool]
+
+class RAGObserver:
+    def __init__(self):
+        self.logger = logging.getLogger("rag")
+        self.metrics_client = PrometheusClient()
+
+    def log_query(self, metrics: RAGMetrics):
+        # 로깅
+        self.logger.info(f"Query {metrics.query_id}: "
+                        f"retrieval={metrics.retrieval_latency_ms}ms, "
+                        f"generation={metrics.generation_latency_ms}ms")
+
+        # 메트릭 수집
+        self.metrics_client.histogram(
+            "rag_retrieval_latency",
+            metrics.retrieval_latency_ms
+        )
+        self.metrics_client.histogram(
+            "rag_generation_latency",
+            metrics.generation_latency_ms
+        )
+
+        # 알림 조건 체크
+        if metrics.retrieval_latency_ms > 1000:
+            self.alert("Slow retrieval detected")
+
+        if metrics.top_similarity_score < 0.5:
+            self.alert("Low retrieval quality")
 \`\`\`
 
-## 6. LLM + 프롬프트
+**핵심 모니터링 지표:**
+\`\`\`
+1. 지연시간
+   - P50, P95, P99 응답 시간
+   - 검색 vs 생성 시간 분해
 
-검색된 컨텍스트로 답변 생성:
+2. 품질
+   - 평균 유사도 점수
+   - 사용자 피드백 점수
+   - 환각 감지율
+
+3. 비용
+   - 토큰 사용량 추이
+   - 임베딩 API 호출 수
+   - 캐시 히트율
+
+4. 시스템
+   - 벡터 DB 메모리 사용량
+   - 인덱스 크기 증가율
+   - 에러율
+\`\`\`
+
+---
+
+## 규모별 아키텍처 권장
+
+### 소규모 (문서 <10K, 사용자 <100)
+
+\`\`\`
+스택:
+- Chroma (로컬 벡터 DB)
+- OpenAI API
+- 단일 서버
+
+비용: ~$50/월
+\`\`\`
+
+### 중규모 (문서 <100K, 사용자 <1K)
+
+\`\`\`
+스택:
+- Pinecone / Weaviate (관리형 벡터 DB)
+- OpenAI API + 캐싱
+- Kubernetes 2-3 노드
+
+비용: ~$500/월
+\`\`\`
+
+### 대규모 (문서 >1M, 사용자 >10K)
+
+\`\`\`
+스택:
+- Milvus / Qdrant (셀프 호스팅)
+- 오픈소스 LLM (vLLM) + OpenAI 폴백
+- Kubernetes 클러스터 + Auto-scaling
+
+비용: $5,000+/월
+\`\`\`
+      `,
+      keyPoints: [
+        '검색/생성 서비스 분리로 독립적 스케일링과 장애 격리',
+        '다층 캐싱 (인메모리 → Redis → DB)으로 비용 50%+ 절감 가능',
+        '비동기 처리와 스트리밍으로 체감 응답 시간 개선',
+        '지연시간, 품질, 비용, 시스템 4가지 축의 모니터링 필수',
+      ],
+      practiceGoal: '프로덕션 RAG 시스템의 아키텍처 설계 원칙과 규모별 권장 스택을 이해한다',
+    }),
+
+    // ============================================
+    // Task 4: RAG 파이프라인 직접 구현
+    // ============================================
+    createCodeTask('w5d1-rag-implementation', '프로덕션급 RAG 파이프라인 구현', 60, {
+      introduction: `
+## 실습 목표
+
+단순한 예제가 아닌, 프로덕션에서 사용할 수 있는 수준의 RAG 파이프라인을 구현합니다.
+
+---
+
+## 프로젝트 구조
+
+\`\`\`
+rag_system/
+├── config.py          # 설정
+├── embeddings.py      # 임베딩 서비스
+├── retrieval.py       # 검색 서비스
+├── generation.py      # 생성 서비스
+├── rag_pipeline.py    # 오케스트레이터
+├── cache.py           # 캐싱
+└── metrics.py         # 모니터링
+\`\`\`
+
+---
+
+## 1. 설정 (config.py)
 
 \`\`\`python
-from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from pydantic_settings import BaseSettings
+from functools import lru_cache
 
-llm = ChatOpenAI(model="gpt-4o-mini")
+class Settings(BaseSettings):
+    # API Keys
+    openai_api_key: str
 
-prompt = ChatPromptTemplate.from_template("""
-다음 컨텍스트를 기반으로 질문에 답하세요.
-컨텍스트에 없는 내용은 "모르겠습니다"라고 답하세요.
+    # Embedding
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dimensions: int = 1536
 
-컨텍스트:
+    # Retrieval
+    retrieval_top_k: int = 5
+    similarity_threshold: float = 0.7
+
+    # Generation
+    llm_model: str = "gpt-4o-mini"
+    llm_temperature: float = 0
+    max_tokens: int = 1000
+
+    # Cache
+    cache_ttl_seconds: int = 300
+
+    class Config:
+        env_file = ".env"
+
+@lru_cache()
+def get_settings():
+    return Settings()
+\`\`\`
+
+---
+
+## 2. 임베딩 서비스 (embeddings.py)
+
+\`\`\`python
+from openai import OpenAI
+import hashlib
+from typing import List, Optional
+from config import get_settings
+
+class EmbeddingService:
+    def __init__(self):
+        self.settings = get_settings()
+        self.client = OpenAI(api_key=self.settings.openai_api_key)
+        self._cache = {}  # 간단한 인메모리 캐시
+
+    def _cache_key(self, text: str) -> str:
+        return hashlib.md5(text.encode()).hexdigest()
+
+    def embed_query(self, text: str) -> List[float]:
+        """단일 쿼리 임베딩 (캐싱 적용)"""
+        cache_key = self._cache_key(text)
+
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        response = self.client.embeddings.create(
+            input=text,
+            model=self.settings.embedding_model
+        )
+        embedding = response.data[0].embedding
+
+        self._cache[cache_key] = embedding
+        return embedding
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """다중 문서 임베딩 (배치 처리)"""
+        # 캐시 확인
+        results = [None] * len(texts)
+        texts_to_embed = []
+        indices_to_embed = []
+
+        for i, text in enumerate(texts):
+            cache_key = self._cache_key(text)
+            if cache_key in self._cache:
+                results[i] = self._cache[cache_key]
+            else:
+                texts_to_embed.append(text)
+                indices_to_embed.append(i)
+
+        # 캐시 미스된 것만 임베딩
+        if texts_to_embed:
+            response = self.client.embeddings.create(
+                input=texts_to_embed,
+                model=self.settings.embedding_model
+            )
+
+            for j, embedding_data in enumerate(response.data):
+                idx = indices_to_embed[j]
+                embedding = embedding_data.embedding
+                results[idx] = embedding
+
+                # 캐시 저장
+                cache_key = self._cache_key(texts_to_embed[j])
+                self._cache[cache_key] = embedding
+
+        return results
+\`\`\`
+
+---
+
+## 3. 검색 서비스 (retrieval.py)
+
+\`\`\`python
+from typing import List, Dict, Any, Optional
+from dataclasses import dataclass
+import numpy as np
+from chromadb import PersistentClient
+from embeddings import EmbeddingService
+from config import get_settings
+
+@dataclass
+class RetrievedDocument:
+    content: str
+    metadata: Dict[str, Any]
+    score: float
+
+class RetrievalService:
+    def __init__(self, collection_name: str = "documents"):
+        self.settings = get_settings()
+        self.embedding_service = EmbeddingService()
+
+        # Chroma 클라이언트
+        self.chroma = PersistentClient(path="./chroma_db")
+        self.collection = self.chroma.get_or_create_collection(
+            name=collection_name,
+            metadata={"hnsw:space": "cosine"}
+        )
+
+    def add_documents(
+        self,
+        documents: List[str],
+        metadatas: Optional[List[Dict]] = None,
+        ids: Optional[List[str]] = None
+    ):
+        """문서 추가"""
+        if ids is None:
+            ids = [f"doc_{i}" for i in range(len(documents))]
+
+        if metadatas is None:
+            metadatas = [{}] * len(documents)
+
+        # 배치 임베딩
+        embeddings = self.embedding_service.embed_documents(documents)
+
+        self.collection.add(
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=metadatas,
+            ids=ids
+        )
+
+        return len(documents)
+
+    def search(
+        self,
+        query: str,
+        top_k: Optional[int] = None,
+        filter_metadata: Optional[Dict] = None
+    ) -> List[RetrievedDocument]:
+        """유사도 검색"""
+        if top_k is None:
+            top_k = self.settings.retrieval_top_k
+
+        # 쿼리 임베딩
+        query_embedding = self.embedding_service.embed_query(query)
+
+        # 검색
+        results = self.collection.query(
+            query_embeddings=[query_embedding],
+            n_results=top_k,
+            where=filter_metadata,
+            include=["documents", "metadatas", "distances"]
+        )
+
+        # 결과 변환
+        documents = []
+        for i in range(len(results["ids"][0])):
+            # Chroma는 distance 반환, similarity로 변환
+            distance = results["distances"][0][i]
+            similarity = 1 - distance  # cosine distance to similarity
+
+            # 임계값 필터링
+            if similarity >= self.settings.similarity_threshold:
+                documents.append(RetrievedDocument(
+                    content=results["documents"][0][i],
+                    metadata=results["metadatas"][0][i],
+                    score=similarity
+                ))
+
+        return documents
+
+    def hybrid_search(
+        self,
+        query: str,
+        top_k: int = 5,
+        vector_weight: float = 0.7
+    ) -> List[RetrievedDocument]:
+        """하이브리드 검색 (벡터 + 키워드)"""
+        # 벡터 검색
+        vector_results = self.search(query, top_k=top_k * 2)
+
+        # 키워드 매칭 점수 추가
+        query_terms = set(query.lower().split())
+
+        for doc in vector_results:
+            doc_terms = set(doc.content.lower().split())
+            keyword_score = len(query_terms & doc_terms) / len(query_terms) if query_terms else 0
+
+            # 하이브리드 점수
+            doc.score = (
+                vector_weight * doc.score +
+                (1 - vector_weight) * keyword_score
+            )
+
+        # 재정렬
+        vector_results.sort(key=lambda x: x.score, reverse=True)
+        return vector_results[:top_k]
+\`\`\`
+
+---
+
+## 4. 생성 서비스 (generation.py)
+
+\`\`\`python
+from openai import OpenAI
+from typing import List, Generator
+from retrieval import RetrievedDocument
+from config import get_settings
+
+class GenerationService:
+    def __init__(self):
+        self.settings = get_settings()
+        self.client = OpenAI(api_key=self.settings.openai_api_key)
+
+        self.system_prompt = """당신은 주어진 컨텍스트를 기반으로 정확하게 답변하는 AI 어시스턴트입니다.
+
+규칙:
+1. 컨텍스트에 있는 정보만 사용하세요.
+2. 컨텍스트에 없는 정보는 "제공된 문서에서 해당 정보를 찾을 수 없습니다"라고 답하세요.
+3. 답변에 사용한 정보의 출처를 언급하세요.
+4. 불확실한 경우 그 점을 명시하세요."""
+
+    def _format_context(self, documents: List[RetrievedDocument]) -> str:
+        """검색 결과를 컨텍스트로 포매팅"""
+        context_parts = []
+
+        for i, doc in enumerate(documents, 1):
+            source = doc.metadata.get("source", "Unknown")
+            context_parts.append(
+                f"[문서 {i}] (출처: {source}, 관련도: {doc.score:.2f})\\n"
+                f"{doc.content}"
+            )
+
+        return "\\n\\n---\\n\\n".join(context_parts)
+
+    def generate(
+        self,
+        query: str,
+        documents: List[RetrievedDocument]
+    ) -> str:
+        """답변 생성"""
+        context = self._format_context(documents)
+
+        response = self.client.chat.completions.create(
+            model=self.settings.llm_model,
+            temperature=self.settings.llm_temperature,
+            max_tokens=self.settings.max_tokens,
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": f"""컨텍스트:
 {context}
 
-질문: {question}
+질문: {query}
 
-답변:
-""")
-\`\`\`
-      `,
-      keyPoints: ['6개 핵심 컴포넌트: 로더, 분할기, 임베딩, 벡터DB, 검색기, LLM', '인덱싱 단계와 쿼리 단계 분리', 'LangChain으로 컴포넌트 조합'],
-      practiceGoal: 'RAG 파이프라인의 각 컴포넌트 역할을 이해한다',
-    }),
+답변:"""}
+            ]
+        )
 
-    createCodeTask('w5d1-simple-rag', '간단한 RAG 구현', 50, {
-      introduction: `
-# 간단한 RAG 시스템 구현
+        return response.choices[0].message.content
 
-## 목표
+    def generate_stream(
+        self,
+        query: str,
+        documents: List[RetrievedDocument]
+    ) -> Generator[str, None, None]:
+        """스트리밍 답변 생성"""
+        context = self._format_context(documents)
 
-텍스트 파일 기반의 간단한 Q&A 시스템을 구축합니다.
-
-## 설치
-
-\`\`\`bash
-pip install langchain langchain-openai chromadb
-\`\`\`
-
-## 전체 코드
-
-\`\`\`python
-import os
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.output_parsers import StrOutputParser
-
-# 1. 환경 설정
-os.environ["OPENAI_API_KEY"] = "your-api-key"
-
-# 2. 샘플 문서
-documents = [
-    "RAG는 Retrieval-Augmented Generation의 약자입니다.",
-    "RAG는 검색과 생성을 결합한 AI 아키텍처입니다.",
-    "벡터 데이터베이스는 임베딩을 저장하고 유사도 검색을 수행합니다.",
-    "Chroma는 오픈소스 벡터 데이터베이스입니다.",
-    "LangChain은 LLM 애플리케이션 프레임워크입니다.",
-]
-
-# 3. 텍스트 분할 (이미 짧아서 생략 가능)
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=200,
-    chunk_overlap=20
-)
-
-# Document 객체로 변환
-from langchain.schema import Document
-docs = [Document(page_content=text) for text in documents]
-
-# 4. 임베딩 & 벡터 저장소
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-vectorstore = Chroma.from_documents(docs, embeddings)
-
-# 5. 검색기
-retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
-
-# 6. 프롬프트
-prompt = ChatPromptTemplate.from_template("""
-다음 컨텍스트를 기반으로 질문에 답하세요:
-
+        stream = self.client.chat.completions.create(
+            model=self.settings.llm_model,
+            temperature=self.settings.llm_temperature,
+            max_tokens=self.settings.max_tokens,
+            stream=True,
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": f"""컨텍스트:
 {context}
 
-질문: {question}
-답변:""")
+질문: {query}
 
-# 7. LLM
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+답변:"""}
+            ]
+        )
 
-# 8. 체인 구성
-def format_docs(docs):
-    return "\\n\\n".join(doc.page_content for doc in docs)
-
-rag_chain = (
-    {"context": retriever | format_docs, "question": RunnablePassthrough()}
-    | prompt
-    | llm
-    | StrOutputParser()
-)
-
-# 9. 질문하기
-question = "RAG가 뭐야?"
-answer = rag_chain.invoke(question)
-print(f"Q: {question}")
-print(f"A: {answer}")
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
 \`\`\`
 
-## 실행 결과
+---
 
-\`\`\`
-Q: RAG가 뭐야?
-A: RAG는 Retrieval-Augmented Generation의 약자로,
-검색과 생성을 결합한 AI 아키텍처입니다.
-\`\`\`
-
-## 실습 과제
-
-1. 자신만의 문서 5개 추가하기
-2. 다양한 질문으로 테스트
-3. k값 변경하며 결과 비교
-      `,
-      keyPoints: ['LangChain으로 RAG 체인 구성', 'LCEL(|) 문법으로 파이프라인 연결', 'format_docs로 컨텍스트 포매팅'],
-      practiceGoal: '간단한 RAG 시스템을 직접 구현한다',
-    }),
-
-    createReadingTask('w5d1-rag-patterns', 'RAG 패턴과 변형', 30, {
-      introduction: `
-# RAG 패턴과 변형
-
-## 기본 RAG (Naive RAG)
-
-\`\`\`
-질문 → 검색 → Top-K → LLM → 답변
-\`\`\`
-
-단순하지만 효과적. 대부분의 사용 사례에 충분.
-
-## Advanced RAG 패턴
-
-### 1. Query Transformation
-
-질문을 검색에 최적화된 형태로 변환:
+## 5. RAG 오케스트레이터 (rag_pipeline.py)
 
 \`\`\`python
-# 원래 질문
-"RAG에서 청킹 사이즈는 어떻게 정하면 되나요?"
+from typing import List, Dict, Any, Optional, Generator
+from dataclasses import dataclass
+from datetime import datetime
+import time
 
-# 변환된 쿼리
-"RAG chunking size best practices optimal settings"
+from retrieval import RetrievalService, RetrievedDocument
+from generation import GenerationService
+from config import get_settings
+
+@dataclass
+class RAGResponse:
+    answer: str
+    sources: List[Dict[str, Any]]
+    metrics: Dict[str, Any]
+
+class RAGPipeline:
+    def __init__(self, collection_name: str = "documents"):
+        self.settings = get_settings()
+        self.retrieval = RetrievalService(collection_name)
+        self.generation = GenerationService()
+
+    def index_documents(
+        self,
+        documents: List[str],
+        metadatas: Optional[List[Dict]] = None
+    ) -> int:
+        """문서 인덱싱"""
+        return self.retrieval.add_documents(documents, metadatas)
+
+    def query(
+        self,
+        question: str,
+        use_hybrid: bool = False,
+        top_k: Optional[int] = None
+    ) -> RAGResponse:
+        """RAG 쿼리 실행"""
+        start_time = time.time()
+
+        # 1. 검색
+        retrieval_start = time.time()
+        if use_hybrid:
+            documents = self.retrieval.hybrid_search(question, top_k or 5)
+        else:
+            documents = self.retrieval.search(question, top_k)
+        retrieval_time = time.time() - retrieval_start
+
+        # 2. 검색 결과 없으면 조기 반환
+        if not documents:
+            return RAGResponse(
+                answer="관련 문서를 찾을 수 없습니다. 질문을 다시 확인해주세요.",
+                sources=[],
+                metrics={
+                    "retrieval_time_ms": retrieval_time * 1000,
+                    "generation_time_ms": 0,
+                    "total_time_ms": (time.time() - start_time) * 1000,
+                    "num_documents": 0
+                }
+            )
+
+        # 3. 답변 생성
+        generation_start = time.time()
+        answer = self.generation.generate(question, documents)
+        generation_time = time.time() - generation_start
+
+        # 4. 결과 조합
+        total_time = time.time() - start_time
+
+        return RAGResponse(
+            answer=answer,
+            sources=[
+                {
+                    "content": doc.content[:200] + "...",
+                    "metadata": doc.metadata,
+                    "score": doc.score
+                }
+                for doc in documents
+            ],
+            metrics={
+                "retrieval_time_ms": retrieval_time * 1000,
+                "generation_time_ms": generation_time * 1000,
+                "total_time_ms": total_time * 1000,
+                "num_documents": len(documents),
+                "avg_similarity": sum(d.score for d in documents) / len(documents)
+            }
+        )
+
+    def query_stream(
+        self,
+        question: str,
+        use_hybrid: bool = False
+    ) -> Generator[str, None, None]:
+        """스트리밍 RAG 쿼리"""
+        # 검색
+        if use_hybrid:
+            documents = self.retrieval.hybrid_search(question)
+        else:
+            documents = self.retrieval.search(question)
+
+        if not documents:
+            yield "관련 문서를 찾을 수 없습니다."
+            return
+
+        # 스트리밍 생성
+        for chunk in self.generation.generate_stream(question, documents):
+            yield chunk
+
+
+# 사용 예시
+if __name__ == "__main__":
+    # 초기화
+    rag = RAGPipeline()
+
+    # 문서 인덱싱
+    documents = [
+        "RAG는 Retrieval-Augmented Generation의 약자입니다.",
+        "RAG는 2020년 Facebook AI Research에서 발표되었습니다.",
+        "RAG는 외부 지식을 검색하여 LLM의 답변 품질을 향상시킵니다.",
+        "벡터 데이터베이스는 임베딩을 저장하고 유사도 검색을 수행합니다.",
+        "Chroma는 오픈소스 벡터 데이터베이스입니다.",
+    ]
+    metadatas = [
+        {"source": "rag_intro.md", "section": "정의"},
+        {"source": "rag_intro.md", "section": "역사"},
+        {"source": "rag_intro.md", "section": "장점"},
+        {"source": "vectordb.md", "section": "개념"},
+        {"source": "vectordb.md", "section": "도구"},
+    ]
+
+    rag.index_documents(documents, metadatas)
+    print("문서 인덱싱 완료")
+
+    # 쿼리
+    response = rag.query("RAG가 뭐야?")
+    print(f"\\n답변: {response.answer}")
+    print(f"\\n출처: {response.sources}")
+    print(f"\\n메트릭: {response.metrics}")
+
+    # 스트리밍
+    print("\\n스트리밍 답변: ", end="")
+    for chunk in rag.query_stream("RAG의 장점은?"):
+        print(chunk, end="", flush=True)
+    print()
 \`\`\`
-
-### 2. Hypothetical Document Embedding (HyDE)
-
-가상의 답변을 먼저 생성하고 그것으로 검색:
-
-\`\`\`
-질문 → [LLM: 가상 답변 생성] → [임베딩] → 검색
-\`\`\`
-
-### 3. Multi-Query RAG
-
-하나의 질문을 여러 관점으로 분해:
-
-\`\`\`python
-원래: "RAG 시스템의 성능을 어떻게 개선할 수 있나요?"
-
-분해:
-- "RAG 검색 정확도 향상 방법"
-- "RAG 응답 품질 개선"
-- "RAG 시스템 최적화 기법"
-\`\`\`
-
-### 4. Self-RAG
-
-LLM이 스스로 검색 필요 여부 판단:
-
-\`\`\`
-질문 → [검색 필요?] → Yes → 검색 → [관련성 평가] → 답변
-                    → No → 직접 답변
-\`\`\`
-
-### 5. Corrective RAG (CRAG)
-
-검색 결과의 품질을 평가하고 보정:
-
-\`\`\`
-검색 결과 → [품질 평가]
-  → 좋음: 그대로 사용
-  → 애매함: 웹 검색으로 보완
-  → 나쁨: 쿼리 재작성 후 재검색
-\`\`\`
-
-## 패턴 선택 가이드
-
-| 패턴 | 사용 상황 | 복잡도 |
-|------|----------|--------|
-| Naive RAG | 대부분의 경우 | 낮음 |
-| Query Transform | 전문 용어가 많을 때 | 중간 |
-| Multi-Query | 복잡한 질문 | 중간 |
-| HyDE | 검색 품질이 낮을 때 | 중간 |
-| Self-RAG | 다양한 질문 유형 | 높음 |
-| CRAG | 높은 정확도 필요 | 높음 |
-
-## 권장 접근법
-
-1. **Naive RAG로 시작**
-2. 성능 측정 (정확도, 응답 품질)
-3. 병목 지점 파악
-4. 필요한 패턴만 선택적 적용
       `,
-      keyPoints: ['Naive RAG로 시작이 기본', 'Query Transformation으로 검색 개선', 'Self-RAG, CRAG는 고급 패턴'],
-      practiceGoal: '다양한 RAG 패턴의 특징과 사용 시점을 이해한다',
+      keyPoints: [
+        '설정, 임베딩, 검색, 생성을 분리된 서비스로 구현',
+        '임베딩/검색 결과 캐싱으로 비용과 지연시간 절감',
+        '하이브리드 검색 (벡터 + 키워드) 구현',
+        '메트릭 수집 기반 성능 모니터링 내장',
+      ],
+      practiceGoal: '프로덕션에서 사용 가능한 수준의 RAG 파이프라인을 직접 구현한다',
     }),
 
-    createReadingTask('w5d1-rag-evaluation', 'RAG 평가 지표', 25, {
-      introduction: `
-# RAG 평가 지표
-
-## 평가의 중요성
-
-RAG 시스템은 **검색**과 **생성** 두 단계를 모두 평가해야 합니다.
-
-## 1. 검색 품질 평가
-
-### Precision@K
-
-상위 K개 중 관련 문서 비율:
-
-\`\`\`
-Precision@3 = 관련 문서 수 / 3
-
-예: [관련, 비관련, 관련] → 2/3 = 0.67
-\`\`\`
-
-### Recall@K
-
-전체 관련 문서 중 검색된 비율:
-
-\`\`\`
-Recall@5 = 검색된 관련 문서 / 전체 관련 문서
-
-예: 전체 10개 중 5개 검색 → 5/10 = 0.5
-\`\`\`
-
-### MRR (Mean Reciprocal Rank)
-
-첫 번째 관련 문서의 순위:
-
-\`\`\`
-RR = 1 / (첫 관련 문서 순위)
-
-예: 3번째에 첫 관련 문서 → 1/3 = 0.33
-\`\`\`
-
-## 2. 생성 품질 평가
-
-### Faithfulness (충실도)
-
-답변이 컨텍스트에 근거하는지:
-
-\`\`\`
-컨텍스트: "RAG는 2020년에 발표되었다"
-답변: "RAG는 2020년에 처음 소개되었습니다" ✅
-답변: "RAG는 2018년에 개발되었습니다" ❌
-\`\`\`
-
-### Answer Relevance (답변 관련성)
-
-질문에 적절히 답했는지:
-
-\`\`\`
-질문: "RAG의 장점은?"
-답변: "RAG의 장점은 최신 정보 반영..." ✅
-답변: "RAG는 2020년에 발표되었습니다" ❌
-\`\`\`
-
-### Context Relevance (컨텍스트 관련성)
-
-검색된 컨텍스트가 질문과 관련 있는지:
-
-## 3. RAGAS 프레임워크
-
-\`\`\`python
-from ragas import evaluate
-from ragas.metrics import (
-    faithfulness,
-    answer_relevancy,
-    context_precision,
-    context_recall,
-)
-
-# 평가 데이터셋 준비
-dataset = {
-    "question": ["RAG가 뭐야?"],
-    "answer": ["RAG는 검색 증강 생성입니다"],
-    "contexts": [["RAG는 Retrieval-Augmented..."]],
-    "ground_truth": ["검색 기반 생성 AI"]
-}
-
-# 평가 실행
-result = evaluate(
-    dataset,
-    metrics=[faithfulness, answer_relevancy]
-)
-print(result)
-\`\`\`
-
-## 평가 체크리스트
-
-- [ ] 검색이 관련 문서를 가져오는가?
-- [ ] 답변이 컨텍스트에 근거하는가?
-- [ ] 답변이 질문에 적절한가?
-- [ ] 환각(hallucination)이 없는가?
-      `,
-      keyPoints: ['검색 평가: Precision, Recall, MRR', '생성 평가: Faithfulness, Relevance', 'RAGAS로 자동화된 평가'],
-      practiceGoal: 'RAG 시스템의 품질을 측정하는 방법을 이해한다',
-    }),
-
-    createQuizTask('w5d1-quiz', 'Day 1 복습 퀴즈', 15, {
-      introduction: '# Day 1 복습 퀴즈',
+    // ============================================
+    // Task 5: Day 1 퀴즈
+    // ============================================
+    createQuizTask('w5d1-quiz', 'Day 1 이해도 점검', 20, {
+      introduction: '',
       questions: [
         {
           id: 'w5d1-q1',
-          question: 'RAG에서 R은 무엇의 약자인가?',
-          options: ['Response', 'Retrieval', 'Reasoning', 'Representation'],
+          question: 'RAG가 최초로 발표된 연도와 기관은?',
+          options: [
+            '2019년 Google',
+            '2020년 Facebook AI Research',
+            '2021년 OpenAI',
+            '2022년 Anthropic'
+          ],
           correctAnswer: 1,
-          explanation: 'RAG는 Retrieval-Augmented Generation의 약자입니다.',
+          explanation: 'RAG는 2020년 Facebook AI Research(현 Meta AI)에서 "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks" 논문으로 처음 발표되었습니다.',
         },
         {
           id: 'w5d1-q2',
-          question: 'RAG의 주요 장점이 아닌 것은?',
-          options: ['최신 정보 반영', '환각 감소', '학습 데이터 불필요', '도메인 특화 가능'],
+          question: 'Fine-tuning 대비 RAG의 가장 큰 장점은?',
+          options: [
+            '더 빠른 응답 속도',
+            '더 저렴한 GPU 비용',
+            '실시간 지식 업데이트와 출처 추적',
+            '더 높은 답변 품질'
+          ],
           correctAnswer: 2,
-          explanation: 'RAG도 LLM을 사용하므로 LLM의 기본 학습 데이터는 여전히 필요합니다.',
+          explanation: 'RAG는 문서만 업데이트하면 즉시 새 지식이 반영되고, 답변의 근거가 된 문서를 출처로 제시할 수 있습니다. Fine-tuning은 재학습이 필요하고 출처 추적이 어렵습니다.',
         },
         {
           id: 'w5d1-q3',
-          question: 'RAG 파이프라인에서 텍스트를 벡터로 변환하는 단계는?',
-          options: ['Chunking', 'Embedding', 'Retrieval', 'Generation'],
+          question: '프로덕션 RAG에서 캐싱의 주요 대상이 아닌 것은?',
+          options: [
+            '쿼리 임베딩 결과',
+            '검색된 문서 목록',
+            '모델 파라미터',
+            'LLM 최종 답변'
+          ],
+          correctAnswer: 2,
+          explanation: '모델 파라미터는 고정되어 있으므로 캐싱 대상이 아닙니다. 쿼리 임베딩, 검색 결과, 최종 답변은 동일 쿼리 반복 시 재사용할 수 있어 캐싱 효과가 큽니다.',
+        },
+        {
+          id: 'w5d1-q4',
+          question: '2024-2025 최신 RAG 트렌드가 아닌 것은?',
+          options: [
+            'Self-RAG (자가 검증)',
+            'Corrective RAG (자동 수정)',
+            'Naive RAG (단순 검색-생성)',
+            'Agentic RAG (에이전트 기반)'
+          ],
+          correctAnswer: 2,
+          explanation: 'Naive RAG는 2020-2021년의 초기 패턴입니다. 최신 트렌드는 Self-RAG, CRAG, Agentic RAG, GraphRAG 등 더 정교한 검증/추론 메커니즘을 포함합니다.',
+        },
+        {
+          id: 'w5d1-q5',
+          question: '하이브리드 검색이 벡터 검색만 사용하는 것보다 나은 이유는?',
+          options: [
+            '항상 더 빠르기 때문에',
+            '키워드 정확 매칭과 의미 검색의 장점을 결합하기 때문에',
+            '벡터 DB가 필요 없기 때문에',
+            '임베딩 비용이 없기 때문에'
+          ],
           correctAnswer: 1,
-          explanation: 'Embedding 단계에서 텍스트를 고차원 벡터로 변환합니다.',
+          explanation: '벡터 검색은 의미적 유사성에 강하지만 정확한 키워드를 놓칠 수 있고, 키워드 검색은 그 반대입니다. 하이브리드 검색은 두 방식의 장점을 결합하여 더 높은 검색 품질을 달성합니다.',
         },
       ],
-      keyPoints: ['RAG = Retrieval-Augmented Generation', 'RAG는 검색 + 생성 결합', 'Embedding으로 텍스트 벡터화'],
-      practiceGoal: 'RAG 기초 개념을 확인한다',
+      keyPoints: [
+        'RAG 역사: 2020년 Meta AI 논문에서 시작',
+        'RAG vs Fine-tuning: 실시간 업데이트, 출처 추적이 RAG의 핵심 장점',
+        '프로덕션 최적화: 캐싱, 하이브리드 검색, 모니터링',
+        '최신 트렌드: Self-RAG, CRAG, Agentic RAG',
+      ],
+      practiceGoal: 'Day 1 학습 내용의 핵심 개념을 정확히 이해했는지 확인한다',
     }),
   ],
 
-  challenge: createChallengeTask('w5d1-challenge', 'Challenge: 나만의 RAG 시스템', 55, {
+  // ============================================
+  // Day 1 Challenge
+  // ============================================
+  challenge: createChallengeTask('w5d1-challenge', 'Challenge: RAG 아키텍처 설계서 작성', 60, {
     introduction: `
-# Challenge: 나만의 RAG 시스템
+## 과제 목표
 
-## 과제
+가상의 고객사 시나리오를 바탕으로 **RAG 아키텍처 설계서**를 작성하세요.
+이 과제는 FDE로서 고객에게 솔루션을 제안하는 실전 경험을 시뮬레이션합니다.
 
-자신의 관심 분야 문서로 RAG 시스템을 구축하세요.
+---
 
-## 요구사항
+## 시나리오
 
-1. **문서 준비** (최소 5개)
-   - 블로그 글, 논문 요약, 강의 노트 등
-   - 또는 위키피디아 문서 크롤링
+**고객사: 미래법률사무소**
 
-2. **RAG 파이프라인 구축**
-   - 문서 로드 및 청킹
-   - 벡터 저장소 생성
-   - 검색기 + LLM 체인
+\`\`\`
+업종: 법률 서비스
+규모: 변호사 50명, 직원 100명
+현재 상황:
+- 10년간 축적된 판례 분석 자료 50,000건
+- 내부 법률 의견서 10,000건
+- 법령 DB 연동 필요 (국가법령정보센터)
 
-3. **테스트 질문 5개**
-   - 다양한 유형의 질문 준비
-   - 예상 답변과 실제 답변 비교
+요구사항:
+1. 변호사들이 자연어로 판례/법령 검색
+2. 관련 판례 + 법령 + 내부 의견서를 종합한 답변
+3. 출처 (판례번호, 법령 조항, 의견서 번호) 필수 표시
+4. 응답 시간 5초 이내
+5. 월 예산 $3,000 이내
+\`\`\`
 
-4. **결과 분석**
-   - 어떤 질문에서 잘 작동하는가?
-   - 실패하는 케이스는?
+---
 
-## 제출물
+## 제출물 (Markdown 형식)
 
-- Python 코드 (.py 또는 .ipynb)
-- 테스트 결과 스크린샷
-- 간단한 분석 리포트 (300자)
+### 1. 기술 선택 및 근거 (30%)
+
+\`\`\`
+다음 항목에 대한 선택과 이유를 작성:
+- Prompt Engineering / Fine-tuning / RAG 중 선택 및 이유
+- 임베딩 모델 선택
+- 벡터 DB 선택
+- LLM 선택
+\`\`\`
+
+### 2. 아키텍처 다이어그램 (30%)
+
+\`\`\`
+ASCII 아트 또는 설명으로 다음 포함:
+- 데이터 흐름 (문서 수집 → 인덱싱 → 검색 → 생성)
+- 컴포넌트 구성
+- 캐싱 전략
+- 에러 처리
+\`\`\`
+
+### 3. 비용 추정 (20%)
+
+\`\`\`
+월간 예상 비용 산출:
+- 임베딩 비용 (문서 개수 × 토큰 × 단가)
+- LLM 비용 (예상 쿼리 수 × 토큰 × 단가)
+- 인프라 비용 (벡터 DB, 서버)
+\`\`\`
+
+### 4. 리스크 및 완화 방안 (20%)
+
+\`\`\`
+최소 3가지 리스크와 대응 방안:
+예: 검색 품질 저하 → 하이브리드 검색 + Re-ranking
+\`\`\`
+
+---
+
+## 평가 기준
+
+| 항목 | 배점 | 기준 |
+|------|------|------|
+| 기술 선택 근거 | 30% | 요구사항과의 적합성, 논리적 근거 |
+| 아키텍처 완성도 | 30% | 프로덕션 레벨의 고려사항 포함 |
+| 비용 현실성 | 20% | 실제 가격 기반, 예산 내 |
+| 리스크 분석 | 20% | 실질적 리스크 식별 및 대응 |
+
+---
+
+## 참고 가격 (2024년 기준)
+
+\`\`\`
+OpenAI:
+- text-embedding-3-small: $0.02 / 1M 토큰
+- text-embedding-3-large: $0.13 / 1M 토큰
+- gpt-4o-mini: $0.15 / 1M 입력, $0.60 / 1M 출력
+- gpt-4o: $2.50 / 1M 입력, $10 / 1M 출력
+
+벡터 DB:
+- Pinecone: Free tier (100K 벡터) + $70/월 (1M 벡터)
+- Weaviate Cloud: $25/월~
+- Chroma: 무료 (셀프 호스팅)
+
+서버:
+- AWS EC2 t3.medium: ~$30/월
+- AWS EC2 m5.large: ~$70/월
+\`\`\`
     `,
-    keyPoints: ['나만의 도메인 문서 활용', '전체 파이프라인 구축', '결과 분석 및 개선점 도출'],
-    practiceGoal: '실제 RAG 시스템을 처음부터 끝까지 구축한다',
+    hints: [
+`# ============================================
+# RAG 아키텍처 설계서 Pseudocode
+# ============================================
+
+# 1. 기술 선택
+SECTION "기술 선택 및 근거":
+
+    접근 방식:
+        선택: RAG
+        이유:
+            - 판례/법령은 자주 업데이트됨 → Fine-tuning 부적합
+            - 출처 표시 필수 → RAG의 핵심 장점
+            - 기존 문서 활용 → 추가 학습 데이터 생성 불필요
+
+    임베딩 모델:
+        선택: text-embedding-3-small
+        이유:
+            - 비용 효율 ($0.02/1M)
+            - 60K 문서 × 평균 1000 토큰 = 60M 토큰
+            - 일회성 비용: $1.2
+
+    벡터 DB:
+        선택: Pinecone
+        이유:
+            - 관리형 → 운영 부담 감소
+            - 60K 벡터 → Free tier로 가능
+            - 필터링, 메타데이터 지원
+
+    LLM:
+        선택: gpt-4o-mini
+        이유:
+            - 비용 효율 ($0.15/1M 입력)
+            - 법률 텍스트 이해력 충분
+            - 응답 속도 빠름
+
+# 2. 아키텍처
+SECTION "아키텍처 다이어그램":
+
+    [데이터 소스]
+        ├── 판례 분석 자료 (50K건)
+        ├── 내부 의견서 (10K건)
+        └── 국가법령정보센터 API
+             │
+             ▼
+    [문서 처리 파이프라인]
+        ├── PDF/HWP 텍스트 추출
+        ├── 청킹 (1000자, 100자 오버랩)
+        └── 임베딩 (text-embedding-3-small)
+             │
+             ▼
+    [벡터 저장소: Pinecone]
+        └── 메타데이터: source, type, date, case_number
+             │
+             ▼
+    [검색 서비스]
+        ├── 하이브리드 검색 (벡터 70% + 키워드 30%)
+        └── Re-ranking (Cohere)
+             │
+             ▼
+    [생성 서비스]
+        ├── 컨텍스트 구성 (출처 포함)
+        ├── 프롬프트 템플릿 (법률 전용)
+        └── LLM 생성 (gpt-4o-mini)
+             │
+             ▼
+    [캐싱 레이어: Redis]
+        └── 쿼리 결과 캐싱 (TTL: 1시간)
+             │
+             ▼
+    [API Gateway]
+        └── Rate limiting, Auth
+
+# 3. 비용 추정
+SECTION "월간 비용 추정":
+
+    가정:
+        - 월간 쿼리 수: 10,000건
+        - 평균 검색 결과: 5개 문서
+        - 평균 입력 토큰: 2,000 (컨텍스트 + 질문)
+        - 평균 출력 토큰: 500
+
+    임베딩 (일회성):
+        - 60K 문서 × 1,000 토큰 = 60M 토큰
+        - 비용: 60M × $0.02/1M = $1.2
+
+    LLM (월간):
+        - 입력: 10,000 × 2,000 = 20M 토큰
+        - 출력: 10,000 × 500 = 5M 토큰
+        - 비용: (20M × $0.15/1M) + (5M × $0.60/1M)
+               = $3 + $3 = $6/월
+
+    인프라:
+        - Pinecone: Free tier ($0)
+        - EC2 t3.medium: $30/월
+        - Redis (ElastiCache): $15/월
+
+    총 월간 비용: ~$51/월 (예산 $3,000의 1.7%)
+
+# 4. 리스크 및 완화
+SECTION "리스크 분석":
+
+    리스크 1: 검색 품질 저하
+        원인: 법률 용어의 다양한 표현
+        완화:
+            - 하이브리드 검색 적용
+            - 법률 동의어 사전 구축
+            - Re-ranking 적용
+
+    리스크 2: 환각 (잘못된 판례 인용)
+        원인: LLM의 본질적 한계
+        완화:
+            - 프롬프트에 "컨텍스트만 사용" 강조
+            - 출처 검증 후처리 로직
+            - 사용자 피드백 수집
+
+    리스크 3: 응답 지연
+        원인: 대용량 컨텍스트 처리
+        완화:
+            - Redis 캐싱 (반복 질문)
+            - 스트리밍 응답
+            - 비동기 처리
+
+    리스크 4: 법령 업데이트 누락
+        원인: 수동 업데이트 의존
+        완화:
+            - 국가법령정보센터 API 연동
+            - 일일 배치 업데이트
+            - 변경 알림 시스템`
+    ],
+    keyPoints: [
+      '고객 요구사항 분석 → 기술 선택 근거 도출',
+      '프로덕션 아키텍처 설계 (캐싱, 에러 처리 포함)',
+      '현실적인 비용 추정 및 예산 준수',
+      '리스크 식별 및 선제적 완화 방안',
+    ],
+    practiceGoal: 'FDE로서 고객에게 RAG 솔루션을 제안하는 설계서를 작성한다',
   }),
 }

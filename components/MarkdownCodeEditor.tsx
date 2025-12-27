@@ -2,6 +2,14 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Editor from 'react-simple-code-editor'
+import {
+  detectUnsupportedLibs,
+  runPythonCode,
+  isPyodideLoaded,
+  loadPyodideInstance,
+  type ExecutionResult,
+} from '@/lib/pyodide-runner'
+import { openInColab, generateColabCode, extractImportedPackages } from '@/lib/colab-helper'
 
 // Prism 동적 로드
 let Prism: any = null
@@ -60,7 +68,7 @@ type ThemeKey = keyof typeof THEMES
 interface MarkdownCodeEditorProps {
   initialCode: string
   language: string
-  blockId: string // 고유 ID (taskId + 블록 인덱스)
+  blockId: string
 }
 
 export default function MarkdownCodeEditor({ initialCode, language, blockId }: MarkdownCodeEditorProps) {
@@ -73,21 +81,26 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
   const editorRef = useRef<HTMLDivElement>(null)
   const storageKey = `mdCode_${blockId}`
   const highlightKey = `mdHighlight_${blockId}`
-  const themeKey = 'codeEditorTheme' // 전역 테마 설정
+  const themeKey = 'codeEditorTheme'
 
-  // localStorage에서 복원 + Prism 로드
+  // Python 실행 관련 상태
+  const [isRunning, setIsRunning] = useState(false)
+  const [isPyodideReady, setIsPyodideReady] = useState(false)
+  const [pyodideLoading, setPyodideLoading] = useState(false)
+  const [output, setOutput] = useState<ExecutionResult | null>(null)
+  const [showOutput, setShowOutput] = useState(false)
+
+  const isPython = language === 'python'
+
   useEffect(() => {
-    // localStorage에서 저장된 코드 복원
     const saved = localStorage.getItem(storageKey)
     if (saved) {
       setCode(saved)
     }
-    // 테마 복원
     const savedTheme = localStorage.getItem(themeKey) as ThemeKey
     if (savedTheme && THEMES[savedTheme]) {
       setTheme(savedTheme)
     }
-    // 하이라이트 복원
     const savedHighlights = localStorage.getItem(highlightKey)
     if (savedHighlights) {
       try {
@@ -95,7 +108,6 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
       } catch (e) {}
     }
 
-    // Prism 로드 (한 번만)
     if (prismLoaded) {
       setMounted(true)
       return
@@ -103,7 +115,6 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
 
     import('prismjs').then((mod) => {
       Prism = mod.default
-      // 여러 언어 지원
       Promise.all([
         import('prismjs/components/prism-python'),
         import('prismjs/components/prism-sql'),
@@ -116,30 +127,31 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
         setMounted(true)
       })
     })
+
+    // Pyodide 상태 확인
+    setIsPyodideReady(isPyodideLoaded())
   }, [storageKey])
 
-  // 코드 변경 시 localStorage에 저장
   const handleChange = useCallback((newCode: string) => {
     setCode(newCode)
     localStorage.setItem(storageKey, newCode)
   }, [storageKey])
 
-  // 초기화 (코드 + 하이라이트 모두)
   const handleReset = useCallback(() => {
     localStorage.removeItem(storageKey)
     localStorage.removeItem(highlightKey)
     setCode(initialCode)
     setHighlights([])
+    setOutput(null)
+    setShowOutput(false)
   }, [storageKey, highlightKey, initialCode])
 
-  // 테마 변경
   const handleThemeChange = useCallback((newTheme: ThemeKey) => {
     setTheme(newTheme)
     localStorage.setItem(themeKey, newTheme)
     setShowThemeMenu(false)
   }, [themeKey])
 
-  // 하이라이트 추가
   const addHighlight = useCallback((color: HighlightColor) => {
     const textarea = editorRef.current?.querySelector('textarea')
     if (!textarea) return
@@ -153,7 +165,6 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
 
     const newHighlight: Highlight = { start, end, color }
     const newHighlights = [...highlights.filter(h =>
-      // 겹치는 하이라이트 제거
       !(h.start < end && h.end > start)
     ), newHighlight]
 
@@ -162,19 +173,74 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
     setShowHighlightMenu(false)
   }, [highlights, highlightKey])
 
-  // 하이라이트 전체 삭제
   const clearHighlights = useCallback(() => {
     setHighlights([])
     localStorage.removeItem(highlightKey)
   }, [highlightKey])
 
+  // Pyodide 로드
+  const loadPyodide = useCallback(async () => {
+    if (isPyodideReady || pyodideLoading) return
+    setPyodideLoading(true)
+    try {
+      await loadPyodideInstance()
+      setIsPyodideReady(true)
+    } catch (e) {
+      console.error('Pyodide 로딩 실패:', e)
+    } finally {
+      setPyodideLoading(false)
+    }
+  }, [isPyodideReady, pyodideLoading])
+
+  // 코드 실행
+  const handleRun = async () => {
+    const unsupportedLibs = detectUnsupportedLibs(code)
+    if (unsupportedLibs.length > 0) {
+      setOutput({
+        success: false,
+        output: '',
+        error: `브라우저에서 실행 불가: ${unsupportedLibs.join(', ')}\nGoogle Colab에서 실행해주세요.`,
+        executionTime: 0,
+      })
+      setShowOutput(true)
+      return
+    }
+
+    if (!isPyodideReady) {
+      await loadPyodide()
+    }
+
+    setIsRunning(true)
+    setShowOutput(true)
+    setOutput(null)
+
+    try {
+      const result = await runPythonCode(code)
+      setOutput(result)
+    } catch (e: any) {
+      setOutput({
+        success: false,
+        output: '',
+        error: e.message || String(e),
+        executionTime: 0,
+      })
+    } finally {
+      setIsRunning(false)
+    }
+  }
+
+  // Colab에서 열기
+  const handleOpenInColab = () => {
+    const packages = extractImportedPackages(code)
+    const colabCode = generateColabCode(code, packages)
+    openInColab(colabCode)
+  }
+
   const currentTheme = THEMES[theme]
 
-  // HTML에서 텍스트 인덱스를 HTML 인덱스로 매핑
   const applyHighlightsToHTML = useCallback((html: string, textLength: number) => {
     if (highlights.length === 0) return html
 
-    // 텍스트 인덱스 -> HTML 인덱스 매핑 배열 생성
     const textToHtml: number[] = []
     let textIdx = 0
     let inTag = false
@@ -185,21 +251,19 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
       } else if (html[i] === '>') {
         inTag = false
       } else if (!inTag) {
-        // HTML 엔티티 처리 (&amp; &lt; &gt; 등)
         if (html[i] === '&') {
           const semiIdx = html.indexOf(';', i)
           if (semiIdx !== -1 && semiIdx - i < 8) {
             textToHtml[textIdx++] = i
-            i = semiIdx // 세미콜론으로 이동
+            i = semiIdx
             continue
           }
         }
         textToHtml[textIdx++] = i
       }
     }
-    textToHtml[textIdx] = html.length // 끝 위치
+    textToHtml[textIdx] = html.length
 
-    // 하이라이트를 뒤에서부터 적용 (인덱스 밀림 방지)
     const sortedHighlights = [...highlights].sort((a, b) => b.start - a.start)
     let result = html
 
@@ -222,7 +286,6 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
 
   const highlight = useCallback((codeText: string) => {
     if (!Prism) {
-      // Prism 없을 때는 텍스트에 직접 적용
       if (highlights.length === 0) return codeText
       return applyHighlightsToHTML(codeText, codeText.length)
     }
@@ -232,11 +295,9 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
 
     if (highlights.length === 0) return prismHighlighted
 
-    // Prism HTML에 형광펜 적용 (기존 색상 유지)
     return applyHighlightsToHTML(prismHighlighted, codeText.length)
   }, [language, highlights, applyHighlightsToHTML])
 
-  // 로딩 중
   if (!mounted) {
     return (
       <div className="rounded-xl overflow-hidden border my-4" style={{ borderColor: currentTheme.border, backgroundColor: currentTheme.bg }}>
@@ -258,6 +319,43 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
           <span className="text-xs" style={{ color: '#50fa7b' }}>✏️ 편집 가능</span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Python 전용: Colab 버튼 */}
+          {isPython && (
+            <button
+              onClick={handleOpenInColab}
+              className="text-xs px-2 py-1 rounded bg-[#f59e0b] hover:bg-[#d97706] text-white font-medium transition flex items-center gap-1"
+              title="Google Colab에서 열기"
+            >
+              Colab
+            </button>
+          )}
+
+          {/* Python 전용: 실행 버튼 */}
+          {isPython && (
+            <button
+              onClick={handleRun}
+              disabled={isRunning || pyodideLoading}
+              className={`text-xs px-2 py-1 rounded font-medium transition flex items-center gap-1 ${
+                isRunning || pyodideLoading
+                  ? 'bg-gray-500 cursor-not-allowed text-gray-300'
+                  : 'bg-[#10b981] hover:bg-[#059669] text-white'
+              }`}
+              title={pyodideLoading ? 'Python 환경 로딩 중...' : '코드 실행'}
+            >
+              {isRunning || pyodideLoading ? (
+                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+              ) : (
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              )}
+              {isRunning ? '실행 중' : pyodideLoading ? '로딩' : '실행'}
+            </button>
+          )}
+
           {/* 형광펜 버튼 */}
           <div className="relative">
             <button
@@ -326,6 +424,49 @@ export default function MarkdownCodeEditor({ initialCode, language, blockId }: M
         className="code-editor"
         textareaClassName="code-editor-textarea"
       />
+
+      {/* Python 출력 패널 */}
+      {isPython && showOutput && (
+        <div className="border-t" style={{ borderColor: currentTheme.border }}>
+          <div
+            className="flex items-center justify-between px-4 py-1.5 cursor-pointer"
+            style={{ backgroundColor: `${currentTheme.border}40` }}
+            onClick={() => setShowOutput(!showOutput)}
+          >
+            <span className="text-xs font-medium" style={{ color: currentTheme.text }}>
+              {output?.success ? '✅ 출력' : output?.error ? '❌ 오류' : '⏳ 실행 중...'}
+              {output?.executionTime ? (
+                <span className="ml-1" style={{ color: currentTheme.comment }}>
+                  ({output.executionTime.toFixed(0)}ms)
+                </span>
+              ) : null}
+            </span>
+            <span className="text-xs" style={{ color: currentTheme.comment }}>
+              {showOutput ? '▲' : '▼'}
+            </span>
+          </div>
+          <div
+            className="p-3 font-mono text-xs max-h-[200px] overflow-auto"
+            style={{ backgroundColor: '#0d0d14' }}
+          >
+            {isRunning ? (
+              <div className="text-gray-400 flex items-center gap-2">
+                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                코드 실행 중...
+              </div>
+            ) : output?.error ? (
+              <pre className="text-red-400 whitespace-pre-wrap">{output.error}</pre>
+            ) : output?.output ? (
+              <pre className="text-green-400 whitespace-pre-wrap">{output.output}</pre>
+            ) : (
+              <span className="text-gray-500">(출력 없음)</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

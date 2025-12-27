@@ -6,6 +6,7 @@ import { day2EmbeddingsVectordb } from './day2-embeddings-vectordb'
 import { day3ChunkingRetrieval } from './day3-chunking-retrieval'
 import { day4LangchainRag } from './day4-langchain-rag'
 import { day5RagProject } from './day5-rag-project'
+import { day6SllmRag } from './day6-sllm-rag'
 
 // Week 5 완성: RAG 기초
 export const week5RagBasics: Week = {
@@ -17,13 +18,14 @@ export const week5RagBasics: Week = {
   title: WEEK5_META.title,
   topics: WEEK5_META.topics,
   practice: WEEK5_META.practice,
-  totalDuration: 1260, // 21시간 = 1260분
+  totalDuration: 1560, // 26시간 = 1560분 (기존 21시간 + sLLM 5시간)
   days: [
     day1RagArchitecture,      // Day 1: RAG 아키텍처 개요
     day2EmbeddingsVectordb,   // Day 2: 임베딩 & 벡터 DB
     day3ChunkingRetrieval,    // Day 3: 청킹 전략 & 검색 최적화
     day4LangchainRag,         // Day 4: LangChain RAG 파이프라인
-    day5RagProject            // Day 5: 문서 Q&A RAG 시스템
+    day5RagProject,           // Day 5: 프로덕션 RAG 시스템
+    day6SllmRag               // Day 6: 로컬 LLM과 RAG 통합 (sLLM)
   ]
 }
 
@@ -36,7 +38,8 @@ export {
   day2EmbeddingsVectordb,
   day3ChunkingRetrieval,
   day4LangchainRag,
-  day5RagProject
+  day5RagProject,
+  day6SllmRag
 }
 
 // 타입 재내보내기
@@ -53,8 +56,8 @@ export {
 // Week 5 통계
 // ============================================
 //
-// 총 Task 수: 30개
-// 총 학습 시간: ~21시간
+// 총 Task 수: 37개 (기존 30개 + Day 6 7개)
+// 총 학습 시간: ~26시간
 //
 // Day 1: RAG 아키텍처 개요
 //   - Tasks: 6개
@@ -76,10 +79,15 @@ export {
 //   - 시간: 240분 (4시간)
 //   - 주요: LCEL, 대화형 RAG, 스트리밍
 //
-// Day 5: 문서 Q&A RAG 시스템
+// Day 5: 프로덕션 RAG 시스템
 //   - Tasks: 6개 + Challenge
 //   - 시간: 300분 (5시간)
 //   - 주요: PDF 처리, Streamlit, 배포
+//
+// Day 6: 로컬 LLM과 RAG 통합 (sLLM)
+//   - Tasks: 6개 + Challenge
+//   - 시간: 300분 (5시간)
+//   - 주요: Ollama, 시스템 요구사항, sLLM RAG 통합
 //
 // ============================================
 // 학습 목표 달성 체크리스트
@@ -109,5 +117,12 @@ export {
 //    - PDF 문서 처리
 //    - Streamlit UI
 //    - 배포 및 최적화
+//
+// ✅ sLLM (로컬 LLM)
+//    - sLLM 선택 기준 (Llama, Mistral, Qwen)
+//    - VRAM/양자화 이해
+//    - Ollama 설치 및 사용
+//    - sLLM + RAG 통합
+//    - 프로덕션 배포 (Docker, vLLM)
 //
 // ============================================
