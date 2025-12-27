@@ -236,9 +236,36 @@ const task4 = createCodeTask(
   45,
   {
     introduction: `
-## LLM 기반 엔티티 추출
+## 왜 배우는가?
 
-GraphRAG에서 질문으로부터 엔티티를 추출하는 것은 핵심 단계입니다.
+### 문제 상황
+일반 RAG는 "삼성전자의 경쟁사는?"이라는 질문을 단순 텍스트로 처리합니다.
+Knowledge Graph에는 \`Samsung -[COMPETES_WITH]-> SKHynix\` 관계가 있지만,
+"삼성전자"라는 **엔티티를 찾지 못하면** 그래프를 활용할 수 없습니다.
+
+**핵심**: 질문에서 엔티티를 정확히 추출해야 Graph 검색이 시작됩니다.
+
+---
+
+## 비유: 도서관 사서의 키워드 파악
+
+\`\`\`
+사용자: "셰익스피어의 비극 작품 있나요?"
+
+일반 사서 (벡터 검색):
+  → "비극" 서가로 안내 (관련 책들 나열)
+
+전문 사서 (엔티티 추출):
+  → "셰익스피어" (인물) 추출
+  → "비극" (장르) 추출
+  → 셰익스피어 섹션의 비극 작품만 정확히 안내
+\`\`\`
+
+GraphRAG에서 엔티티 추출 = 전문 사서의 키워드 파악 능력
+
+---
+
+## LLM 기반 엔티티 추출
 
 ### 엔티티 추출 방법
 
@@ -307,38 +334,54 @@ def normalize_entity(extracted_name, kg_entities):
 \`\`\`
 `,
     keyPoints: [
-      'LLM으로 질문에서 엔티티(Person, Company, Product 등) 추출',
-      '구조화된 JSON 출력을 위한 프롬프트 설계',
-      '엔티티 정규화로 KG 노드와 매칭',
-      'Fuzzy matching으로 유사한 엔티티 연결',
+      '🎯 LLM으로 질문에서 엔티티(Person, Company, Product 등) 추출',
+      '📋 구조화된 JSON 출력을 위한 프롬프트 설계',
+      '🔗 엔티티 정규화로 KG 노드와 매칭',
+      '🔍 Fuzzy matching으로 유사한 엔티티 연결',
     ],
     practiceGoal: 'LLM 기반 엔티티 추출 및 정규화 구현',
     codeExample: `from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import json
 
-# 엔티티 추출 프롬프트
+# 📌 Step 1: 엔티티 추출 프롬프트 정의
 entity_prompt = ChatPromptTemplate.from_messages([
     ("system", """텍스트에서 엔티티를 추출하세요.
-유형: Person, Company, Product, Technology, Location
+유형: Person, Company, Product, Technology
 JSON 형식: {{"entities": [{{"name": "...", "type": "..."}}]}}"""),
     ("human", "{question}")
 ])
 
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
+# 📌 Step 2: 엔티티 추출 함수
 def extract_entities(question: str) -> list:
     """질문에서 엔티티 추출"""
     chain = entity_prompt | llm
     result = chain.invoke({"question": question})
     return json.loads(result.content)["entities"]
 
-# 테스트
+# 📌 Step 3: Knowledge Graph 매칭
+KG_ENTITIES = {
+    "Tesla": ["테슬라", "TESLA", "테슬라모터스"],
+    "Elon Musk": ["일론 머스크", "일론머스크", "머스크"]
+}
+
+def normalize_entity(extracted_name: str) -> str:
+    """추출 엔티티를 KG 노드와 매칭"""
+    for kg_name, aliases in KG_ENTITIES.items():
+        if any(extracted_name in alias for alias in aliases):
+            return kg_name
+    return extracted_name  # 매칭 실패 시 원본 반환
+
+# 📌 Step 4: 실행 및 정규화
 question = "테슬라의 일론 머스크가 새로운 AI 칩을 발표했다"
 entities = extract_entities(question)
-print(entities)
-# [{"name": "테슬라", "type": "Company"},
-#  {"name": "일론 머스크", "type": "Person"}, ...]`,
+normalized = [normalize_entity(e["name"]) for e in entities]
+print(f"추출: {entities}")
+print(f"정규화: {normalized}")
+# 추출: [{"name": "테슬라", "type": "Company"}, ...]
+# 정규화: ["Tesla", "Elon Musk", "AI Chip"]`,
   }
 )
 
@@ -349,6 +392,37 @@ const task5 = createCodeTask(
   50,
   {
     introduction: `
+## 왜 배우는가?
+
+### 문제 상황
+엔티티를 추출했지만 ("삼성전자"), 이것만으로는 질문에 답할 수 없습니다.
+**그래프에서 관련 정보를 가져와** LLM에게 전달해야 합니다.
+
+일반 RAG: "삼성전자" 텍스트만 검색
+GraphRAG: "삼성전자의 COMPETES_WITH 관계, SUPPLIES_TO 관계..." 모두 수집
+
+---
+
+## 비유: 인맥 조사
+
+\`\`\`
+질문: "김철수가 누구와 일하나요?"
+
+단순 검색 (벡터):
+  → "김철수" 언급된 문서들 검색
+
+그래프 탐색:
+  → 김철수 -[WORKS_AT]-> A회사
+  → 김철수 -[MANAGES]-> 이영희, 박민수
+  → 김철수 -[REPORTS_TO]-> 최부장
+
+  → "김철수는 A회사에서 이영희와 박민수를 관리하며, 최부장에게 보고합니다"
+\`\`\`
+
+GraphRAG = 인맥의 **구조**를 파악하여 맥락 제공
+
+---
+
 ## 그래프 컨텍스트 생성
 
 추출된 엔티티로부터 Knowledge Graph를 탐색하여 컨텍스트를 생성합니다.
@@ -438,44 +512,51 @@ def format_graph_context(graph_data: list) -> str:
 \`\`\`
 `,
     keyPoints: [
-      '1-hop 이웃 탐색으로 직접 연결된 정보 수집',
-      '멀티홉 탐색으로 간접 관계까지 파악',
-      'LLM이 이해하기 쉬운 텍스트 포맷으로 변환',
-      'LIMIT으로 컨텍스트 크기 제한',
+      '🔗 1-hop 이웃 탐색으로 직접 연결된 정보 수집',
+      '🕸️ 멀티홉 탐색으로 간접 관계까지 파악',
+      '📝 LLM이 이해하기 쉬운 텍스트 포맷으로 변환',
+      '⚡ LIMIT으로 컨텍스트 크기 제한',
     ],
     practiceGoal: 'Neo4j에서 엔티티 기반 그래프 컨텍스트 생성',
     codeExample: `from neo4j import GraphDatabase
 
-def get_graph_context(entity_name: str, uri: str, auth: tuple) -> str:
-    """엔티티의 관계 정보를 컨텍스트로 변환"""
-    driver = GraphDatabase.driver(uri, auth=auth)
+# 📌 Step 1: Neo4j 연결
+driver = GraphDatabase.driver(
+    "bolt://localhost:7687",
+    auth=("neo4j", "password")
+)
 
+# 📌 Step 2: 그래프 탐색 쿼리
+def get_graph_context(entity_name: str) -> str:
+    """엔티티의 1-hop 이웃 정보 수집"""
     query = '''
     MATCH (e {name: $name})-[r]-(neighbor)
-    RETURN e.name as entity,
-           type(r) as relation,
+    RETURN type(r) as relation,
            neighbor.name as neighbor_name
-    LIMIT 15
+    LIMIT 10
     '''
 
     with driver.session() as session:
         results = session.run(query, name=entity_name)
         context = []
         for record in results:
+            # 📌 Step 3: LLM 친화적 포맷으로 변환
             context.append(
-                f"{record['entity']} -[{record['relation']}]-> {record['neighbor_name']}"
+                f"{entity_name} -[{record['relation']}]-> {record['neighbor_name']}"
             )
 
-    driver.close()
     return "\\n".join(context)
 
-# 테스트
-context = get_graph_context(
-    "삼성전자",
-    "bolt://localhost:7687",
-    ("neo4j", "password")
-)
-print(context)`,
+# 📌 Step 4: 실행 및 컨텍스트 생성
+context = get_graph_context("삼성전자")
+print("=== Graph Context ===")
+print(context)
+# 출력 예시:
+# 삼성전자 -[COMPETES_WITH]-> SK하이닉스
+# 삼성전자 -[SUPPLIES_TO]-> Apple
+# 삼성전자 -[HAS_CEO]-> 이재용
+
+driver.close()`,
   }
 )
 

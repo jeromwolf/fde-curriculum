@@ -740,6 +740,21 @@ RETURN averageClusteringCoefficient,
 
 const communityPracticeInstructions = `# 커뮤니티 탐지 실습
 
+## 🎯 왜 배우는가?
+
+### 문제 상황
+대규모 네트워크에서 "어떤 그룹들이 존재하는가?"를 알기 어렵습니다.
+- 수천 개의 연결 속에서 숨겨진 패턴 발견 불가
+- 부서/팀 구분이 실제 협업 패턴과 다를 수 있음
+- 학제 간 연구 그룹을 자동으로 찾고 싶음
+
+### 해결책: 커뮤니티 탐지
+> 🏘️ **비유**: 아파트 단지 찾기
+> - 같은 단지 안에서는 왕래가 많음 (내부 연결 밀집)
+> - 단지 간에는 왕래가 적음 (외부 연결 희소)
+> - **Louvain**: 단지를 자동으로 찾아줌
+> - **Label Propagation**: 이웃을 보고 "나도 같은 단지" 결정
+
 ## 목표
 다양한 커뮤니티 탐지 알고리즘을 적용하고 결과를 비교합니다.
 
@@ -814,7 +829,7 @@ const communityPracticeStarterCode = `// =======================================
 // 커뮤니티 탐지 실습
 // ============================================
 
-// 그래프 프로젝션 생성
+// 📌 Step 1: 그래프 프로젝션 생성
 CALL gds.graph.project(
   'researchGraph',
   'Researcher',
@@ -826,30 +841,24 @@ CALL gds.graph.project(
   }
 )
 
-
-// 과제 1: Louvain 알고리즘
+// 📌 Step 2: Louvain 알고리즘 - 커뮤니티 자동 발견
 // TODO: Louvain 실행 및 커뮤니티 확인
 
 
-
-// 과제 2: Label Propagation
+// 📌 Step 3: Label Propagation - 빠른 커뮤니티 탐지
 // TODO: LPA 실행 및 Louvain과 비교
 
 
-
-// 과제 3: WCC
+// 📌 Step 4: WCC - 연결 컴포넌트 확인
 // TODO: 연결 컴포넌트 분석
 
 
-
-// 과제 4: Triangle Count
+// 📌 Step 5: Triangle Count - 밀집도 측정
 // TODO: 삼각형 수 계산 및 밀집 그룹 탐지
 
 
-
-// 과제 5: 종합 분석
-// TODO: 학제 간 브릿지 연구자 찾기
-// 힌트: Betweenness + Community 결합
+// 📌 Step 6: 브릿지 분석 - 학제 간 연구자
+// TODO: Betweenness + Community 결합하여 브릿지 찾기
 `
 
 const communityPracticeSolutionCode = `// ============================================
@@ -1173,9 +1182,9 @@ export const day2Community: Day = {
       '커뮤니티 탐지 실습',
       40,
       [
-        '다양한 알고리즘 실행',
-        '결과 비교',
-        '브릿지 노드 식별'
+        '🔄 다양한 알고리즘 실행',
+        '📊 결과 비교',
+        '🌉 브릿지 노드 식별'
       ],
       communityPracticeInstructions,
       communityPracticeStarterCode,

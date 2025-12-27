@@ -76,6 +76,20 @@ def normalize_record(record, source):
       introduction: `
 # CSV와 API 데이터 수집
 
+## 🎯 왜 다양한 소스에서 수집하는가?
+
+### 문제 상황
+기업 정보가 여러 곳에 흩어져 있습니다.
+- 내부 DB: 국내 기업 (한글)
+- REST API: 글로벌 기업 (영문)
+- Wikidata: 공개 지식 그래프
+
+### 해결책
+> 🌊 **비유**: 데이터 수집은 **댐 건설**입니다.
+>
+> 여러 강(소스)의 물(데이터)을 하나의 저수지(KG)로 모으기
+> CSV(파일 강) + API(실시간 강) + Wikidata(공개 강)
+
 ## CSV 처리
 
 \`\`\`python
@@ -152,13 +166,27 @@ def fetch_wikidata_companies(country_qid="Q884"):
     return companies
 \`\`\`
       `,
-      keyPoints: ['CSV를 pandas로 처리', 'REST API로 데이터 수집', 'Wikidata SPARQL 쿼리'],
+      keyPoints: ['📄 CSV를 pandas로 처리', '🌐 REST API로 데이터 수집', '🔍 Wikidata SPARQL 쿼리'],
       practiceGoal: '다양한 소스에서 데이터를 수집할 수 있다',
     }),
 
     createCodeTask('w4d4-data-fusion', '데이터 통합과 병합', 40, {
       introduction: `
 # 데이터 통합과 병합
+
+## 🎯 왜 데이터 통합 파이프라인이 필요한가?
+
+### 문제 상황
+수집한 데이터를 그냥 합치면?
+- "삼성전자" + "Samsung" = 2개 회사?
+- 속성 충돌 (직원수 270k vs 267k)
+- 중복 증가
+
+### 해결책
+> 🏭 **비유**: 데이터 통합은 **재활용 공장**입니다.
+>
+> 1) 분류(Indexing) → 2) 유사도 측정(Comparison)
+> → 3) 병합(Merging) → 깨끗한 데이터!
 
 ## 전체 파이프라인
 
@@ -270,7 +298,7 @@ loaded = builder.load_to_neo4j()
 print(f"Neo4j에 로드: {loaded}개 회사")
 \`\`\`
       `,
-      keyPoints: ['KGBuilder 클래스로 파이프라인 캡슐화', 'recordlinkage로 중복 제거', 'MERGE로 Neo4j 업서트'],
+      keyPoints: ['🏗️ KGBuilder 클래스로 파이프라인 캡슐화', '🔍 recordlinkage로 중복 제거', '⬆️ MERGE로 Neo4j 업서트'],
       practiceGoal: '다중 소스 데이터를 통합하여 KG로 로드할 수 있다',
     }),
 
@@ -318,6 +346,20 @@ CREATE (c)-[:SOURCED_FROM {
     createCodeTask('w4d4-incremental-update', '증분 업데이트 구현', 35, {
       introduction: `
 # 증분 업데이트
+
+## 🎯 왜 증분 업데이트가 필요한가?
+
+### 문제 상황
+매일 전체 데이터를 다시 로드하면?
+- 시간 낭비 (몇 시간 소요)
+- 리소스 낭비 (CPU, 메모리)
+- 변경 이력 손실
+
+### 해결책
+> ⚙️ **비유**: 증분 업데이트는 **패치**입니다.
+>
+> 전체 재설치(Full Load) vs 업데이트(Incremental)
+> 변경된 부분만 추가/수정/삭제!
 
 ## 변경 감지
 
@@ -375,7 +417,7 @@ CREATE (c)-[:HAS_HISTORY]->(h)
 SET c.employees = $new_employees
 \`\`\`
       `,
-      keyPoints: ['변경 감지 로직', '증분 CRUD 쿼리', '히스토리 유지'],
+      keyPoints: ['🔍 변경 감지 로직', '⚡ 증분 CRUD 쿼리', '📜 히스토리 유지'],
       practiceGoal: '증분 업데이트 파이프라인을 구현할 수 있다',
     }),
 

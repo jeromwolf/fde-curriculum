@@ -263,14 +263,80 @@ rag_chain = prompt | reliable_llm | StrOutputParser()
     // ========================================
     createCodeTask('w5d4-production-rag-chain', '프로덕션급 RAG 체인 구축', 50, {
       introduction: `
-## 학습 목표
-- 프로덕션 환경에서 사용할 수 있는 RAG 체인을 구축한다
-- 에러 처리, 재시도, 폴백을 구현한다
-- 메타데이터와 소스 추적을 구현한다
+## 왜 배우는가?
+
+**문제**: LangChain 튜토리얼을 보면 "chain = prompt | llm"처럼 5줄로 RAG가 끝나는데, 프로덕션에 올리면 폭발합니다.
+- API 에러 나면 시스템 전체 다운
+- 느린 응답 (10초+)
+- 소스 추적 불가능
+- 비용 폭탄
+
+**해결**: 재시도, 폴백, 캐싱, 소스 추적이 있는 프로덕션급 체인을 구축합니다.
 
 ---
 
-## 설치
+## 비유: RAG 체인 = 자동차 공장 조립 라인
+
+\`\`\`
+튜토리얼 RAG = 수제 자동차
+- 직접 조립 (느림)
+- 고장 나면 멈춤
+- 어디서 고장났는지 모름
+
+프로덕션 RAG = 현대 자동차 공장
+- 자동화 조립 라인 (빠름)
+- 고장 나면 백업 라인으로 전환
+- 각 단계 모니터링
+- 품질 검사 (소스 추적)
+\`\`\`
+
+---
+
+## 핵심 구현 (간소화)
+
+\`\`\`python
+# 📌 Step 1: 재시도 설정
+from langchain_openai import ChatOpenAI
+
+llm = ChatOpenAI(model="gpt-4o-mini").with_retry(
+    stop_after_attempt=3,  # 3번까지 재시도
+    wait_exponential_jitter=True  # 지수 백오프
+)
+
+# 📌 Step 2: RAG 체인 (소스 추적 포함)
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough
+
+chain = RunnableParallel({
+    "docs": retriever,  # 문서 검색
+    "question": RunnablePassthrough()
+}) | RunnableParallel({
+    "answer": (
+        lambda x: {"context": format_docs(x["docs"]), "question": x["question"]}
+        | prompt
+        | llm
+    ),
+    "sources": lambda x: [d.metadata for d in x["docs"]]  # ✅ 소스 추적
+})
+
+result = chain.invoke("RAG란?")
+print(f"Answer: {result['answer']}")
+print(f"Sources: {result['sources']}")
+
+# 📌 Step 3: 스트리밍
+for chunk in chain.stream("RAG란?"):
+    if "answer" in chunk:
+        print(chunk["answer"], end="", flush=True)
+
+# 📌 Step 4: 배치 처리
+questions = ["RAG란?", "벡터 DB란?", "LangChain이란?"]
+results = chain.batch(questions)
+\`\`\`
+
+---
+
+## 전체 코드 (상세)
+
+### 설치
 
 \`\`\`bash
 pip install langchain langchain-openai langchain-chroma chromadb
@@ -556,9 +622,9 @@ for q, r in zip(questions, responses):
 \`\`\`
       `,
       keyPoints: [
-        'with_retry()로 재시도 로직 구현',
-        'RunnableParallel로 소스와 컨텍스트 동시 추출',
-        'batch()로 배치 처리, stream()으로 스트리밍',
+        '🔁 with_retry()로 재시도 로직 구현',
+        '⚡ RunnableParallel로 소스와 컨텍스트 동시 추출',
+        '📦 batch()로 배치 처리, stream()으로 스트리밍',
       ],
       practiceGoal: '프로덕션급 RAG 체인을 구축할 수 있다',
     }),
@@ -568,28 +634,86 @@ for q, r in zip(questions, responses):
     // ========================================
     createCodeTask('w5d4-conversational-rag', '대화형 RAG (History-aware RAG)', 45, {
       introduction: `
-## 학습 목표
-- 대화 히스토리를 유지하는 RAG를 구현한다
-- 질문 재작성(Contextualization)을 이해한다
-- 메모리 관리 전략을 학습한다
+## 왜 배우는가?
+
+**문제**: 일반 RAG는 매 질문을 독립적으로 처리해서, "그것", "이전에" 같은 대명사를 이해 못 합니다.
+- Q1: "RAG란?" → A1: "RAG는..."
+- Q2: "그것의 장점은?" → A2: ??? ("그것"이 뭐지?)
+
+**해결**: 대화 히스토리를 유지하고 질문을 재작성하면 자연스러운 대화가 가능합니다.
 
 ---
 
-## 대화형 RAG의 필요성
+## 비유: 대화형 RAG = 기억하는 챗봇
 
 \`\`\`
-일반 RAG:
-  Q1: "RAG란?" → A1: "RAG는 검색 증강 생성입니다"
-  Q2: "그것의 장점은?" → A2: ??? (무엇의 장점?)
+일반 RAG = 금붕어 (3초 기억)
+- Q: "삼성전자 주가는?"
+- A: "10만원입니다"
+- Q: "그 회사 실적은?"
+- A: ??? ("그 회사"가 뭐지?)
 
-대화형 RAG:
-  Q1: "RAG란?" → A1: "RAG는 검색 증강 생성입니다"
-  Q2: "그것의 장점은?" → [질문 재작성: "RAG의 장점은?"] → A2: "RAG의 장점은..."
+대화형 RAG = 인간 (문맥 기억)
+- Q: "삼성전자 주가는?"
+- A: "10만원입니다"
+- Q: "그 회사 실적은?"
+- → [질문 재작성: "삼성전자 실적은?"]
+- A: "영업이익 15조원입니다"
 \`\`\`
 
 ---
 
-## 구현
+## 핵심 구현 (간소화)
+
+\`\`\`python
+# 📌 Step 1: 질문 재작성 프롬프트
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+
+contextualize_prompt = ChatPromptTemplate.from_messages([
+    ("system", "대화 히스토리를 보고 질문을 독립적으로 재작성하세요."),
+    MessagesPlaceholder(variable_name="history"),
+    ("human", "{question}")
+])
+
+# 📌 Step 2: 히스토리 관리
+class ConversationalRAG:
+    def __init__(self):
+        self.history = []  # 대화 히스토리
+
+    def query(self, question: str) -> str:
+        # 1️⃣ 질문 재작성 (히스토리 있으면)
+        if self.history:
+            contextualized_q = (contextualize_prompt | llm).invoke({
+                "history": self.history,
+                "question": question
+            })
+        else:
+            contextualized_q = question
+
+        # 2️⃣ 검색 & 답변
+        docs = retriever.invoke(contextualized_q)
+        answer = (qa_prompt | llm).invoke({
+            "context": format_docs(docs),
+            "question": question
+        })
+
+        # 3️⃣ 히스토리 업데이트
+        self.history.append(HumanMessage(content=question))
+        self.history.append(AIMessage(content=answer))
+
+        return answer
+
+# 📌 Step 3: 사용
+rag = ConversationalRAG()
+print(rag.query("RAG란?"))
+print(rag.query("그것의 장점은?"))  # ✅ "RAG의 장점은?"으로 재작성됨!
+\`\`\`
+
+---
+
+## 전체 코드 (상세)
+
+### 구현
 
 \`\`\`python
 from typing import Optional
@@ -819,9 +943,9 @@ print(f"Session B history: {len(rag_b.get_history())} messages")
 \`\`\`
       `,
       keyPoints: [
-        '질문 재작성으로 대명사 해결',
-        'MessagesPlaceholder로 히스토리 관리',
-        'SessionManager로 멀티 유저 지원',
+        '💬 질문 재작성으로 대명사 해결',
+        '📝 MessagesPlaceholder로 히스토리 관리',
+        '👥 SessionManager로 멀티 유저 지원',
       ],
       practiceGoal: '대화형 RAG를 구현할 수 있다',
     }),

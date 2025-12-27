@@ -361,12 +361,27 @@ const task3JaccardPractice = createCodeTask(
   'Jaccard Similarity 실습',
   25,
   [
-    'GDS에서 Jaccard Similarity 실행',
-    '유사도 임계값 설정 및 필터링',
-    '결과를 새로운 관계로 저장'
+    '🔍 GDS에서 Jaccard Similarity 실행',
+    '📏 유사도 임계값 설정 및 필터링',
+    '💾 결과를 새로운 관계로 저장'
   ],
   `
 # Jaccard Similarity 실습
+
+## 🎯 왜 배우는가?
+
+### 문제 상황
+온라인 서점에서 "이 책을 산 고객은 어떤 책을 더 좋아할까?" 추천이 어렵습니다.
+- 단순히 인기 책만 추천하면 개인화가 안 됨
+- 구매 이력만으로 취향 유사도를 측정해야 함
+- 수천 명의 고객 쌍을 비교하기 어려움
+
+### 해결책: Jaccard Similarity
+> 📚 **비유**: 책장 비교하기
+> - 철수 책장: {해리포터, 반지의 제왕, 나니아}
+> - 영희 책장: {해리포터, 반지의 제왕, 호빗}
+> - 공통 책 2권 ÷ 전체 책 4권 = 50% 유사!
+> - Jaccard = |교집합| / |합집합|
 
 온라인 서점 데이터를 사용하여 Jaccard Similarity를 실습합니다.
 고객 간의 구매 패턴 유사도를 분석하고 추천에 활용합니다.
@@ -386,44 +401,41 @@ const task3JaccardPractice = createCodeTask(
   `
 // 실습 시작 코드
 
-// 1. 샘플 데이터 생성 (이미 생성됨)
-// Customer, Book 노드와 PURCHASED 관계
+// 📌 Step 1: 샘플 데이터 확인
+// Customer, Book 노드와 PURCHASED 관계 (이미 생성됨)
 
-// 2. 그래프 프로젝션 생성
-// TODO: gds.graph.project 사용
+// 📌 Step 2: 그래프 프로젝션 생성
 CALL gds.graph.project(
   'customer-book',
-  // 노드 라벨 배열
+  // TODO: 노드 라벨 배열 ['Customer', 'Book']
   ___,
-  // 관계 타입 설정
+  // TODO: 관계 타입 설정
   ___
 );
 
-// 3. Jaccard Similarity 스트림 모드 실행
-// TODO: 유사도 상위 5개 출력
+// 📌 Step 3: Jaccard Similarity 계산
 CALL gds.nodeSimilarity.stream('___', {
-  similarityMetric: '___',
-  topK: ___
+  similarityMetric: '___',  // JACCARD
+  topK: ___  // 5
 })
 YIELD node1, node2, similarity
 RETURN
-  ___ AS customer1,
+  ___ AS customer1,  // gds.util.asNode(node1).name
   ___ AS customer2,
   round(similarity, 3) AS jaccard
 ORDER BY jaccard DESC;
 
-// 4. 유사도 0.3 이상 관계만 그래프에 쓰기
-// TODO: gds.nodeSimilarity.write 사용
+// 📌 Step 4: 유사도 0.3 이상만 저장
 CALL gds.nodeSimilarity.write('___', {
   similarityMetric: 'JACCARD',
-  writeRelationshipType: '___',
-  writeProperty: '___',
-  similarityCutoff: ___
+  writeRelationshipType: '___',  // SIMILAR_TO
+  writeProperty: '___',  // score
+  similarityCutoff: ___  // 0.3
 })
 YIELD nodesCompared, relationshipsWritten
 RETURN nodesCompared, relationshipsWritten;
 
-// 5. 저장된 SIMILAR_TO 관계 확인
+// 📌 Step 5: 저장된 관계 확인
 MATCH (c1:Customer)-[s:SIMILAR_TO]->(c2:Customer)
 RETURN c1.name, c2.name, s.score
 ORDER BY s.score DESC
@@ -887,12 +899,27 @@ const task6CosinePractice = createCodeTask(
   'Cosine Similarity 실습: 평점 기반 추천',
   30,
   [
-    '가중치 그래프 프로젝션 생성',
-    'Cosine Similarity 계산',
-    '평점 기반 추천 시스템 구현'
+    '⚖️ 가중치 그래프 프로젝션 생성',
+    '📐 Cosine Similarity 계산',
+    '🎵 평점 기반 추천 시스템 구현'
   ],
   `
 # Cosine Similarity 실습: 평점 기반 추천
+
+## 🎯 왜 배우는가?
+
+### 문제 상황
+음악 스트리밍에서 "얼마나 자주 들었는가"를 고려한 추천이 필요합니다.
+- Jaccard는 "들었다/안 들었다"만 봄 (이진 데이터)
+- 재생 횟수, 평점 같은 가중치를 반영해야 진짜 취향 파악
+- 많이 들은 곡의 유사도를 더 높게 평가해야 함
+
+### 해결책: Cosine Similarity
+> 🎧 **비유**: 음악 취향 벡터 비교
+> - 철수: [록 5회, 재즈 10회, 클래식 2회]
+> - 영희: [록 10회, 재즈 20회, 클래식 4회]
+> - 같은 방향(취향)이지만 크기(재생 횟수)만 다름
+> - Cosine은 "방향"만 보므로 유사도 높음!
 
 음악 스트리밍 서비스 데이터를 사용하여
 사용자 간 취향 유사도를 분석하고 추천 시스템을 구현합니다.

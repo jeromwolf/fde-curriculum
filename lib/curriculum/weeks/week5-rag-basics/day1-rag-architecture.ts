@@ -662,9 +662,32 @@ class RAGObserver:
     // ============================================
     createCodeTask('w5d1-rag-implementation', '프로덕션급 RAG 파이프라인 구현', 60, {
       introduction: `
-## 실습 목표
+## 왜 배우는가?
 
-단순한 예제가 아닌, 프로덕션에서 사용할 수 있는 수준의 RAG 파이프라인을 구현합니다.
+**문제**: RAG를 처음 구현하면 흔히 "작동은 하는데... 프로덕션에서 쓸 수 있나?" 하는 의문이 생깁니다.
+- 에러가 나면 시스템이 멈춘다
+- 느린 응답 시간 (10초+)
+- 비용 관리 불가능
+- 디버깅이 어렵다
+
+**해결**: 프로덕션 수준의 RAG는 **안정성, 성능, 관측성**을 모두 갖춰야 합니다.
+
+---
+
+## 비유: RAG 시스템 = 도서관 자동화
+
+\`\`\`
+프로토타입 RAG = 작은 서점
+- 주인이 직접 책 찾아줌 (느림)
+- 책 위치를 기억 (캐싱 없음)
+- 문 닫으면 끝 (에러 처리 없음)
+
+프로덕션 RAG = 대형 도서관
+- 자동화 시스템 (빠름)
+- 캐싱: 자주 찾는 책은 바로 꺼냄
+- 백업: 메인 시스템 고장 시 서브 시스템
+- 로그: 누가 무슨 책을 언제 찾았는지 기록
+\`\`\`
 
 ---
 
@@ -683,7 +706,86 @@ rag_system/
 
 ---
 
-## 1. 설정 (config.py)
+## 핵심 구현 (간소화)
+
+\`\`\`python
+# 📌 Step 1: 설정 관리
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    openai_api_key: str
+    embedding_model: str = "text-embedding-3-small"
+    retrieval_top_k: int = 5
+    llm_model: str = "gpt-4o-mini"
+    cache_ttl_seconds: int = 300
+
+    class Config:
+        env_file = ".env"
+
+# 📌 Step 2: 캐싱이 있는 임베딩 서비스
+class EmbeddingService:
+    def __init__(self):
+        self.client = OpenAI(api_key=Settings().openai_api_key)
+        self._cache = {}
+
+    def embed_query(self, text: str) -> list[float]:
+        cache_key = hashlib.md5(text.encode()).hexdigest()
+        if cache_key in self._cache:
+            return self._cache[cache_key]  # 💰 캐시 히트 = 비용 0
+
+        embedding = self.client.embeddings.create(
+            input=text,
+            model="text-embedding-3-small"
+        ).data[0].embedding
+
+        self._cache[cache_key] = embedding
+        return embedding
+
+# 📌 Step 3: 재시도가 있는 검색 서비스
+class RetrievalService:
+    def search(self, query: str, top_k: int = 5) -> list[Document]:
+        try:
+            query_embedding = self.embedding_service.embed_query(query)
+            results = self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=top_k
+            )
+            return self._format_results(results)
+        except Exception as e:
+            logger.error(f"Search failed: {e}")
+            return []  # 🛡️ 에러 시 빈 리스트 반환 (시스템 중단 방지)
+
+# 📌 Step 4: RAG 파이프라인 오케스트레이터
+class RAGPipeline:
+    def query(self, question: str) -> RAGResponse:
+        start_time = time.time()
+
+        # 1️⃣ 검색
+        documents = self.retrieval.search(question)
+        if not documents:
+            return RAGResponse(
+                answer="관련 문서를 찾을 수 없습니다.",
+                sources=[],
+                metrics={"retrieval_time_ms": 0}
+            )
+
+        # 2️⃣ 답변 생성
+        answer = self.generation.generate(question, documents)
+
+        # 3️⃣ 메트릭 수집
+        total_time = time.time() - start_time
+        return RAGResponse(
+            answer=answer,
+            sources=[self._extract_source(d) for d in documents],
+            metrics={"total_time_ms": total_time * 1000}
+        )
+\`\`\`
+
+---
+
+## 전체 코드 (상세)
+
+### 1. 설정 (config.py)
 
 \`\`\`python
 from pydantic_settings import BaseSettings
@@ -1147,10 +1249,10 @@ if __name__ == "__main__":
 \`\`\`
       `,
       keyPoints: [
-        '설정, 임베딩, 검색, 생성을 분리된 서비스로 구현',
-        '임베딩/검색 결과 캐싱으로 비용과 지연시간 절감',
-        '하이브리드 검색 (벡터 + 키워드) 구현',
-        '메트릭 수집 기반 성능 모니터링 내장',
+        '🏗️ 설정, 임베딩, 검색, 생성을 분리된 서비스로 구현',
+        '💰 임베딩/검색 결과 캐싱으로 비용과 지연시간 절감',
+        '🔍 하이브리드 검색 (벡터 + 키워드) 구현',
+        '📊 메트릭 수집 기반 성능 모니터링 내장',
       ],
       practiceGoal: '프로덕션에서 사용 가능한 수준의 RAG 파이프라인을 직접 구현한다',
     }),

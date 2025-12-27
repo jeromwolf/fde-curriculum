@@ -643,6 +643,27 @@ CREATE (c)-[:LIVES_IN {since: date('2020-01-01')}]->(city)
           'Cypher로 스키마를 구현하고 검증한다'
         ],
         instructions: `
+## 🎯 왜 Object Type 설계를 배우는가?
+
+### 문제 상황
+그래프 데이터베이스 설계 시 흔히 발생하는 혼란:
+- 🤔 "이것을 속성으로 해야 할까, 관계로 해야 할까?"
+- 😵 "라벨을 어떻게 정해야 깔끔할까?"
+- 🐛 "스키마가 복잡해져서 쿼리가 어렵다..."
+- 📦 "나중에 확장하기 어려운 구조가 되었다"
+
+잘못된 스키마는 쿼리 성능 저하와 유지보수 악몽으로 이어집니다.
+
+### 해결책: Palantir Object Type 철학
+> 🏗️ **비유**: 건축 설계도
+>
+> 집을 짓기 전 설계도를 그리듯이,
+> 그래프 데이터를 넣기 전 Object Type(스키마)을 명확히 정의합니다.
+>
+> Object Type = 비즈니스 엔티티의 청사진
+
+---
+
 ## 실습: E-커머스 도메인 설계
 
 ### 시나리오
@@ -697,7 +718,7 @@ CREATE (c)-[:LIVES_IN {since: date('2020-01-01')}]->(city)
 3. 평점 4점 이상의 상품과 리뷰어 목록
         `,
         starterCode: `// ========================================
-// 과제 1: Object Type 정의 (주석으로 작성)
+// 📌 Step 1: Object Type 정의 (주석으로 작성)
 // ========================================
 
 /*
@@ -721,18 +742,23 @@ Links:
 
 
 // ========================================
-// 과제 2: Cypher 스키마 구현
+// 📌 Step 2: 제약조건 생성
 // ========================================
 
-// 1. 제약조건 생성
 // CREATE CONSTRAINT customer_id FOR (c:Customer) REQUIRE c.customerId IS UNIQUE;
 // ... 추가 제약조건
 
-// 2. 인덱스 생성
+// ========================================
+// 📌 Step 3: 인덱스 생성
+// ========================================
+
 // CREATE INDEX product_name FOR (p:Product) ON (p.name);
 // ... 추가 인덱스
 
-// 3. 샘플 데이터 생성
+// ========================================
+// 📌 Step 4: 샘플 데이터 생성
+// ========================================
+
 // 카테고리
 // CREATE (electronics:Category {...})
 // CREATE (clothing:Category {...})
@@ -1084,10 +1110,10 @@ RETURN
 ORDER BY avgRating DESC
 `,
         hints: [
-          'Object Type 정의 시 각 속성의 타입과 제약조건을 명확히 하세요',
-          'UNIQUE 제약조건은 자동으로 인덱스를 생성합니다',
-          '관계 속성(예: quantity)은 -[:CONTAINS {quantity: 1}]-> 형식으로',
-          'OPTIONAL MATCH는 리뷰가 없는 상품도 결과에 포함시킵니다'
+          '💡 Object Type 정의 시 각 속성의 타입과 제약조건을 명확히 하세요',
+          '💡 UNIQUE 제약조건은 자동으로 인덱스를 생성합니다',
+          '💡 관계 속성(예: quantity)은 -[:CONTAINS {quantity: 1}]-> 형식으로',
+          '💡 OPTIONAL MATCH는 리뷰가 없는 상품도 결과에 포함시킵니다'
         ]
       }
     },
@@ -1490,10 +1516,10 @@ RETURN count(o) as ordersWithStatusProperty,
   collect(DISTINCT o.status) as statusValues;
 `,
         hints: [
-          'SET은 NULL 속성에만 적용하려면 WHERE ... IS NULL 사용',
-          'COALESCE(a, b)는 a가 NULL이면 b를 반환',
-          '마이그레이션은 항상 검증 전에 실제 삭제하지 마세요',
-          '롤백 스크립트는 마이그레이션 전에 미리 준비'
+          '💡 SET은 NULL 속성에만 적용하려면 WHERE ... IS NULL 사용',
+          '💡 COALESCE(a, b)는 a가 NULL이면 b를 반환',
+          '💡 마이그레이션은 항상 검증 전에 실제 삭제하지 마세요',
+          '💡 롤백 스크립트는 마이그레이션 전에 미리 준비'
         ]
       }
     },

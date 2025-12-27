@@ -777,6 +777,21 @@ ORDER BY p.pagerank DESC
 
 const centralityPracticeInstructions = `# 중심성 알고리즘 실습
 
+## 🎯 왜 배우는가?
+
+### 문제 상황
+회사 조직에서 "누가 진짜 핵심 인물인가?"를 파악하기 어렵습니다.
+- 직급으로는 매니저지만, 실제 영향력은 낮을 수 있음
+- 네트워크 허브 역할을 하는 사람이 따로 있을 수 있음
+- 조직도만으로는 실제 협업 구조를 알 수 없음
+
+### 해결책: 중심성 알고리즘
+> 🍕 **비유**: 피자 파티 초대 전략
+> - **Degree**: 친구가 가장 많은 사람 (인기도)
+> - **PageRank**: 인기있는 사람의 친구 (영향력)
+> - **Betweenness**: 다른 그룹을 연결하는 사람 (브로커)
+> - **Closeness**: 모두에게 빨리 전달 가능한 사람 (전파력)
+
 ## 목표
 GDS 라이브러리를 사용하여 소셜 네트워크에서 핵심 인물을 찾습니다.
 
@@ -861,34 +876,27 @@ const centralityPracticeStarterCode = `// ======================================
 // 중심성 알고리즘 실습
 // ============================================
 
-// 과제 1: 그래프 프로젝션 생성
-// TODO: Employee 노드와 모든 관계를 포함하는 프로젝션 생성
-// 힌트: UNDIRECTED orientation 사용
-
+// 📌 Step 1: 그래프 프로젝션 생성
 CALL gds.graph.project(
   'orgGraph',
   // TODO: 노드 레이블
   ,
-  // TODO: 관계 설정
+  // TODO: 관계 설정 (UNDIRECTED로)
 )
 
-
-// 과제 2: Degree Centrality
-// TODO: 가장 많은 연결을 가진 상위 5명 찾기
-
+// 📌 Step 2: Degree Centrality - 가장 많은 연결
+// TODO: 상위 5명 찾기
 
 
-// 과제 3: PageRank
+// 📌 Step 3: PageRank - 영향력 분석
 // TODO: 영향력 있는 상위 5명 찾기
 
 
-
-// 과제 4: Betweenness Centrality
+// 📌 Step 4: Betweenness - 브로커 역할
 // TODO: 브로커 역할의 상위 5명 찾기
 
 
-
-// 과제 5: 종합 분석
+// 📌 Step 5: 종합 분석 - 모든 지표 비교
 // TODO: 모든 중심성 지표를 노드에 저장하고 비교
 `
 
@@ -1194,9 +1202,9 @@ export const day1Centrality: Day = {
       '중심성 알고리즘 실습',
       40,
       [
-        'GDS 그래프 프로젝션 생성',
-        '4가지 중심성 알고리즘 실행',
-        '결과 비교 분석'
+        '📊 GDS 그래프 프로젝션 생성',
+        '🎯 4가지 중심성 알고리즘 실행',
+        '🔍 결과 비교 분석'
       ],
       centralityPracticeInstructions,
       centralityPracticeStarterCode,

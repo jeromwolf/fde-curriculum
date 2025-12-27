@@ -75,6 +75,34 @@ const task2 = createCodeTask(
   50,
   {
     introduction: `
+## 왜 배우는가?
+
+### 문제 상황
+일반 RAG는 문서를 텍스트 청크로만 저장합니다.
+MS GraphRAG는 문서에서 **엔티티와 관계를 자동 추출**하여 Knowledge Graph를 만듭니다.
+
+문서 → 청크 (일반 RAG)
+문서 → 엔티티 + 관계 → Graph (MS GraphRAG)
+
+---
+
+## 비유: 신문 기사 요약
+
+\`\`\`
+기사: "삼성전자 이재용 회장이 NVIDIA 젠슨 황 CEO와 만나 AI 칩 협력을 논의했다."
+
+일반 요약:
+  → "삼성전자와 NVIDIA가 AI 칩 협력"
+
+GraphRAG 추출:
+  엔티티: [삼성전자(Company), 이재용(Person), NVIDIA(Company), 젠슨 황(Person)]
+  관계: [이재용 -WORKS_AT→ 삼성전자, 젠슨 황 -WORKS_AT→ NVIDIA, 삼성전자 -PARTNERS_WITH→ NVIDIA]
+\`\`\`
+
+**구조화된 정보 = 나중에 "이재용이 누구랑 만났나?" 질문 가능**
+
+---
+
 ## 엔티티/관계 추출 파이프라인
 
 MS GraphRAG의 첫 단계는 문서에서 엔티티와 관계를 추출하는 것입니다.
@@ -163,31 +191,41 @@ def process_documents(documents: list, llm) -> dict:
 \`\`\`
 `,
     keyPoints: [
-      'LLM 프롬프트로 엔티티/관계 추출',
-      'JSON 구조화 출력으로 파싱 용이',
-      '청크 단위 처리 후 중복 제거',
-      '엔티티 타입과 관계 타입 정의 중요',
+      '📊 LLM 프롬프트로 엔티티/관계 추출',
+      '📋 JSON 구조화 출력으로 파싱 용이',
+      '🔄 청크 단위 처리 후 중복 제거',
+      '🎯 엔티티 타입과 관계 타입 정의 중요',
     ],
     practiceGoal: '문서에서 엔티티와 관계 자동 추출',
     codeExample: `from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 import json
 
+# 📌 Step 1: 추출 프롬프트 정의
 PROMPT = '''텍스트에서 엔티티와 관계를 추출하세요.
-JSON 형식: {{"entities": [...], "relationships": [...]}}'''
+엔티티 타입: Person, Company, Technology
+관계 타입: COMPETES_WITH, PARTNERS_WITH, WORKS_AT
+JSON: {{"entities": [{{"name": "...", "type": "..."}}],
+       "relationships": [{{"source": "...", "relation": "...", "target": "..."}}]}}'''
 
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-text = "삼성전자와 SK하이닉스는 반도체 시장에서 경쟁한다."
-
+# 📌 Step 2: 프롬프트 체인 생성
 prompt = ChatPromptTemplate.from_messages([
     ("system", PROMPT),
     ("human", "{text}")
 ])
 
+# 📌 Step 3: 텍스트 추출 실행
+text = "삼성전자와 SK하이닉스는 반도체 시장에서 경쟁한다."
 result = (prompt | llm).invoke({"text": text})
+
+# 📌 Step 4: JSON 파싱
 data = json.loads(result.content)
-print(json.dumps(data, indent=2, ensure_ascii=False))`,
+print(json.dumps(data, indent=2, ensure_ascii=False))
+# 출력:
+# {"entities": [{"name": "삼성전자", "type": "Company"}, ...],
+#  "relationships": [{"source": "삼성전자", "relation": "COMPETES_WITH", "target": "SK하이닉스"}]}`,
   }
 )
 

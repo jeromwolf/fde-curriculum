@@ -44,6 +44,16 @@ const task1 = createVideoTask('w8d2-data-sources', '도메인별 데이터 소�
 
 const task2 = createCodeTask('w8d2-collector', '실습: 데이터 수집기 구현', 60, {
   introduction: `
+## 왜 배우는가?
+
+**문제**: 여러 API(네이버 뉴스, GitHub, RSS)에서 데이터를 수집할 때 중복 코드를 어떻게 줄일까?
+
+**비유**: 데이터 수집기 = 전기 플러그 표준
+- 모든 전자기기가 같은 플러그를 씀 → 벽 콘센트 하나로 충분
+- 모든 수집기가 같은 인터페이스를 씀 → 공통 로직(rate limiting, retry) 재사용
+
+---
+
 ## 데이터 수집기 구현
 
 ### 기본 수집기 클래스
@@ -54,10 +64,10 @@ const task2 = createCodeTask('w8d2-collector', '실습: 데이터 수집기 구�
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 import time
-import logging
 
+# 📌 Step 1: 데이터 구조 정의
 @dataclass
 class CollectedItem:
     """수집된 데이터 아이템"""
@@ -67,8 +77,8 @@ class CollectedItem:
     content: str
     url: str
     published_date: datetime
-    metadata: dict = None
 
+# 📌 Step 2: 기본 수집기 클래스 (추상 클래스)
 class BaseCollector(ABC):
     """데이터 수집기 기본 클래스"""
 
@@ -76,7 +86,6 @@ class BaseCollector(ABC):
         self.name = name
         self.rate_limit = rate_limit  # 초당 요청 수
         self.last_request_time = 0
-        self.logger = logging.getLogger(name)
 
     def _rate_limit(self):
         """Rate limiting 적용"""
@@ -91,37 +100,23 @@ class BaseCollector(ABC):
         """데이터 수집 (서브클래스에서 구현)"""
         pass
 
-    def collect_with_retry(
-        self,
-        query: str,
-        limit: int = 100,
-        max_retries: int = 3
-    ) -> List[CollectedItem]:
+    # 📌 Step 3: 재시도 로직
+    def collect_with_retry(self, query: str, limit: int = 100) -> List[CollectedItem]:
         """재시도 로직 포함 수집"""
-        for attempt in range(max_retries):
+        for attempt in range(3):
             try:
                 self._rate_limit()
                 return self.collect(query, limit)
             except Exception as e:
-                self.logger.warning(f"수집 실패 (시도 {attempt + 1}): {e}")
-                if attempt < max_retries - 1:
+                if attempt < 2:
                     time.sleep(2 ** attempt)  # Exponential backoff
         return []
-\`\`\`
 
-### 네이버 뉴스 수집기
-
-\`\`\`python
-# data/collectors/news.py
-
+# 📌 Step 4: 네이버 뉴스 수집기 구현
 import requests
-from datetime import datetime
-from typing import List
-from .base import BaseCollector, CollectedItem
 
 class NaverNewsCollector(BaseCollector):
     """네이버 뉴스 수집기"""
-
     BASE_URL = "https://openapi.naver.com/v1/search/news.json"
 
     def __init__(self, client_id: str, client_secret: str):
@@ -133,130 +128,46 @@ class NaverNewsCollector(BaseCollector):
 
     def collect(self, query: str, limit: int = 100) -> List[CollectedItem]:
         items = []
-        display = min(limit, 100)  # 최대 100개씩
+        params = {"query": query, "display": min(limit, 100), "sort": "date"}
 
-        for start in range(1, limit + 1, display):
-            params = {
-                "query": query,
-                "display": display,
-                "start": start,
-                "sort": "date"
-            }
+        response = requests.get(self.BASE_URL, headers=self.headers, params=params)
+        response.raise_for_status()
+        data = response.json()
 
-            response = requests.get(
-                self.BASE_URL,
-                headers=self.headers,
-                params=params
-            )
-            response.raise_for_status()
-            data = response.json()
-
-            for item in data.get("items", []):
-                items.append(CollectedItem(
-                    id=item.get("link"),
-                    source="naver_news",
-                    title=self._clean_html(item.get("title", "")),
-                    content=self._clean_html(item.get("description", "")),
-                    url=item.get("link", ""),
-                    published_date=self._parse_date(item.get("pubDate")),
-                    metadata={
-                        "originallink": item.get("originallink")
-                    }
-                ))
-
-            if len(data.get("items", [])) < display:
-                break
+        for item in data.get("items", []):
+            items.append(CollectedItem(
+                id=item.get("link"),
+                source="naver_news",
+                title=self._clean_html(item.get("title", "")),
+                content=self._clean_html(item.get("description", "")),
+                url=item.get("link", ""),
+                published_date=datetime.now()
+            ))
 
         return items[:limit]
 
     def _clean_html(self, text: str) -> str:
         """HTML 태그 제거"""
         import re
-        return re.sub(r'<[^>]+>', '', text).replace('&quot;', '"')
-
-    def _parse_date(self, date_str: str) -> datetime:
-        """날짜 파싱"""
-        try:
-            return datetime.strptime(date_str, "%a, %d %b %Y %H:%M:%S %z")
-        except:
-            return datetime.now()
-\`\`\`
-
-### GitHub 수집기
-
-\`\`\`python
-# data/collectors/github.py
-
-import requests
-from datetime import datetime
-from typing import List
-from .base import BaseCollector, CollectedItem
-
-class GitHubCollector(BaseCollector):
-    """GitHub 저장소 수집기"""
-
-    BASE_URL = "https://api.github.com"
-
-    def __init__(self, token: str = None):
-        super().__init__("github", rate_limit=5)
-        self.headers = {"Accept": "application/vnd.github.v3+json"}
-        if token:
-            self.headers["Authorization"] = f"token {token}"
-
-    def collect(self, query: str, limit: int = 100) -> List[CollectedItem]:
-        """저장소 검색"""
-        items = []
-        per_page = min(limit, 100)
-
-        for page in range(1, (limit // per_page) + 2):
-            params = {
-                "q": query,
-                "per_page": per_page,
-                "page": page,
-                "sort": "stars"
-            }
-
-            response = requests.get(
-                f"{self.BASE_URL}/search/repositories",
-                headers=self.headers,
-                params=params
-            )
-            response.raise_for_status()
-            data = response.json()
-
-            for repo in data.get("items", []):
-                items.append(CollectedItem(
-                    id=str(repo.get("id")),
-                    source="github",
-                    title=repo.get("full_name", ""),
-                    content=repo.get("description", "") or "",
-                    url=repo.get("html_url", ""),
-                    published_date=datetime.fromisoformat(
-                        repo.get("created_at", "").replace("Z", "+00:00")
-                    ),
-                    metadata={
-                        "stars": repo.get("stargazers_count"),
-                        "language": repo.get("language"),
-                        "topics": repo.get("topics", []),
-                        "owner": repo.get("owner", {}).get("login")
-                    }
-                ))
-
-            if len(data.get("items", [])) < per_page:
-                break
-
-        return items[:limit]
+        return re.sub(r'<[^>]+>', '', text)
 \`\`\`
 `,
-  keyPoints: ['추상 클래스로 공통 로직 분리', 'Rate limiting 자동 적용', 'Exponential backoff 재시도'],
+  keyPoints: [
+    '🏗️ 추상 클래스로 공통 로직(rate limit, retry) 분리',
+    '⏱️ Rate limiting 자동 적용 - API 제한 준수',
+    '🔄 Exponential backoff 재시도 - 안정성 향상',
+    '🔌 서브클래스는 collect()만 구현 - 재사용성',
+  ],
   practiceGoal: '도메인에 맞는 수집기 구현',
-  codeExample: `# 뉴스 수집 테스트
+  codeExample: `# 📌 Step 5: 수집기 사용
 collector = NaverNewsCollector(
     client_id=os.getenv("NAVER_CLIENT_ID"),
     client_secret=os.getenv("NAVER_CLIENT_SECRET")
 )
+
 items = collector.collect_with_retry("삼성전자", limit=50)
-print(f"수집된 뉴스: {len(items)}개")`,
+print(f"✅ 수집 완료: {len(items)}개")
+print(f"첫 번째 뉴스: {items[0].title}")`,
 })
 
 const task3 = createCodeTask('w8d2-cleaner', '실습: 데이터 정제기 구현', 50, {
@@ -466,6 +377,16 @@ print(f"유효 데이터: {len(valid)}개")`,
 
 const task4 = createCodeTask('w8d2-entity-extraction', '실습: 엔티티 추출', 50, {
   introduction: `
+## 왜 배우는가?
+
+**문제**: 비구조화된 텍스트에서 엔티티(인물, 기관, 장소)와 관계를 어떻게 자동 추출할까?
+
+**비유**: 엔티티 추출 = 형광펜으로 핵심 단어 표시
+- 사람이 글을 읽으며 형광펜으로 중요 단어 표시
+- LLM이 텍스트를 읽으며 엔티티/관계 태깅
+
+---
+
 ## 엔티티 추출
 
 ### LLM 기반 NER

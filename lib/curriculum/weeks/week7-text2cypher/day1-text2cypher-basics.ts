@@ -110,26 +110,62 @@ Cypher:
 
 const task3 = createCodeTask('w7d1-basic-impl', '실습: 기본 Text2Cypher 구현', 50, {
   introduction: `
+## 왜 배우는가?
+
+**문제 상황:**
+데이터베이스 쿼리는 SQL/Cypher를 배워야만 사용할 수 있었습니다.
+"삼성전자의 경쟁사는?" 같은 자연스러운 질문을 하려면 개발자가 필요했죠.
+
+**해결책:**
+Text2Cypher로 누구나 자연어로 데이터베이스와 대화할 수 있습니다!
+
+---
+
+## 비유: 번역가 로봇 🤖
+
+\`\`\`
+당신 (한국어):     "삼성전자의 경쟁사는?"
+     ↓
+번역가 (LLM):      MATCH (c:Company {name: '삼성전자'})-[:COMPETES_WITH]->(comp)
+                   RETURN comp.name LIMIT 10
+     ↓
+Neo4j (DB):        [{"comp.name": "SK하이닉스"}, {"comp.name": "Intel"}]
+     ↓
+번역가 (LLM):      "삼성전자의 경쟁사는 SK하이닉스와 Intel입니다."
+\`\`\`
+
+LLM이 한국어와 Cypher 사이의 **번역가** 역할을 합니다.
+
+---
+
 ## 기본 Text2Cypher 구현
 
-### LangChain GraphCypherQAChain
+### 📌 Step 1: Neo4j 연결 및 스키마 로드
 
 \`\`\`python
 from langchain_community.graphs import Neo4jGraph
-from langchain.chains import GraphCypherQAChain
 from langchain_openai import ChatOpenAI
 
-# 연결
+# Neo4j 연결
 graph = Neo4jGraph(
     url="bolt://localhost:7687",
     username="neo4j",
     password="password"
 )
 
-# LLM
+# 스키마 자동 추출
+print(graph.schema)  # LLM에게 제공할 DB 구조
+\`\`\`
+
+---
+
+### 📌 Step 2: LangChain 기본 구현 (GraphCypherQAChain)
+
+\`\`\`python
+from langchain.chains import GraphCypherQAChain
+
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-# Chain 생성
 chain = GraphCypherQAChain.from_llm(
     llm=llm,
     graph=graph,
@@ -137,13 +173,14 @@ chain = GraphCypherQAChain.from_llm(
     return_intermediate_steps=True
 )
 
-# 질문
 result = chain.invoke({"query": "삼성전자와 경쟁하는 회사들은?"})
-print("Generated Cypher:", result['intermediate_steps'][0]['query'])
+print("Cypher:", result['intermediate_steps'][0]['query'])
 print("Answer:", result['result'])
 \`\`\`
 
-### 커스텀 구현
+---
+
+### 📌 Step 3: 커스텀 구현 (더 많은 제어)
 
 \`\`\`python
 from langchain_core.prompts import ChatPromptTemplate
@@ -153,48 +190,57 @@ class SimpleText2Cypher:
     def __init__(self, graph, llm):
         self.graph = graph
         self.llm = llm
-
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", """Neo4j Cypher 전문가입니다.
 스키마: {schema}
 
 규칙:
 - MATCH로 시작하는 읽기 쿼리만
-- 존재하는 레이블/관계만 사용
 - LIMIT 10 이하
+- Cypher만 출력
 
-Cypher 쿼리만 출력 (설명 없이):"""),
-            ("human", "{question}")
+질문: {question}
+Cypher:""")
         ])
 
-    def generate_cypher(self, question: str) -> str:
+    def query(self, question: str) -> dict:
+        # 1. Cypher 생성
         chain = self.prompt | self.llm | StrOutputParser()
-        return chain.invoke({
+        cypher = chain.invoke({
             "schema": self.graph.schema,
             "question": question
         })
 
-    def query(self, question: str) -> dict:
-        cypher = self.generate_cypher(question)
+        # 2. 실행
         results = self.graph.query(cypher)
         return {"cypher": cypher, "results": results}
 
 # 사용
 t2c = SimpleText2Cypher(graph, llm)
 result = t2c.query("삼성전자의 경쟁사는?")
-print(result)
+print(result['cypher'])
+print(result['results'])
 \`\`\`
 `,
-  keyPoints: ['GraphCypherQAChain: LangChain 기본 제공', '커스텀 구현: 더 많은 제어 가능', 'temperature=0으로 일관된 쿼리 생성'],
+  keyPoints: [
+    '🔑 LLM이 자연어 → Cypher 번역가 역할',
+    '🛡️ temperature=0으로 일관된 쿼리 생성',
+    '🎯 스키마를 LLM에게 제공해야 정확한 쿼리 생성',
+    '⚡ GraphCypherQAChain vs 커스텀: 편의성 vs 제어력',
+  ],
   practiceGoal: '기본 Text2Cypher 시스템 구현',
-  codeExample: `from langchain_community.graphs import Neo4jGraph
-from langchain.chains import GraphCypherQAChain
+  codeExample: `# 📌 Step 1: 연결
+from langchain_community.graphs import Neo4jGraph
 from langchain_openai import ChatOpenAI
 
 graph = Neo4jGraph(url="bolt://localhost:7687", username="neo4j", password="password")
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
+# 📌 Step 2: Chain 생성
+from langchain.chains import GraphCypherQAChain
 chain = GraphCypherQAChain.from_llm(llm=llm, graph=graph, verbose=True)
+
+# 📌 Step 3: 자연어로 질문
 result = chain.invoke({"query": "모든 회사 이름을 알려줘"})
 print(result['result'])`,
 })

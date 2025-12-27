@@ -297,6 +297,101 @@ class SecureRAG:
     // ========================================
     createCodeTask('w5d5-document-pipeline', '멀티 포맷 문서 처리 파이프라인', 50, {
       introduction: `
+## 왜 배우는가?
+
+**문제**: RAG 튜토리얼은 항상 "PDF 하나만" 다루는데, 실제 기업은 PDF, Word, Excel, HTML, 코드 등 수십 가지 포맷이 섞여 있습니다.
+- 각 포맷마다 다른 라이브러리 필요
+- 테이블, 이미지 누락
+- 메타데이터 손실
+- 통합 처리 어려움
+
+**해결**: 모든 포맷을 표준화된 ProcessedDocument로 변환하는 파이프라인을 구축합니다.
+
+---
+
+## 비유: 문서 처리 = 번역기
+
+\`\`\`
+문제:
+- PDF 말하는 사람
+- Word 말하는 사람
+- HTML 말하는 사람
+→ 서로 못 알아듣음!
+
+해결:
+모든 언어(포맷) → 영어(ProcessedDocument) 번역
+→ 통합 처리 가능!
+
+ProcessedDocument = {
+  content: "추출된 텍스트"
+  metadata: {"source": "file.pdf", "page": 1}
+  tables: [...]  # 테이블 데이터
+}
+\`\`\`
+
+---
+
+## 핵심 구현 (간소화)
+
+\`\`\`python
+# 📌 Step 1: 통합 문서 로더
+class UniversalDocumentLoader:
+    def __init__(self):
+        self.loaders = {
+            ".pdf": PDFLoader(),
+            ".docx": DocxLoader(),
+            ".html": HTMLLoader(),
+            ".md": MarkdownLoader(),
+            ".py": CodeLoader()
+        }
+
+    def load(self, path: str) -> ProcessedDocument:
+        ext = Path(path).suffix.lower()
+        loader = self.loaders.get(ext)
+        if not loader:
+            raise ValueError(f"Unsupported format: {ext}")
+        return loader.load(path)
+
+# 📌 Step 2: 사용
+loader = UniversalDocumentLoader()
+
+# PDF 처리
+pdf_doc = loader.load("report.pdf")
+print(f"Text: {pdf_doc.content[:100]}")
+print(f"Tables: {len(pdf_doc.tables)}")
+
+# Word 처리
+word_doc = loader.load("proposal.docx")
+print(f"Text: {word_doc.content[:100]}")
+
+# 📌 Step 3: 배치 처리
+import os
+
+docs = []
+for file in os.listdir("./documents"):
+    try:
+        doc = loader.load(f"./documents/{file}")
+        docs.append(doc)
+    except ValueError:
+        print(f"Skipped unsupported file: {file}")
+
+print(f"Loaded {len(docs)} documents")
+
+# 📌 Step 4: 청킹 & 벡터화
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+splitter = RecursiveCharacterTextSplitter(chunk_size=500)
+all_chunks = []
+
+for doc in docs:
+    chunks = splitter.split_text(doc.content)
+    all_chunks.extend(chunks)
+
+print(f"Total chunks: {len(all_chunks)}")
+\`\`\`
+
+---
+
 ## 실무 문서 포맷의 다양성
 
 실제 기업 환경에서는 PDF만 있는 게 아닙니다:
@@ -311,7 +406,11 @@ class SecureRAG:
 └── 💻 Code (5%) - README, 주석
 \`\`\`
 
-## 통합 문서 로더 구현
+---
+
+## 전체 코드 (상세)
+
+### 통합 문서 로더 구현
 
 \`\`\`python
 from abc import ABC, abstractmethod
@@ -861,9 +960,9 @@ print(f"업데이트: {result.get('files_updated', 0)}개 파일")
 \`\`\`
       `,
       keyPoints: [
-        'PDF, Word, HTML, Code 등 다양한 포맷 처리',
-        '문서 타입별 최적화된 청킹 전략',
-        '증분 수집으로 효율적 업데이트',
+        '📄 PDF, Word, HTML, Code 등 다양한 포맷 처리',
+        '✂️ 문서 타입별 최적화된 청킹 전략',
+        '🔄 증분 수집으로 효율적 업데이트',
       ],
       practiceGoal: '실무에서 사용되는 다양한 문서 포맷을 처리하는 파이프라인을 구축한다',
     }),

@@ -190,6 +190,22 @@ Palantir Gotham의 핵심 기능:
         introduction: `
 # 문자열 유사도 알고리즘
 
+## 🎯 왜 문자열 유사도가 필요한가?
+
+### 문제 상황
+기업 데이터 통합 시 **정확히 같지 않지만 같은 의미**의 텍스트를 어떻게 비교할까?
+- "삼성전자" vs "Samsung Electronics" vs "삼성전자주식회사"
+- "김철수" vs "김철호" (오타)
+- "Smith" vs "Smyth" (발음은 같음)
+
+### 해결책
+> 🎯 **비유**: 문자열 유사도는 **DNA 유사도 검사**와 같습니다.
+>
+> 완전히 일치하지 않아도 얼마나 비슷한지를 0~1 사이 점수로 측정합니다.
+> - Levenshtein: "몇 번 고치면 같아지나?" (편집 횟수)
+> - Jaro-Winkler: "이름처럼 앞부분이 같으면 점수 높임"
+> - Jaccard: "공통 단어가 얼마나 많나?"
+
 ## 학습 목표
 - 주요 문자열 유사도 알고리즘을 이해한다
 - Python으로 유사도를 계산한다
@@ -383,10 +399,10 @@ print(get_chosung("삼성"))      # ㅅㅅ
 4. **한글** = 형태소 분석 + 초성 추출 활용
         `,
         keyPoints: [
-          'Levenshtein은 편집 거리 기반, 오타 처리에 적합',
-          'Jaro-Winkler는 이름 매칭에 최적화',
-          'Jaccard는 토큰 집합 기반 유사도',
-          '한글은 형태소 분석과 초성 추출 활용',
+          '🎯 Levenshtein은 편집 거리 기반, 오타 처리에 적합',
+          '👤 Jaro-Winkler는 이름 매칭에 최적화',
+          '🔤 Jaccard는 토큰 집합 기반 유사도',
+          '🇰🇷 한글은 형태소 분석과 초성 추출 활용',
         ],
         practiceGoal: '다양한 문자열 유사도 알고리즘을 Python으로 구현하고 비교할 수 있다',
       }
@@ -400,6 +416,20 @@ print(get_chosung("삼성"))      # ㅅㅅ
       {
         introduction: `
 # Python recordlinkage 라이브러리
+
+## 🎯 왜 recordlinkage가 필요한가?
+
+### 문제 상황
+10만 개 기업 데이터를 하나하나 비교하면?
+- 100,000 × 99,999 / 2 = **50억 번 비교!** ⏳
+- 문자열 유사도만으로는 너무 느림
+
+### 해결책
+> 🏭 **비유**: recordlinkage는 **공장 자동화 라인**입니다.
+>
+> 1단계(Blocking): 같은 색깔끼리만 비교 (후보 축소)
+> 2단계(Comparison): 유사도 계산 (품질 검사)
+> 3단계(Classification): 합격/불합격 판정 (최종 선별)
 
 ## 학습 목표
 - recordlinkage 라이브러리를 설치하고 사용한다
@@ -511,60 +541,37 @@ predictions = classifier.predict(features)
 import recordlinkage
 import pandas as pd
 
-# 기업 데이터 (실제로는 CSV에서 로드)
+# 📌 Step 1: 기업 데이터 준비
 companies = pd.DataFrame({
-    'id': range(10),
-    'name': [
-        '삼성전자', 'Samsung Electronics', '삼성전자주식회사',
-        'LG전자', 'LG Electronics', 'LG전자 주식회사',
-        'SK하이닉스', 'SK Hynix', 'SK 하이닉스',
-        '현대자동차'
-    ],
-    'industry': [
-        '전자', 'Electronics', '반도체',
-        '전자', 'Electronics', '가전',
-        '반도체', 'Semiconductor', '메모리',
-        '자동차'
-    ],
-    'employees': [
-        270000, 267000, 270000,
-        75000, 74000, 75000,
-        30000, 29000, 30000,
-        120000
-    ]
+    'name': ['삼성전자', 'Samsung Electronics', '삼성전자주식회사',
+             'LG전자', 'LG Electronics', 'SK하이닉스'],
+    'industry': ['전자', 'Electronics', '반도체',
+                 '전자', 'Electronics', '반도체'],
+    'employees': [270000, 267000, 270000, 75000, 74000, 30000]
 })
 
-def find_duplicates(df, name_threshold=0.7, total_threshold=2.0):
-    """중복 레코드 탐지"""
+# 📌 Step 2: Blocking - 후보 쌍 생성
+indexer = recordlinkage.Index()
+indexer.full()  # 작은 데이터셋이므로 전체 비교
+pairs = indexer.index(companies)
+print(f"비교할 쌍: {len(pairs)}")  # 15쌍
 
-    # 1. Indexing
-    indexer = recordlinkage.Index()
-    indexer.full()  # 작은 데이터셋이므로 전체 비교
-    pairs = indexer.index(df)
+# 📌 Step 3: Comparison - 유사도 계산
+compare = recordlinkage.Compare()
+compare.string('name', 'name', method='jarowinkler', label='name')
+compare.string('industry', 'industry', method='jarowinkler', label='industry')
+compare.numeric('employees', 'employees', scale=10000, label='emp')
 
-    # 2. Comparison
-    compare = recordlinkage.Compare()
-    compare.string('name', 'name', method='jarowinkler', label='name')
-    compare.string('industry', 'industry', method='jarowinkler', label='industry')
-    compare.numeric('employees', 'employees', scale=10000, label='employees')
+features = compare.compute(pairs, companies)
 
-    features = compare.compute(pairs, df)
+# 📌 Step 4: Classification - 매칭 판정
+matches = features[features['name'] >= 0.7]
 
-    # 3. Classification
-    matches = features[
-        (features['name'] >= name_threshold) |
-        (features.sum(axis=1) >= total_threshold)
-    ]
-
-    return matches, features
-
-# 실행
-matches, features = find_duplicates(companies)
+# 📌 Step 5: 결과 출력
 print("\\n=== 중복 후보 ===")
 for (i, j) in matches.index:
     print(f"{companies.loc[i, 'name']} ↔ {companies.loc[j, 'name']}")
-    print(f"  유사도: {features.loc[(i, j)].to_dict()}")
-    print()
+    print(f"  유사도: name={features.loc[(i,j)]['name']:.2f}")
 \`\`\`
 
 ### 출력 예시
@@ -616,10 +623,10 @@ print(f"SortedNeighbourhood: {len(pairs_sn)} 쌍, {time.time()-start:.2f}초")
 4. **임계값 또는 ML**로 매칭 판정
         `,
         keyPoints: [
-          'recordlinkage는 Python Entity Resolution 표준 라이브러리',
-          'Index(Blocking) → Compare → Classify 3단계 파이프라인',
-          'Blocking으로 비교 대상을 줄여 성능 확보',
-          '임계값 또는 머신러닝으로 매칭 판정',
+          '🏭 recordlinkage는 Python Entity Resolution 표준 라이브러리',
+          '📊 Index(Blocking) → Compare → Classify 3단계 파이프라인',
+          '⚡ Blocking으로 비교 대상을 줄여 성능 확보',
+          '🎯 임계값 또는 머신러닝으로 매칭 판정',
         ],
         practiceGoal: 'recordlinkage로 중복 레코드를 탐지하는 파이프라인을 구현할 수 있다',
       }
@@ -633,6 +640,19 @@ print(f"SortedNeighbourhood: {len(pairs_sn)} 쌍, {time.time()-start:.2f}초")
       {
         introduction: `
 # Neo4j에서 Entity Resolution
+
+## 🎯 왜 Neo4j에서 ER을 하는가?
+
+### 문제 상황
+Python으로 중복을 찾았는데, 이미 Neo4j에 저장된 데이터도 중복이 있다면?
+- 삭제된 줄 알았는데 다시 나타남
+- 관계까지 연결되어 있어서 복잡함
+
+### 해결책
+> 🔗 **비유**: Neo4j ER은 **건물 통합 공사**입니다.
+>
+> 두 건물(노드)을 합칠 때 전기줄(관계)도 함께 이어야 합니다.
+> APOC의 mergeNodes는 노드 + 관계 + 속성을 한 번에 통합!
 
 ## 학습 목표
 - Neo4j에서 유사 노드를 탐지한다
@@ -759,43 +779,35 @@ DELETE r
 RETURN count(node) AS merged_count
 \`\`\`
 
-## 전체 파이프라인
+## 전체 파이프라인 (5단계)
 
 \`\`\`cypher
-// 1. 초기 데이터 로드
+// 📌 Step 1: 데이터 로드
 LOAD CSV WITH HEADERS FROM 'file:///companies.csv' AS row
-CREATE (:Company {
-  source_id: row.id,
-  name: row.name,
-  industry: row.industry,
-  source: row.source
-})
+CREATE (:Company {name: row.name, industry: row.industry})
 
-// 2. 인덱스 생성
+// 📌 Step 2: 인덱스 생성 (성능 향상)
 CREATE INDEX company_name IF NOT EXISTS FOR (c:Company) ON (c.name)
 
-// 3. 유사 노드 탐지
+// 📌 Step 3: 유사 노드 탐지 (Jaro-Winkler > 0.8)
 MATCH (a:Company), (b:Company)
-WHERE a.source_id < b.source_id
-  AND a.industry = b.industry
+WHERE a.id < b.id
+  AND a.industry = b.industry  // Blocking
   AND apoc.text.jaroWinklerDistance(a.name, b.name) > 0.8
 MERGE (a)-[:POTENTIAL_DUPLICATE {
   similarity: apoc.text.jaroWinklerDistance(a.name, b.name)
 }]->(b)
 
-// 4. 높은 신뢰도 병합
-MATCH (a:Company)-[r:POTENTIAL_DUPLICATE]->(b:Company)
+// 📌 Step 4: 자동 병합 (신뢰도 > 0.95)
+MATCH (a)-[r:POTENTIAL_DUPLICATE]->(b)
 WHERE r.similarity > 0.95
-WITH a, b, r
-CALL apoc.refactor.mergeNodes([a, b], {
-  properties: 'combine',
-  mergeRels: true
-}) YIELD node
+CALL apoc.refactor.mergeNodes([a, b], {properties: 'combine'})
+YIELD node
 DELETE r
-RETURN count(node) AS auto_merged
+RETURN count(node) AS merged
 
-// 5. 수동 검토 목록
-MATCH (a:Company)-[r:POTENTIAL_DUPLICATE]->(b:Company)
+// 📌 Step 5: 수동 검토 목록 (0.8~0.95)
+MATCH (a)-[r:POTENTIAL_DUPLICATE]->(b)
 RETURN a.name, b.name, r.similarity
 ORDER BY r.similarity DESC
 \`\`\`
@@ -808,10 +820,10 @@ ORDER BY r.similarity DESC
 4. **POTENTIAL_DUPLICATE** = 수동 검토용 관계
         `,
         keyPoints: [
-          'APOC의 text 함수로 문자열 유사도 계산',
-          'Blocking으로 비교 범위 축소하여 성능 확보',
-          'apoc.refactor.mergeNodes로 노드 병합',
-          'POTENTIAL_DUPLICATE 관계로 수동 검토 지원',
+          '🔧 APOC의 text 함수로 문자열 유사도 계산',
+          '⚡ Blocking으로 비교 범위 축소하여 성능 확보',
+          '🔗 apoc.refactor.mergeNodes로 노드 병합',
+          '🚩 POTENTIAL_DUPLICATE 관계로 수동 검토 지원',
         ],
         practiceGoal: 'Neo4j에서 유사 노드를 탐지하고 병합하는 파이프라인을 구현할 수 있다',
       }
@@ -992,9 +1004,16 @@ FOR (c:Company) REQUIRE c.name IS NOT NULL
         introduction: `
 # 실습: 기업 데이터 Entity Resolution
 
-## 과제 개요
+## 🎯 실습 목표
 
 여러 소스의 기업 데이터를 통합하여 중복을 제거합니다.
+
+> 💡 **시나리오**: 3개의 데이터베이스를 통합하는 M&A 프로젝트
+>
+> 국내 DB(한글) + 글로벌 DB(영문) + 뉴스 크롤링(혼합)
+> → 하나의 깨끗한 기업 리스트로 통합
+
+## 과제 개요
 
 ## 데이터 준비
 
@@ -1183,10 +1202,10 @@ print(final_df)
 | 코드 품질 | 10% |
         `,
         keyPoints: [
-          'recordlinkage로 중복 후보 탐지',
-          'NetworkX로 매칭 쌍을 클러스터로 그룹화',
-          '대표 레코드 선정 및 속성 병합 전략',
-          '원본 대비 통합 결과 검증',
+          '🔍 recordlinkage로 중복 후보 탐지',
+          '🕸️ NetworkX로 매칭 쌍을 클러스터로 그룹화',
+          '⭐ 대표 레코드 선정 및 속성 병합 전략',
+          '✅ 원본 대비 통합 결과 검증',
         ],
         practiceGoal: '여러 소스의 기업 데이터를 Entity Resolution으로 통합할 수 있다',
       }

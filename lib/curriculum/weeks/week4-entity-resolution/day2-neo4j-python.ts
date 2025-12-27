@@ -98,6 +98,20 @@ session.run("CREATE (p:Person {name: $name, age: $age})", **params)
       introduction: `
 # CRUD 작업 구현
 
+## 🎯 왜 CRUD 패턴이 중요한가?
+
+### 문제 상황
+Neo4j에 데이터 넣고, 읽고, 수정하고, 삭제하는 작업을 매번 다르게 작성하면?
+- 코드 중복
+- 에러 처리 누락
+- 트랜잭션 관리 어려움
+
+### 해결책
+> 📦 **비유**: CRUD는 **택배 시스템**입니다.
+>
+> Create(발송) → Read(조회) → Update(수정) → Delete(폐기)
+> 표준화된 절차로 안전하고 빠르게 처리!
+
 ## Create
 
 \`\`\`python
@@ -171,13 +185,27 @@ with driver.session() as session:
     session.execute_write(batch_create, data)
 \`\`\`
       `,
-      keyPoints: ['execute_read/execute_write로 트랜잭션 함수 실행', 'UNWIND로 배치 처리', '결과를 딕셔너리로 변환'],
+      keyPoints: ['✍️ execute_read/execute_write로 트랜잭션 함수 실행', '⚡ UNWIND로 배치 처리', '📋 결과를 딕셔너리로 변환'],
       practiceGoal: 'Neo4j에서 CRUD 작업을 Python으로 구현할 수 있다',
     }),
 
     createCodeTask('w4d2-py2neo', 'py2neo OGM 사용', 35, {
       introduction: `
 # py2neo OGM (Object Graph Mapping)
+
+## 🎯 왜 OGM이 필요한가?
+
+### 문제 상황
+Cypher 쿼리를 직접 작성하면 문자열 지옥에 빠집니다.
+- 오타 많음
+- 타입 안전성 없음
+- 코드 재사용 어려움
+
+### 해결책
+> 🎭 **비유**: OGM은 **번역기**입니다.
+>
+> Python 객체 ↔ Neo4j 노드/관계 자동 변환
+> person.friends.add(lee) → MERGE (person)-[:KNOWS]->(lee)
 
 ## 설치
 
@@ -246,13 +274,27 @@ for record in result:
 df = graph.run("MATCH (p:Person) RETURN p.name, p.age").to_data_frame()
 \`\`\`
       `,
-      keyPoints: ['py2neo는 고수준 OGM 제공', 'GraphObject로 클래스 정의', 'to_data_frame()으로 pandas 연동'],
+      keyPoints: ['🎭 py2neo는 고수준 OGM 제공', '🏛️ GraphObject로 클래스 정의', '📊 to_data_frame()으로 pandas 연동'],
       practiceGoal: 'py2neo OGM으로 객체 지향적으로 그래프를 다룰 수 있다',
     }),
 
     createCodeTask('w4d2-pandas-integration', 'Pandas 연동', 30, {
       introduction: `
 # Pandas와 Neo4j 연동
+
+## 🎯 왜 Pandas 연동이 필요한가?
+
+### 문제 상황
+Neo4j 데이터를 분석하려면 데이터프레임으로 변환이 필요합니다.
+- Cypher로는 복잡한 통계 분석 어려움
+- 머신러닝 라이브러리는 DataFrame 필요
+- 시각화도 DataFrame이 편함
+
+### 해결책
+> 🌉 **비유**: Pandas 연동은 **다리 건설**입니다.
+>
+> Neo4j(그래프 세계) ↔ Pandas(표 세계)
+> 양쪽의 장점을 모두 활용!
 
 ## 쿼리 결과를 DataFrame으로
 
@@ -303,7 +345,7 @@ df = query_to_dataframe(driver, stats_query)
 print(df.groupby('industry').mean())
 \`\`\`
       `,
-      keyPoints: ['쿼리 결과를 DataFrame으로 변환', 'DataFrame을 UNWIND로 배치 로드', 'pandas 분석 기능 활용'],
+      keyPoints: ['📊 쿼리 결과를 DataFrame으로 변환', '⬆️ DataFrame을 UNWIND로 배치 로드', '📈 pandas 분석 기능 활용'],
       practiceGoal: 'pandas와 Neo4j를 연동하여 데이터 분석을 수행할 수 있다',
     }),
 
@@ -351,6 +393,20 @@ driver.session().run("CREATE INDEX company_name IF NOT EXISTS FOR (c:Company) ON
     createCodeTask('w4d2-practical-utils', '실용 유틸리티 클래스 구현', 35, {
       introduction: `
 # 실용 유틸리티 클래스
+
+## 🎯 왜 유틸리티 클래스를 만드는가?
+
+### 문제 상황
+프로젝트마다 Neo4j 연결, 쿼리, 배치 처리 코드를 반복 작성하면?
+- 코드 중복
+- 버그 재발
+- 유지보수 어려움
+
+### 해결책
+> 🧰 **비유**: 유틸리티 클래스는 **공구함**입니다.
+>
+> 자주 쓰는 작업을 미리 만들어 놓고 재사용!
+> query(), query_df(), batch_create() 등
 
 \`\`\`python
 from neo4j import GraphDatabase
@@ -413,7 +469,7 @@ print(f"총 회사 수: {client.count('Company')}")
 client.close()
 \`\`\`
       `,
-      keyPoints: ['재사용 가능한 유틸리티 클래스', 'context manager로 리소스 관리', '일반적인 작업 메서드화'],
+      keyPoints: ['🧰 재사용 가능한 유틸리티 클래스', '🔒 context manager로 리소스 관리', '⚙️ 일반적인 작업 메서드화'],
       practiceGoal: '프로젝트에서 재사용 가능한 Neo4j 유틸리티를 구현할 수 있다',
     }),
 

@@ -132,9 +132,21 @@ Relations:
 
 const task3 = createCodeTask('w8d1-ontology-design', '실습: 온톨로지 설계', 60, {
   introduction: `
+## 왜 배우는가?
+
+**문제**: 비구조화된 데이터(뉴스, 문서)에서 엔티티와 관계를 어떻게 체계적으로 표현할까?
+
+온톨로지는 도메인 지식의 "설계도"입니다. 건축가가 건물을 짓기 전 설계도를 그리듯, KG를 구축하기 전 온톨로지를 설계합니다.
+
+**비유**: 온톨로지 = 데이터베이스 스키마 + 의미론적 규칙
+- 스키마: "어떤 테이블(엔티티), 어떤 컬럼(속성), 어떤 관계가 있나?"
+- 의미론: "이 관계는 대칭적인가? 추이적인가?"
+
+---
+
 ## 온톨로지 설계 실습
 
-### 설계 문서 템플릿
+### 핵심 설계 원칙
 
 \`\`\`python
 # domain_ontology.py
@@ -143,18 +155,13 @@ from dataclasses import dataclass
 from typing import List, Optional
 from enum import Enum
 
-# ============================================
-# 1. 엔티티 타입 정의
-# ============================================
-
+# 📌 Step 1: 엔티티 타입 정의
 class EntityType(Enum):
     """도메인 엔티티 타입"""
     ARTICLE = "Article"
     PERSON = "Person"
     ORGANIZATION = "Organization"
     LOCATION = "Location"
-    EVENT = "Event"
-    TOPIC = "Topic"
 
 @dataclass
 class Entity:
@@ -162,20 +169,15 @@ class Entity:
     uri: str           # 고유 식별자 (예: news:Person_홍길동)
     type: EntityType
     name: str
-    aliases: List[str] = None
+    aliases: List[str] = None  # 별칭 (예: "삼성", "Samsung")
     properties: dict = None
 
-# ============================================
-# 2. 관계 타입 정의
-# ============================================
-
+# 📌 Step 2: 관계 타입 정의
 class RelationType(Enum):
     """도메인 관계 타입"""
     MENTIONS = "mentions"
     AFFILIATED_WITH = "affiliated_with"
     COVERS = "covers"
-    OCCURRED_AT = "occurred_at"
-    RELATED_TO = "related_to"
 
 @dataclass
 class Relation:
@@ -184,44 +186,27 @@ class Relation:
     source_types: List[EntityType]  # 허용되는 주어 타입
     target_types: List[EntityType]  # 허용되는 목적어 타입
     description: str
-    is_symmetric: bool = False
-    is_transitive: bool = False
+    is_symmetric: bool = False      # 대칭적 관계인가?
+    is_transitive: bool = False     # 추이적 관계인가?
 
-# ============================================
-# 3. 온톨로지 정의
-# ============================================
-
+# 📌 Step 3: 온톨로지 정의
 DOMAIN_ONTOLOGY = {
     "name": "뉴스/미디어 Knowledge Graph",
     "version": "1.0.0",
-    "description": "뉴스 기사에서 추출한 엔티티와 관계를 표현",
-
     "entities": [
         Entity(
             uri="news:EntityType_Article",
             type=EntityType.ARTICLE,
             name="뉴스 기사",
-            properties={
-                "title": "str",
-                "content": "str",
-                "published_date": "datetime",
-                "source": "str",
-                "url": "str"
-            }
+            properties={"title": "str", "content": "str", "url": "str"}
         ),
         Entity(
             uri="news:EntityType_Person",
             type=EntityType.PERSON,
             name="인물",
-            properties={
-                "name": "str",
-                "title": "str",  # 직책
-                "organization": "str"
-            }
+            properties={"name": "str", "title": "str"}
         ),
-        # ... 더 많은 엔티티 정의
     ],
-
     "relations": [
         Relation(
             type=RelationType.MENTIONS,
@@ -229,20 +214,10 @@ DOMAIN_ONTOLOGY = {
             target_types=[EntityType.PERSON, EntityType.ORGANIZATION],
             description="기사가 특정 인물/기관을 언급"
         ),
-        Relation(
-            type=RelationType.AFFILIATED_WITH,
-            source_types=[EntityType.PERSON],
-            target_types=[EntityType.ORGANIZATION],
-            description="인물이 특정 기관에 소속"
-        ),
-        # ... 더 많은 관계 정의
     ]
 }
 
-# ============================================
-# 4. Neo4j 스키마 생성
-# ============================================
-
+# 📌 Step 4: Neo4j 스키마 자동 생성
 def generate_neo4j_constraints():
     """Neo4j 제약조건 DDL 생성"""
     constraints = []
@@ -252,33 +227,39 @@ def generate_neo4j_constraints():
             f"IF NOT EXISTS FOR (n:{entity.type.value}) REQUIRE n.uri IS UNIQUE"
         )
     return constraints
-
-def generate_neo4j_indexes():
-    """Neo4j 인덱스 DDL 생성"""
-    indexes = []
-    for entity in DOMAIN_ONTOLOGY["entities"]:
-        indexes.append(
-            f"CREATE INDEX {entity.type.value.lower()}_name "
-            f"IF NOT EXISTS FOR (n:{entity.type.value}) ON (n.name)"
-        )
-    return indexes
 \`\`\`
 `,
-  keyPoints: ['Enum으로 타입 안전성 확보', 'dataclass로 구조 정의', 'Neo4j 스키마 자동 생성'],
+  keyPoints: [
+    '🔑 Enum으로 타입 안전성 확보 - 오타 방지',
+    '🏗️ dataclass로 구조 정의 - 명확한 스키마',
+    '⚙️ Neo4j 스키마 자동 생성 - DRY 원칙',
+    '🔄 대칭/추이적 관계 설정 - 추론 규칙 기반',
+  ],
   practiceGoal: '도메인 온톨로지 설계 문서 작성',
-  codeExample: `# 온톨로지 검증
+  codeExample: `# 📌 Step 5: 온톨로지 검증
 print("엔티티 타입:", [e.type.value for e in DOMAIN_ONTOLOGY["entities"]])
 print("관계 타입:", [r.type.value for r in DOMAIN_ONTOLOGY["relations"]])
+
+# Neo4j 스키마 생성
+constraints = generate_neo4j_constraints()
 print("\\nNeo4j 제약조건:")
-for c in generate_neo4j_constraints():
+for c in constraints[:2]:  # 처음 2개만 표시
     print(f"  {c}")`,
 })
 
 const task4 = createCodeTask('w8d1-schema-validation', '실습: 스키마 검증', 45, {
   introduction: `
-## 스키마 검증
+## 왜 배우는가?
 
-### 온톨로지 검증 규칙
+**문제**: 온톨로지 설계 실수(오타, 일관성 오류)를 프로덕션 전에 어떻게 발견할까?
+
+**비유**: 스키마 검증 = 건축물 안전 검사
+- 건축: 건물 완성 전 철근/콘크리트 강도 검사
+- KG: 데이터 추가 전 온톨로지 무결성 검사
+
+---
+
+## 스키마 검증 시스템
 
 \`\`\`python
 from typing import List, Tuple
@@ -291,6 +272,7 @@ class OntologyValidator:
         self.errors = []
         self.warnings = []
 
+    # 📌 Step 1: 전체 검증
     def validate(self) -> Tuple[bool, List[str], List[str]]:
         """전체 검증 실행"""
         self._validate_entities()
@@ -300,48 +282,36 @@ class OntologyValidator:
         is_valid = len(self.errors) == 0
         return is_valid, self.errors, self.warnings
 
+    # 📌 Step 2: 엔티티 검증
     def _validate_entities(self):
-        """엔티티 검증"""
+        """엔티티 중복/누락 검사"""
         entity_types = set()
-
         for entity in self.ontology.get("entities", []):
             # 중복 검사
             if entity.type in entity_types:
-                self.errors.append(f"중복된 엔티티 타입: {entity.type}")
+                self.errors.append(f"중복 엔티티: {entity.type}")
             entity_types.add(entity.type)
 
             # 필수 속성 검사
             if not entity.name:
-                self.errors.append(f"엔티티 이름 누락: {entity.uri}")
+                self.errors.append(f"이름 누락: {entity.uri}")
 
-            # URI 형식 검사
-            if not entity.uri.startswith(self.ontology.get("name", "").split()[0].lower() + ":"):
-                self.warnings.append(f"URI 네임스페이스 불일치: {entity.uri}")
-
+    # 📌 Step 3: 관계 검증
     def _validate_relations(self):
-        """관계 검증"""
+        """관계 타입 일관성 검증"""
         entity_types = {e.type for e in self.ontology.get("entities", [])}
 
         for relation in self.ontology.get("relations", []):
-            # source_types 검사
+            # 관계의 source/target이 정의된 엔티티인지 확인
             for src in relation.source_types:
                 if src not in entity_types:
                     self.errors.append(
-                        f"관계 '{relation.type}'의 source_type '{src}'가 "
-                        f"정의된 엔티티에 없음"
+                        f"관계 '{relation.type}'의 source '{src}' 미정의"
                     )
 
-            # target_types 검사
-            for tgt in relation.target_types:
-                if tgt not in entity_types:
-                    self.errors.append(
-                        f"관계 '{relation.type}'의 target_type '{tgt}'가 "
-                        f"정의된 엔티티에 없음"
-                    )
-
+    # 📌 Step 4: 커버리지 검증
     def _validate_coverage(self):
-        """커버리지 검증"""
-        # 관계에서 사용되지 않는 엔티티 찾기
+        """고립된 엔티티(관계 없는 엔티티) 찾기"""
         used_types = set()
         for relation in self.ontology.get("relations", []):
             used_types.update(relation.source_types)
@@ -351,34 +321,15 @@ class OntologyValidator:
         orphan_types = all_types - used_types
 
         if orphan_types:
-            self.warnings.append(
-                f"관계가 정의되지 않은 엔티티: {orphan_types}"
-            )
+            self.warnings.append(f"고립 엔티티: {orphan_types}")
 
-# 사용 예시
-validator = OntologyValidator(DOMAIN_ONTOLOGY)
-is_valid, errors, warnings = validator.validate()
-
-print(f"검증 결과: {'통과' if is_valid else '실패'}")
-print(f"오류: {len(errors)}개")
-print(f"경고: {len(warnings)}개")
-\`\`\`
-
-### 스키마 문서 자동 생성
-
-\`\`\`python
+# 📌 Step 5: 스키마 문서 자동 생성
 def generate_schema_markdown(ontology: dict) -> str:
     """마크다운 형식 스키마 문서 생성"""
     lines = [
         f"# {ontology['name']}",
         f"",
-        f"버전: {ontology['version']}",
-        f"",
-        f"## 설명",
-        f"{ontology['description']}",
-        f"",
         f"## 엔티티 타입",
-        f"",
         f"| 타입 | 이름 | 속성 |",
         f"|------|------|------|",
     ]
@@ -387,29 +338,26 @@ def generate_schema_markdown(ontology: dict) -> str:
         props = ", ".join(entity.properties.keys()) if entity.properties else "-"
         lines.append(f"| {entity.type.value} | {entity.name} | {props} |")
 
-    lines.extend([
-        f"",
-        f"## 관계 타입",
-        f"",
-        f"| 관계 | 주어 | 목적어 | 설명 |",
-        f"|------|------|--------|------|",
-    ])
-
-    for rel in ontology["relations"]:
-        src = ", ".join(t.value for t in rel.source_types)
-        tgt = ", ".join(t.value for t in rel.target_types)
-        lines.append(f"| {rel.type.value} | {src} | {tgt} | {rel.description} |")
-
     return "\\n".join(lines)
 \`\`\`
 `,
-  keyPoints: ['엔티티 중복/누락 검사', '관계 타입 일관성 검증', '문서 자동 생성'],
+  keyPoints: [
+    '✅ 엔티티 중복/누락 자동 검사',
+    '🔗 관계 타입 일관성 검증 - 참조 무결성',
+    '📊 커버리지 검증 - 고립 엔티티 찾기',
+    '📄 마크다운 문서 자동 생성',
+  ],
   practiceGoal: '온톨로지 검증 시스템 구현',
-  codeExample: `# 스키마 문서 생성
+  codeExample: `# 📌 Step 6: 검증 실행
+validator = OntologyValidator(DOMAIN_ONTOLOGY)
+is_valid, errors, warnings = validator.validate()
+
+print(f"검증 결과: {'✅ 통과' if is_valid else '❌ 실패'}")
+print(f"오류: {len(errors)}개, 경고: {len(warnings)}개")
+
+# 스키마 문서 생성
 doc = generate_schema_markdown(DOMAIN_ONTOLOGY)
-with open("SCHEMA.md", "w") as f:
-    f.write(doc)
-print("스키마 문서 생성 완료: SCHEMA.md")`,
+print("\\n", doc[:200])  # 처음 200자만 표시`,
 })
 
 const task5 = createReadingTask('w8d1-project-setup', '프로젝트 환경 설정', 30, {

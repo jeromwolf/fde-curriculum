@@ -250,16 +250,90 @@ overlap = calculate_overlap(500, "technical")  # 50자
     // ========================================
     createCodeTask('w5d3-chunking-strategies', '청킹 전략 심층 실습', 50, {
       introduction: `
-## 학습 목표
-- 5가지 주요 청킹 전략을 구현한다
-- 각 전략의 장단점을 비교한다
-- 문서 유형에 맞는 전략을 선택한다
+## 왜 배우는가?
+
+**문제**: RAG를 처음 만들면 "그냥 500자로 자르면 되지 않나?" 싶지만, 실제로는 검색 정확도가 60%도 안 나옵니다.
+- 문장 중간에서 잘림 → 의미 손실
+- 중요한 정보가 분산됨
+- 코드/표가 깨짐
+
+**해결**: 문서 유형과 목적에 맞는 청킹 전략을 선택해야 합니다.
 
 ---
 
-## 1. 고정 크기 청킹 (Fixed Size Chunking)
+## 비유: 청킹 = 책을 어떻게 나눌 것인가?
 
-### 기본 구현
+\`\`\`
+고정 크기 청킹 = 500자마다 자르기
+- 장: "오늘은 날씨가 좋"
+- 단점: 문장 중간에서 끊김 ❌
+
+재귀적 청킹 = 단락 → 문장 → 단어 순으로 나누기
+- 장: "오늘은 날씨가 좋습니다."
+- 장점: 의미 단위 보존 ✅
+
+의미적 청킹 = AI가 주제 바뀌는 곳에서 나누기
+- 장: "오늘은 날씨가 좋습니다. 내일 회의가 있습니다."
+- 장점: 주제별로 정확히 구분 ✅✅
+\`\`\`
+
+---
+
+## 핵심 구현 (간소화)
+
+\`\`\`python
+# 📌 Step 1: 재귀적 청킹 (가장 권장)
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,
+    chunk_overlap=50,
+    separators=["\\n\\n", "\\n", ".", " "]  # 우선순위대로 시도
+)
+
+chunks = splitter.split_text("긴 문서...")
+print(f"생성된 청크: {len(chunks)}개")
+
+# 📌 Step 2: 의미적 청킹 (최고 품질, 느림)
+from langchain_experimental.text_splitter import SemanticChunker
+from langchain_openai import OpenAIEmbeddings
+
+semantic_splitter = SemanticChunker(
+    embeddings=OpenAIEmbeddings(),
+    breakpoint_threshold_type="percentile"  # 상위 5%에서 분할
+)
+
+chunks = semantic_splitter.split_text(text)
+
+# 📌 Step 3: 문서 구조 기반 청킹 (마크다운/HTML)
+from langchain.text_splitter import MarkdownHeaderTextSplitter
+
+md_splitter = MarkdownHeaderTextSplitter(
+    headers_to_split_on=[("#", "h1"), ("##", "h2"), ("###", "h3")]
+)
+
+chunks = md_splitter.split_text(markdown_text)
+# 각 청크에 헤더 메타데이터 자동 포함!
+
+# 📌 Step 4: 코드 청킹 (언어별 최적화)
+from langchain.text_splitter import RecursiveCharacterTextSplitter, Language
+
+code_splitter = RecursiveCharacterTextSplitter.from_language(
+    language=Language.PYTHON,
+    chunk_size=1000
+)
+
+chunks = code_splitter.split_text(python_code)
+# 함수/클래스 단위로 자동 분할!
+\`\`\`
+
+---
+
+## 전체 코드 (상세)
+
+### 1. 고정 크기 청킹 (Fixed Size Chunking)
+
+**기본 구현**
 
 \`\`\`python
 from langchain.text_splitter import CharacterTextSplitter
@@ -596,9 +670,9 @@ def compare_chunking_strategies(text: str):
 \`\`\`
       `,
       keyPoints: [
-        'RecursiveCharacterTextSplitter가 가장 범용적',
-        'SemanticChunker는 비용 대비 품질 최고',
-        '문서 유형에 따라 전략 선택',
+        '🔄 RecursiveCharacterTextSplitter가 가장 범용적',
+        '🤖 SemanticChunker는 비용 대비 품질 최고',
+        '📋 문서 유형에 따라 전략 선택',
       ],
       practiceGoal: '다양한 청킹 전략을 구현하고 비교할 수 있다',
     }),
@@ -852,14 +926,86 @@ Step-back 쿼리: "GPT-4의 아키텍처와 특징은?"
     // ========================================
     createCodeTask('w5d3-hybrid-reranking', '하이브리드 검색 & Re-ranking 실습', 50, {
       introduction: `
-## 학습 목표
-- 하이브리드 검색을 구현한다
-- Re-ranking을 적용한다
-- 검색 파이프라인을 구축한다
+## 왜 배우는가?
+
+**문제**: 벡터 검색만 쓰면 "AI 인공지능" 같은 정확한 키워드를 못 찾고, 키워드 검색만 쓰면 "검색 기반 생성 기술"과 "RAG"를 매칭 못 합니다.
+
+**해결**: 하이브리드 검색(키워드 + 벡터)과 Re-ranking으로 정확도를 10-15% 향상시킵니다.
 
 ---
 
-## 1. BM25 검색기 구현
+## 비유: 검색 = 물고기 잡기
+
+\`\`\`
+1차 검색 (Hybrid) = 그물로 넓게 잡기
+- BM25 (키워드): "RAG" 단어가 있는 문서
+- Vector (벡터): "검색 증강 생성"과 의미 비슷한 문서
+- 결과: 20마리 잡음 (하지만 작은 물고기도 섞임)
+
+Re-ranking = 좋은 물고기만 골라내기
+- Cross-Encoder: 각 물고기를 자세히 검사
+- 결과: 상위 5마리만 선택 (정확도 높음)
+\`\`\`
+
+---
+
+## 핵심 구현 (간소화)
+
+\`\`\`python
+# 📌 Step 1: 하이브리드 검색 (BM25 + Vector)
+from langchain.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
+from langchain_chroma import Chroma
+
+# BM25 (키워드 검색)
+bm25 = BM25Retriever.from_documents(docs, k=10)
+
+# Vector (의미 검색)
+vectorstore = Chroma.from_documents(docs, embeddings)
+vector = vectorstore.as_retriever(search_kwargs={"k": 10})
+
+# 앙상블 (40% 키워드 + 60% 벡터)
+hybrid = EnsembleRetriever(
+    retrievers=[bm25, vector],
+    weights=[0.4, 0.6]
+)
+
+results = hybrid.invoke("검색 기반 AI")
+
+# 📌 Step 2: Re-ranking (정밀도 향상)
+from sentence_transformers import CrossEncoder
+
+reranker = CrossEncoder("BAAI/bge-reranker-base")
+
+# 1차: 20개 검색
+initial_results = hybrid.invoke(query)
+
+# 2차: 점수 재계산
+pairs = [(query, doc.page_content) for doc in initial_results]
+scores = reranker.predict(pairs)
+
+# 3차: 상위 5개만 선택
+top_5_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:5]
+final_results = [initial_results[i] for i in top_5_indices]
+
+# 📌 Step 3: MMR (다양성 확보)
+mmr_retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "k": 5,
+        "fetch_k": 20,
+        "lambda_mult": 0.5  # 0=다양성, 1=관련성
+    }
+)
+
+diverse_results = mmr_retriever.invoke(query)
+\`\`\`
+
+---
+
+## 전체 코드 (상세)
+
+### 1. BM25 검색기 구현
 
 \`\`\`python
 from langchain_community.retrievers import BM25Retriever
@@ -1145,9 +1291,9 @@ results = retriever.search("RAG 시스템 구축 방법")
 \`\`\`
       `,
       keyPoints: [
-        'EnsembleRetriever로 하이브리드 검색 구현',
-        'Cohere/BGE로 Re-ranking 적용',
-        '파이프라인으로 전체 검색 프로세스 통합',
+        '🎯 EnsembleRetriever로 하이브리드 검색 구현',
+        '🥇 Cohere/BGE로 Re-ranking 적용',
+        '⚙️ 파이프라인으로 전체 검색 프로세스 통합',
       ],
       practiceGoal: '하이브리드 검색과 Re-ranking을 구현할 수 있다',
     }),

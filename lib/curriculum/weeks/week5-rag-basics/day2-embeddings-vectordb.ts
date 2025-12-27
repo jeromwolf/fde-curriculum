@@ -826,14 +826,87 @@ LIMIT 5;
     // ========================================
     createCodeTask('w5d2-chroma-production', 'Chroma 프로덕션 패턴 실습', 50, {
       introduction: `
-## 학습 목표
-- Chroma를 프로덕션 환경에서 사용하는 방법을 학습한다
-- 영구 저장, 메타데이터 필터링, 배치 처리를 구현한다
-- LangChain과 통합하여 RAG 시스템을 구축한다
+## 왜 배우는가?
+
+**문제**: Chroma를 처음 쓰면 "인메모리로 데이터가 날아갔어요!", "검색이 느려요!", "메타데이터 필터는 어떻게 써요?" 같은 문제에 부딪힙니다.
+
+**해결**: 프로덕션 수준의 Chroma 사용법을 익히면 데이터 영구 저장, 빠른 검색, 정밀 필터링이 가능합니다.
 
 ---
 
-## 설치 및 기본 설정
+## 비유: Chroma = 똑똑한 파일 캐비닛
+
+\`\`\`
+일반 파일 캐비닛 (기존 DB)
+- 파일 이름으로만 검색 (정확한 키워드 필요)
+- "2024년 AI 문서" → 못 찾음
+
+Chroma (벡터 검색 캐비닛)
+- 내용의 의미로 검색
+- "인공지능 최신 기술" → "2024년 AI 문서" 찾음
+- 태그(메타데이터)로도 필터: "2024년" AND "AI" AND "김철수 작성"
+\`\`\`
+
+---
+
+## 핵심 구현 (간소화)
+
+\`\`\`python
+# 📌 Step 1: 영구 저장 설정
+import chromadb
+
+client = chromadb.PersistentClient(
+    path="./my_vectordb"  # ✅ 이 폴더에 영구 저장
+)
+
+collection = client.get_or_create_collection(
+    name="my_docs",
+    metadata={"hnsw:space": "cosine"}  # 코사인 유사도
+)
+
+# 📌 Step 2: 메타데이터와 함께 문서 추가
+documents = ["RAG는 검색 증강 생성입니다.", "Chroma는 벡터 DB입니다."]
+metadatas = [
+    {"category": "AI", "year": 2024, "author": "김철수"},
+    {"category": "Database", "year": 2024, "author": "이영희"}
+]
+ids = ["doc1", "doc2"]
+
+collection.add(
+    documents=documents,
+    metadatas=metadatas,
+    ids=ids
+)
+
+# 📌 Step 3: 필터링 검색
+results = collection.query(
+    query_texts=["데이터베이스 기술"],
+    n_results=2,
+    where={"category": "Database"}  # 🔍 필터: Database 카테고리만
+)
+
+print(results)
+
+# 📌 Step 4: LangChain 통합
+from langchain_chroma import Chroma
+from langchain_openai import OpenAIEmbeddings
+
+vectorstore = Chroma(
+    collection_name="my_docs",
+    embedding_function=OpenAIEmbeddings(),
+    persist_directory="./my_vectordb"
+)
+
+# Retriever로 사용
+retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+docs = retriever.invoke("RAG란?")
+\`\`\`
+
+---
+
+## 전체 코드 (상세)
+
+### 설치 및 기본 설정
 
 \`\`\`bash
 pip install chromadb langchain-chroma langchain-openai
@@ -1163,9 +1236,9 @@ collection = client.get_or_create_collection("my_collection")
 \`\`\`
       `,
       keyPoints: [
-        'PersistentClient로 영구 저장',
-        '메타데이터 필터링으로 정밀 검색',
-        'LangChain 통합으로 RAG 파이프라인 구축',
+        '💾 PersistentClient로 영구 저장',
+        '🔍 메타데이터 필터링으로 정밀 검색',
+        '🔗 LangChain 통합으로 RAG 파이프라인 구축',
       ],
       practiceGoal: 'Chroma를 프로덕션 수준으로 활용할 수 있다',
     }),
@@ -1175,14 +1248,107 @@ collection = client.get_or_create_collection("my_collection")
     // ========================================
     createCodeTask('w5d2-pinecone-production', 'Pinecone 프로덕션 패턴 실습', 50, {
       introduction: `
-## 학습 목표
-- Pinecone을 대규모 프로덕션 환경에서 사용하는 방법을 학습한다
-- 네임스페이스, 메타데이터 필터링, 배치 업서트를 구현한다
-- 하이브리드 검색 (Dense + Sparse)을 이해한다
+## 왜 배우는가?
+
+**문제**: Chroma는 프로토타입에 좋지만, 수백만 문서를 다루는 프로덕션에서는 한계가 있습니다.
+- 대규모 데이터 처리 어려움
+- 성능 최적화 직접 해야 함
+- 인프라 관리 부담
+
+**해결**: Pinecone은 관리형 서비스로 대규모 프로덕션에 최적화되어 있습니다.
 
 ---
 
-## Pinecone 계정 설정
+## 비유: Chroma vs Pinecone = 개인 서버 vs 클라우드
+
+\`\`\`
+Chroma (개인 서버)
+- 내가 직접 관리
+- 작은 규모에 적합
+- 무료지만 관리 부담
+
+Pinecone (AWS 같은 클라우드)
+- 자동 확장, 자동 백업
+- 수십억 벡터 처리 가능
+- 유료지만 관리 편함
+- 네임스페이스로 멀티테넌트 지원
+\`\`\`
+
+---
+
+## 핵심 구현 (간소화)
+
+\`\`\`python
+# 📌 Step 1: Pinecone 클라이언트 초기화
+from pinecone import Pinecone
+import os
+
+pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
+
+# 📌 Step 2: 인덱스 생성 (한 번만)
+index_name = "my-rag-index"
+if index_name not in [idx.name for idx in pc.list_indexes()]:
+    pc.create_index(
+        name=index_name,
+        dimension=1536,  # text-embedding-3-small
+        metric="cosine"
+    )
+
+index = pc.Index(index_name)
+
+# 📌 Step 3: 문서 업서트 (메타데이터 포함)
+from openai import OpenAI
+client = OpenAI()
+
+def get_embedding(text):
+    return client.embeddings.create(
+        input=text,
+        model="text-embedding-3-small"
+    ).data[0].embedding
+
+vectors = [
+    {
+        "id": "doc1",
+        "values": get_embedding("RAG는 검색 증강 생성입니다."),
+        "metadata": {"category": "AI", "year": 2024}
+    },
+    {
+        "id": "doc2",
+        "values": get_embedding("Pinecone은 벡터 DB입니다."),
+        "metadata": {"category": "Database", "year": 2024}
+    }
+]
+
+index.upsert(vectors=vectors)
+
+# 📌 Step 4: 필터링 검색
+query_emb = get_embedding("데이터베이스 기술")
+
+results = index.query(
+    vector=query_emb,
+    top_k=2,
+    filter={"category": {"$eq": "Database"}},  # 🔍 필터
+    include_metadata=True
+)
+
+print(results)
+
+# 📌 Step 5: 네임스페이스로 멀티테넌트
+# 고객 A의 데이터
+index.upsert(vectors=vectors_a, namespace="customer_a")
+
+# 고객 B의 데이터
+index.upsert(vectors=vectors_b, namespace="customer_b")
+
+# 고객 A만 검색
+results_a = index.query(vector=query_emb, namespace="customer_a", top_k=5)
+\`\`\`
+
+---
+
+## 전체 코드 (상세)
+
+### Pinecone 계정 설정
 
 \`\`\`
 1. https://www.pinecone.io 가입
@@ -1550,9 +1716,9 @@ answer = qa.invoke("Pinecone과 LangChain을 어떻게 통합하나요?")
 | **성장 경로** | 개발 → Pinecone 이전 | 바로 프로덕션 |
       `,
       keyPoints: [
-        'Pinecone은 대규모 프로덕션에 최적화된 관리형 서비스',
-        '네임스페이스로 멀티테넌트 구현',
-        'LangChain 통합으로 빠른 RAG 구축',
+        '☁️ Pinecone은 대규모 프로덕션에 최적화된 관리형 서비스',
+        '🏢 네임스페이스로 멀티테넌트 구현',
+        '🔗 LangChain 통합으로 빠른 RAG 구축',
       ],
       practiceGoal: 'Pinecone을 프로덕션 수준으로 활용할 수 있다',
     }),

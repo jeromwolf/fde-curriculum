@@ -78,6 +78,35 @@ const task2 = createCodeTask(
   40,
   {
     introduction: `
+## 왜 배우는가?
+
+### 문제 상황
+Neo4j에 직접 Cypher 쿼리를 작성하는 것은 복잡합니다.
+LangChain은 **자동으로 스키마를 파악**하고, Python에서 쉽게 Neo4j를 사용하게 해줍니다.
+
+일반 접근: Cypher 쿼리 문자열 작성 → 에러 디버깅 반복
+LangChain 접근: \`graph.schema\` → 자동으로 노드/관계 파악
+
+---
+
+## 비유: API 문서 자동 생성
+
+\`\`\`
+수동 작업:
+  → DB 테이블 보고 SQL 작성
+  → 컬럼명 오타로 에러
+  → 다시 확인하고 수정
+
+LangChain Neo4jGraph:
+  → graph.schema 호출
+  → "Company 노드에 name, industry 속성 있음" 자동 파악
+  → LLM이 정확한 Cypher 생성 가능
+\`\`\`
+
+**스키마 자동 추출 = 데이터베이스 자동 문서화**
+
+---
+
 ## Neo4jGraph 상세 활용
 
 ### 연결 설정
@@ -141,41 +170,45 @@ graph.query('''
 \`\`\`
 `,
     keyPoints: [
-      '환경 변수 또는 직접 파라미터로 연결 설정',
-      'graph.schema로 스키마 자동 추출',
-      'graph.query()로 직접 Cypher 실행 가능',
-      'refresh_schema()로 스키마 갱신',
+      '🔌 환경 변수 또는 직접 파라미터로 연결 설정',
+      '📋 graph.schema로 스키마 자동 추출',
+      '⚡ graph.query()로 직접 Cypher 실행 가능',
+      '🔄 refresh_schema()로 스키마 갱신',
     ],
     practiceGoal: 'Neo4jGraph 연결 및 기본 사용법 실습',
     codeExample: `from langchain_community.graphs import Neo4jGraph
 
-# Neo4j 연결
+# 📌 Step 1: Neo4j 연결
 graph = Neo4jGraph(
     url="bolt://localhost:7687",
     username="neo4j",
     password="password"
 )
 
-# 스키마 확인
+# 📌 Step 2: 스키마 자동 추출
 print("=== Schema ===")
 print(graph.schema)
+# 출력: Node properties: Company (name, industry)
+#       Relationships: COMPETES_WITH
 
-# 샘플 데이터 생성
+# 📌 Step 3: 샘플 데이터 생성
 graph.query('''
     MERGE (a:Company {name: '삼성전자'})
     MERGE (b:Company {name: 'SK하이닉스'})
     MERGE (a)-[:COMPETES_WITH]->(b)
 ''')
 
-# 쿼리 실행
+# 📌 Step 4: 쿼리 실행
 results = graph.query('''
     MATCH (c:Company)
     RETURN c.name as name
     LIMIT 5
 ''')
+
 print("\\n=== Companies ===")
 for r in results:
-    print(r['name'])`,
+    print(r['name'])
+# 출력: 삼성전자, SK하이닉스`,
   }
 )
 
@@ -186,6 +219,38 @@ const task3 = createCodeTask(
   50,
   {
     introduction: `
+## 왜 배우는가?
+
+### 문제 상황
+사용자는 "삼성전자의 경쟁사는?"이라고 자연어로 질문합니다.
+하지만 Neo4j는 Cypher 쿼리만 이해합니다:
+\`\`\`cypher
+MATCH (c:Company {name: '삼성전자'})-[:COMPETES_WITH]->(comp)
+RETURN comp.name
+\`\`\`
+
+**GraphCypherQAChain = 자연어 → Cypher → 자연어 변환기**
+
+---
+
+## 비유: 번역가
+
+\`\`\`
+사용자 (한국어): "삼성전자의 경쟁사는?"
+    ↓
+번역가 (GraphCypherQAChain):
+    → LLM: "이 질문을 Cypher로 변환해줘"
+    → Cypher: MATCH (c:Company {name: '삼성전자'})-[:COMPETES_WITH]->(comp)
+    → Neo4j: [SK하이닉스, Intel...]
+    → LLM: "이 결과를 자연어로 답변해줘"
+    ↓
+사용자에게: "삼성전자의 주요 경쟁사는 SK하이닉스와 Intel입니다."
+\`\`\`
+
+**사용자는 자연어만, DB는 Cypher만 → Chain이 중간에서 번역**
+
+---
+
 ## GraphCypherQAChain
 
 자연어 질문을 Cypher로 변환하고 결과를 자연어로 응답합니다.
@@ -274,38 +339,42 @@ chain = GraphCypherQAChain.from_llm(
 \`\`\`
 `,
     keyPoints: [
-      'GraphCypherQAChain: 자연어 → Cypher → 결과 → 자연어 응답',
-      '커스텀 프롬프트로 도메인 특화 가능',
-      'validate_cypher로 위험한 쿼리 차단',
-      'verbose=True로 생성된 Cypher 확인',
+      '🔄 GraphCypherQAChain: 자연어 → Cypher → 결과 → 자연어 응답',
+      '⚙️ 커스텀 프롬프트로 도메인 특화 가능',
+      '🛡️ validate_cypher로 위험한 쿼리 차단',
+      '🔍 verbose=True로 생성된 Cypher 확인',
     ],
     practiceGoal: 'GraphCypherQAChain 구현 및 커스터마이징',
     codeExample: `from langchain_community.graphs import Neo4jGraph
 from langchain.chains import GraphCypherQAChain
 from langchain_openai import ChatOpenAI
 
-# 연결
+# 📌 Step 1: Neo4j 연결
 graph = Neo4jGraph(
     url="bolt://localhost:7687",
     username="neo4j",
     password="password"
 )
 
-# LLM
+# 📌 Step 2: LLM 설정
 llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-# Chain 생성
+# 📌 Step 3: GraphCypherQAChain 생성
 chain = GraphCypherQAChain.from_llm(
     llm=llm,
     graph=graph,
-    verbose=True,
+    verbose=True,  # 생성된 Cypher 출력
     return_intermediate_steps=True
 )
 
-# 질문
+# 📌 Step 4: 자연어 질문
 result = chain.invoke({"query": "삼성전자와 경쟁하는 회사들은?"})
+
 print("Answer:", result['result'])
-print("Cypher:", result['intermediate_steps'][0]['query'])`,
+print("Generated Cypher:", result['intermediate_steps'][0]['query'])
+# 출력 예시:
+# Answer: 삼성전자의 주요 경쟁사는 SK하이닉스와 Intel입니다.
+# Generated Cypher: MATCH (c:Company {name: '삼성전자'})-[:COMPETES_WITH]->(comp) RETURN comp.name`,
   }
 )
 

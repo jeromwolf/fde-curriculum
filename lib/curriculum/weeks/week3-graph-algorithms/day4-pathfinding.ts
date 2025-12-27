@@ -414,12 +414,27 @@ const task3DijkstraPractice = createCodeTask(
   'Dijkstra 알고리즘 실습',
   30,
   [
-    'GDS에서 Dijkstra 실행',
-    '경로 결과 해석',
-    '다양한 경로 쿼리 작성'
+    '🚀 GDS에서 Dijkstra 실행',
+    '📍 경로 결과 해석',
+    '🗺️ 다양한 경로 쿼리 작성'
   ],
   `
 # Dijkstra 알고리즘 실습
+
+## 🎯 왜 배우는가?
+
+### 문제 상황
+물류 회사에서 "어떤 경로로 배송하는 게 가장 저렴한가?" 매일 고민합니다.
+- 직선 거리가 아니라 실제 도로 비용이 중요
+- 교통 상황에 따라 시간과 비용이 다름
+- 여러 경유지를 거쳐야 할 수도 있음
+
+### 해결책: Dijkstra 알고리즘
+> 🚚 **비유**: 네비게이션 경로 탐색
+> - 출발지에서 가장 가까운 곳부터 차례대로 방문
+> - 각 지점까지의 "누적 비용"을 계속 업데이트
+> - 더 싼 경로를 발견하면 기록 갱신
+> - 최종적으로 모든 지점의 최저 비용 확정!
 
 물류 네트워크 데이터를 사용하여 최적 배송 경로를 찾습니다.
 
@@ -437,19 +452,19 @@ const task3DijkstraPractice = createCodeTask(
   `
 // 실습 시작 코드
 
-// 1. 그래프 프로젝션 (비용 가중치)
+// 📌 Step 1: 그래프 프로젝션 생성 (비용 가중치)
 CALL gds.graph.project(
   'logistics-network',
-  '___',  // 노드 라벨
+  '___',  // TODO: 'Warehouse'
   {
     ROUTE: {
-      properties: ['___'],  // cost 사용
-      orientation: '___'
+      properties: ['___'],  // TODO: 'cost'
+      orientation: '___'  // TODO: 'UNDIRECTED'
     }
   }
 );
 
-// 2. 본사(HQ)에서 창고 E까지 최단 경로
+// 📌 Step 2: HQ → 창고 E 최단 경로
 MATCH (source:Warehouse {name: 'HQ'}),
       (target:Warehouse {name: 'Warehouse_E'})
 CALL gds.shortestPath.dijkstra.stream('___', {
@@ -460,10 +475,10 @@ CALL gds.shortestPath.dijkstra.stream('___', {
 YIELD totalCost, nodeIds, costs
 RETURN
   [nodeId IN nodeIds | gds.util.asNode(nodeId).name] AS route,
-  totalCost AS totalCost,
+  totalCost,
   costs;
 
-// 3. 본사에서 모든 창고까지의 최단 거리
+// 📌 Step 3: HQ에서 모든 창고까지 최단 경로
 MATCH (source:Warehouse {name: 'HQ'})
 CALL gds.allShortestPaths.dijkstra.stream('___', {
   sourceNode: ___,
@@ -476,13 +491,13 @@ RETURN
   size(nodeIds) - 1 AS hops
 ORDER BY totalCost;
 
-// 4. 본사 → 창고 E 대안 경로 3개 (Yen's K-shortest)
+// 📌 Step 4: 대안 경로 3개 찾기 (Yen's K-shortest)
 MATCH (source:Warehouse {name: 'HQ'}),
       (target:Warehouse {name: 'Warehouse_E'})
 CALL gds.shortestPath.yens.stream('___', {
   sourceNode: ___,
   targetNode: ___,
-  k: ___,
+  k: ___,  // TODO: 3
   relationshipWeightProperty: '___'
 })
 YIELD index, totalCost, nodeIds
@@ -491,7 +506,7 @@ RETURN
   totalCost,
   [n IN nodeIds | gds.util.asNode(n).name] AS path;
 
-// 5. 비용 vs 시간 비교 (두 번째 프로젝션)
+// 📌 Step 5: 비용 vs 시간 비교
 // TODO: time 속성으로 새 프로젝션 만들고 비교
   `,
   `
@@ -943,12 +958,27 @@ const task6PathPractice = createCodeTask(
   '최단 경로 종합 실습',
   30,
   [
-    'BFS, Dijkstra, Delta-Stepping 비교',
-    '다양한 경로 쿼리 작성',
-    '성능 측정 및 분석'
+    '⚡ BFS, Dijkstra, Delta-Stepping 비교',
+    '🛤️ 다양한 경로 쿼리 작성',
+    '📊 성능 측정 및 분석'
   ],
   `
 # 최단 경로 종합 실습
+
+## 🎯 왜 배우는가?
+
+### 문제 상황
+항공권 검색에서 "최적"의 정의가 사람마다 다릅니다.
+- 어떤 사람은 가장 저렴한 경로를 원함
+- 어떤 사람은 환승 최소 경로를 원함
+- 어떤 사람은 시간이 짧은 경로를 원함
+
+### 해결책: 다양한 경로 탐색 알고리즘
+> ✈️ **비유**: 여행 계획 세우기
+> - **BFS**: 환승 적은 경로 (홉 수 최소)
+> - **Dijkstra**: 가격 싼 경로 (비용 최소)
+> - **Delta-Stepping**: 모든 공항까지 빠르게 계산 (병렬)
+> - **Yen's K-Shortest**: 대안 경로 여러 개 보기
 
 항공 노선 네트워크를 분석하여 최적 경로를 찾습니다.
 
