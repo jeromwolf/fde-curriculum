@@ -16,6 +16,9 @@ export function Navigation() {
               <Link href="/curriculum" className="text-gray-600 hover:text-gray-900 font-medium">
                 전체 과정
               </Link>
+              <Link href="/leaderboard" className="text-gray-600 hover:text-gray-900 font-medium flex items-center gap-1">
+                <span>🏆</span> 리더보드
+              </Link>
               <Link href="/curriculum" className="text-gray-600 hover:text-gray-900 font-medium">
                 자격증
               </Link>

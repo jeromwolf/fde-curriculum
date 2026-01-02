@@ -1,5 +1,246 @@
 # FDE Academy - 개발 로그
 
+## 2025-12-31: 리더보드 & 게이미피케이션 시스템 구현
+
+### 🎯 목표
+학습 동기 부여를 위한 포인트/뱃지/리더보드 시스템 구현
+
+### ✅ 완료된 작업
+
+#### 1. Prisma 스키마 확장
+
+**새로 추가된 모델**:
+| 모델 | 설명 |
+|------|------|
+| `PointHistory` | 포인트 획득/차감 이력 |
+| `Badge` | 뱃지 정의 (16개) |
+| `UserBadge` | 사용자 획득 뱃지 |
+| `Streak` | 연속 학습 추적 |
+| `UserLevel` | 사용자 레벨/순위 (캐시 테이블) |
+
+**마이그레이션**: `20251231022255_add_gamification`
+
+#### 2. 포인트 시스템
+
+| 활동 | 포인트 |
+|------|--------|
+| 비디오 시청 완료 | +10 |
+| 읽기 자료 완료 | +5 |
+| 코딩 과제 완료 | +20 |
+| 퀴즈 완료 | +15 |
+| 퀴즈 만점 보너스 | +10 |
+| 주간 완료 | +50 |
+| Phase 완료 | +200 |
+| 연속 학습 보너스 | 일수 x 5 |
+
+**레벨 공식**: `level = floor(sqrt(points / 50)) + 1`
+
+#### 3. 뱃지 시스템 (16개)
+
+**Milestone**:
+- 첫 발걸음 (첫 로그인)
+- 시작이 반 (첫 태스크 완료)
+- 주간 정복자 (첫 주차 완료)
+- Phase 마스터 (첫 Phase 완료)
+
+**Streak**:
+- 일주일 전사 (7일 연속)
+- 2주의 끈기 (14일 연속)
+- 한 달의 헌신 (30일 연속)
+- 백일의 전설 (100일 연속)
+
+**Mastery**:
+- 완벽주의자 (퀴즈 만점)
+- 퀴즈 마스터 (10개 퀴즈 만점)
+- 코드 닌자 (50개 코딩 완료)
+
+**Community**:
+- 목소리를 내다 (첫 게시글)
+- 도움의 손길 (도움된 댓글 10개)
+
+**Special**:
+- 얼리 어답터 (베타 테스터)
+- FDE 마스터 (전체 완료)
+
+**뱃지 등급**: COMMON → UNCOMMON → RARE → EPIC → LEGENDARY
+
+#### 4. API 엔드포인트
+
+| 엔드포인트 | 설명 |
+|------------|------|
+| `GET /api/leaderboard` | 리더보드 조회 (순위, 포인트, 뱃지) |
+| `GET /api/user/gamification` | 내 게이미피케이션 프로필 |
+| `POST /api/admin/seed-badges` | 뱃지 초기 데이터 시딩 |
+
+#### 5. 리더보드 UI (`/leaderboard`)
+
+**기능**:
+- 전체 순위 테이블 (Top 50)
+- 사용자별 레벨, 포인트, 연속학습일, 뱃지 표시
+- 내 현황 카드 (로그인 시)
+  - 레벨 & 다음 레벨 진행률
+  - 총 포인트
+  - 연속 학습 (🔥 스트릭)
+  - 획득 뱃지 목록
+- 포인트 획득 방법 가이드
+- 뱃지 등급 범례
+
+#### 6. 학습 완료 시 자동 포인트 지급
+
+`app/api/progress/route.ts` 수정:
+- 태스크 완료 시 `awardTaskPoints()` 호출
+- 중복 지급 방지 (이미 완료된 태스크)
+- 퀴즈 만점 보너스 자동 지급
+- 연속 학습 자동 업데이트
+
+### 📁 신규/수정 파일
+
+**스키마**:
+- `prisma/schema.prisma` - 게이미피케이션 모델 추가
+
+**서비스**:
+- `lib/services/gamification.ts` (NEW) - 포인트/뱃지/리더보드 로직
+
+**API**:
+- `app/api/leaderboard/route.ts` (NEW)
+- `app/api/user/gamification/route.ts` (NEW)
+- `app/api/admin/seed-badges/route.ts` (NEW)
+- `app/api/progress/route.ts` - 포인트 자동 지급 연동
+
+**UI**:
+- `app/leaderboard/page.tsx` (NEW) - 리더보드 페이지
+- `components/learn/Navigation.tsx` - 리더보드 링크 추가
+
+### 🚀 배포 (v2.4)
+
+```bash
+# 이미지 빌드
+gcloud builds submit --tag gcr.io/kss-platform-jerom-2024/fde-academy:v2.4 --project=kss-platform-jerom-2024
+
+# Cloud Run 배포
+gcloud run deploy fde-academy \
+  --image=gcr.io/kss-platform-jerom-2024/fde-academy:v2.4 \
+  --region=asia-northeast3 \
+  --allow-unauthenticated \
+  --memory=512Mi \
+  --cpu=1 \
+  --port=3000 \
+  --project=kss-platform-jerom-2024
+```
+
+**배포 이력**:
+| 날짜 | 버전 | 리비전 | 변경사항 |
+|------|------|--------|---------|
+| 2025-12-31 | v2.4 | fde-academy-00008-92c | 리더보드, 포인트/뱃지 시스템 |
+| 2025-12-24 | v2.3 | fde-academy-00028-pmv | 퀴즈 기능, YouTube 플레이어 |
+
+### 🔗 접속 URL
+
+- **리더보드**: https://fde-academy.ai.kr/leaderboard
+- **메인**: https://fde-academy.ai.kr
+
+---
+
+## 2025-12-29: 커리큘럼 현황 최신화
+
+### 📊 현재 커리큘럼 완성도
+
+**Phase 3 (Knowledge Graph) - 8주 전체 완료!**
+
+| Week | 제목 | 파일 | Tasks | 학습시간 |
+|------|------|------|-------|----------|
+| 1 | 그래프 이론 & Neo4j 입문 | `graph-intro.ts` (167KB) | 49개 | 12시간 |
+| 2 | Cypher 심화 & 데이터 모델링 | `week2-cypher-modeling/` | 52개 | 19시간 |
+| 3 | 그래프 알고리즘 | `week3-graph-algorithms/` | ~50개 | 18시간 |
+| 4 | Entity Resolution | `week4-entity-resolution/` | ~50개 | 18시간 |
+| 5 | RAG 기초 | `week5-rag-basics/` | ~50개 | 18시간 |
+| 6 | GraphRAG | `week6-graph-rag/` | ~50개 | 18시간 |
+| 7 | Text2Cypher | `week7-text2cypher/` | ~50개 | 18시간 |
+| 8 | KG 프로젝트 | `week8-kg-project/` | ~50개 | 20시간 |
+
+**Phase 1 (데이터 엔지니어링 기초)**
+| Week | 제목 | 상태 |
+|------|------|------|
+| 1 | Python 심화 | ✅ `python-advanced.ts` |
+| 2-8 | 미작성 | ❌ |
+
+**전체 현황**:
+```
+Phase 1: 1/8주 완료 (12.5%)
+Phase 2: 0/8주 완료 (0%)
+Phase 3: 8/8주 완료 (100%) ✅
+Phase 4: 0/8주 완료 (0%)
+Phase 5: 0/8주 완료 (0%)
+Phase 6: 0/8주 완료 (0%)
+
+총: 48주 중 9주 완료 (약 19%)
+```
+
+### 🔗 시뮬레이터 연계 (KSS-Ontology)
+
+| Week | 시뮬레이터 | URL |
+|------|-----------|-----|
+| Week 2 | Cypher Playground | `/simulators/cypher-playground` |
+| Week 3 | Graph Algorithms | `/simulators/graph-algorithms` |
+| Week 5 | Embedding Visualizer | `/simulators/embedding-visualizer` |
+| Week 6 | GraphRAG Pipeline | `/simulators/graphrag-pipeline` |
+| Week 7 | Text2Cypher | `/simulators/text2cypher` |
+
+### 🚀 배포 현황
+
+| 환경 | URL | 상태 |
+|------|-----|------|
+| 프로덕션 | https://fde-academy.ai.kr | ✅ 운영 중 |
+| Vercel | https://fde-curriculum-simple.vercel.app | ✅ 운영 중 |
+| Cloud Run | https://fde-academy-827760573017.asia-northeast3.run.app | ✅ 운영 중 |
+
+### 📁 주요 파일 구조
+
+```
+lib/curriculum/
+├── index.ts              # 메인 진입점 (9개 Week 등록)
+├── types.ts              # 타입 정의
+├── packages.ts           # 패키지 정보
+└── weeks/
+    ├── python-advanced.ts     # Phase 1 Week 1
+    ├── graph-intro.ts         # Phase 3 Week 1 (167KB)
+    ├── cypher-modeling.ts     # Phase 3 Week 2 (구버전)
+    ├── week2-cypher-modeling/ # Phase 3 Week 2 (신버전)
+    ├── week3-graph-algorithms/
+    ├── week4-entity-resolution/
+    ├── week5-rag-basics/
+    ├── week6-graph-rag/
+    ├── week7-text2cypher/
+    └── week8-kg-project/
+```
+
+### 🔄 최근 주요 커밋
+
+```
+57596b0 refactor: Week 2-8 전체 CodeTask 템플릿 패턴 적용
+5b62764 refactor: Day 6 콘텐츠 템플릿 적용 및 Week 완료 버튼 수정
+0c5173b feat: Pyodide Python 실행 기능 및 Week 5 Day 6 sLLM 콘텐츠 추가
+c460f11 feat: Week 3-7 커리큘럼에 시뮬레이터 연계 추가
+938a08e feat: Week 5 RAG 기초로 변경 (RDF/OWL 삭제)
+```
+
+### 📋 다음 작업
+
+1. **Phase 1 Week 2-8 콘텐츠 제작**
+   - SQL 기초, 데이터 파이프라인, dbt, Airflow 등
+
+2. **Phase 2 전체 콘텐츠 제작**
+   - ML/데이터 분석 기초
+
+3. **영상 제작**
+   - 각 Week의 video task에 실제 YouTube 영상 연결
+
+4. **퀴즈 시스템 고도화**
+   - 점수 DB 저장
+   - 오답 노트 기능
+
+---
+
 ## 2025-12-24: UI 개선, 퀴즈 기능, 콘텐츠 보강
 
 ### 완료된 작업
@@ -338,4 +579,4 @@ Week
 
 ---
 
-*최종 업데이트: 2025-12-24*
+*최종 업데이트: 2025-12-31*

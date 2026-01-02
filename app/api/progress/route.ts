@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { awardTaskPoints } from '@/lib/services/gamification'
 
 // GET: 사용자의 진행 상태 조회
 export async function GET(request: NextRequest) {
@@ -40,11 +41,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { taskId, weekSlug, completed, score } = await request.json()
+  const { taskId, weekSlug, completed, score, taskType } = await request.json()
 
   if (!taskId || !weekSlug) {
     return NextResponse.json({ error: 'taskId and weekSlug are required' }, { status: 400 })
   }
+
+  // 이전 상태 확인 (중복 포인트 방지)
+  const existingProgress = await prisma.progress.findUnique({
+    where: {
+      userId_taskId: {
+        userId: session.user.id,
+        taskId,
+      },
+    },
+  })
+
+  const wasCompleted = existingProgress?.completed ?? false
 
   const progress = await prisma.progress.upsert({
     where: {
@@ -68,5 +81,24 @@ export async function POST(request: NextRequest) {
     },
   })
 
-  return NextResponse.json({ progress })
+  // 포인트 지급 (처음 완료할 때만)
+  let pointsAwarded = { points: 0, bonusPoints: 0 }
+  if (completed && !wasCompleted && taskType) {
+    try {
+      pointsAwarded = await awardTaskPoints(
+        session.user.id,
+        taskId,
+        taskType as 'video' | 'reading' | 'code' | 'quiz',
+        weekSlug,
+        score
+      )
+    } catch (error) {
+      console.error('Failed to award points:', error)
+    }
+  }
+
+  return NextResponse.json({
+    progress,
+    pointsAwarded: pointsAwarded.points + pointsAwarded.bonusPoints,
+  })
 }

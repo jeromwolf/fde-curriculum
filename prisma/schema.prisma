@@ -43,6 +43,12 @@ model User {
   mentionedIn   Mention[]  @relation("MentionedUser")
   mentionsMade  Mention[]  @relation("MentionerUser")
 
+  // Gamification Relations
+  pointHistory  PointHistory[]
+  badges        UserBadge[]
+  streak        Streak?
+  level         UserLevel?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -597,4 +603,143 @@ enum SubStatus {
   CANCELLED  // 해지됨
   EXPIRED    // 만료됨
   PAUSED     // 일시정지
+}
+
+// ============================================
+// Gamification (포인트 & 뱃지 시스템)
+// ============================================
+
+// 포인트 이력
+model PointHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  points      Int      // 획득 포인트 (양수: 획득, 음수: 차감)
+  reason      PointReason
+  description String?  // 상세 설명
+
+  // 관련 태스크 정보
+  taskId      String?  // 관련 태스크 ID
+  weekSlug    String?  // 관련 주차
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("point_history")
+}
+
+enum PointReason {
+  VIDEO_COMPLETE      // 비디오 시청 완료 (+10)
+  READING_COMPLETE    // 읽기 자료 완료 (+5)
+  CODE_COMPLETE       // 코딩 과제 완료 (+20)
+  QUIZ_COMPLETE       // 퀴즈 완료 (+15)
+  QUIZ_PERFECT        // 퀴즈 만점 보너스 (+10)
+  WEEK_COMPLETE       // 주간 완료 (+50)
+  PHASE_COMPLETE      // Phase 완료 (+200)
+  STREAK_BONUS        // 연속 학습 보너스
+  FIRST_LOGIN         // 첫 로그인 (+10)
+  PROFILE_COMPLETE    // 프로필 완성 (+20)
+  POST_CREATED        // 게시글 작성 (+5)
+  COMMENT_HELPFUL     // 도움된 댓글 (+10)
+  BADGE_EARNED        // 뱃지 획득 보너스
+  ADMIN_ADJUST        // 관리자 조정
+}
+
+// 뱃지 정의
+model Badge {
+  id          String   @id @default(cuid())
+  code        String   @unique  // 'first_login', 'week_complete', 'streak_7' 등
+  name        String   // '첫 발걸음', '주간 정복자'
+  description String   // 획득 조건 설명
+  iconUrl     String?  // 뱃지 아이콘 URL
+  category    BadgeCategory
+  rarity      BadgeRarity @default(COMMON)
+
+  // 획득 조건 (JSON으로 저장)
+  condition   String?  @db.Text  // JSON: {"type": "streak", "value": 7}
+
+  // 보너스 포인트
+  bonusPoints Int      @default(0)
+
+  // Relations
+  userBadges  UserBadge[]
+
+  createdAt   DateTime @default(now())
+
+  @@map("badges")
+}
+
+enum BadgeCategory {
+  MILESTONE    // 이정표 (첫 로그인, 첫 완료 등)
+  STREAK       // 연속 학습
+  MASTERY      // 숙달 (Phase 완료, 퀴즈 만점 등)
+  COMMUNITY    // 커뮤니티 활동
+  SPECIAL      // 특별 이벤트
+}
+
+enum BadgeRarity {
+  COMMON       // 일반 (회색)
+  UNCOMMON     // 비일반 (녹색)
+  RARE         // 희귀 (파란색)
+  EPIC         // 영웅 (보라색)
+  LEGENDARY    // 전설 (금색)
+}
+
+// 사용자 획득 뱃지
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  earnedAt  DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+// 연속 학습 추적
+model Streak {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  currentStreak Int      @default(0)  // 현재 연속 일수
+  longestStreak Int      @default(0)  // 최장 연속 일수
+  lastActiveAt  DateTime @default(now())  // 마지막 활동일
+
+  // 연속 학습 통계
+  totalActiveDays Int    @default(0)  // 총 활동 일수
+
+  updatedAt     DateTime @updatedAt
+
+  @@map("streaks")
+}
+
+// 사용자 레벨 (캐시 테이블 - 성능 최적화)
+model UserLevel {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  totalPoints   Int      @default(0)   // 총 포인트
+  level         Int      @default(1)   // 현재 레벨
+  rank          Int?     // 전체 순위 (주기적 업데이트)
+
+  // 통계
+  tasksCompleted    Int  @default(0)
+  weeksCompleted    Int  @default(0)
+  phasesCompleted   Int  @default(0)
+  quizAvgScore      Float? // 퀴즈 평균 점수
+
+  updatedAt     DateTime @updatedAt
+
+  @@index([totalPoints(sort: Desc)])
+  @@index([level(sort: Desc)])
+  @@map("user_levels")
 }
