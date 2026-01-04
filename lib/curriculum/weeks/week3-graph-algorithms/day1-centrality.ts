@@ -779,6 +779,11 @@ const centralityPracticeInstructions = `# 중심성 알고리즘 실습
 
 ## 🎯 왜 배우는가?
 
+### Week 2와의 연결
+> **Week 2**에서 Cypher 고급 쿼리와 Object Type 설계를 배웠습니다.
+> 이제 **GDS (Graph Data Science)** 라이브러리로 그래프 분석 알고리즘을 실행합니다.
+> 단순 쿼리를 넘어 **과학적 그래프 분석**의 영역으로 진입합니다.
+
 ### 문제 상황
 회사 조직에서 "누가 진짜 핵심 인물인가?"를 파악하기 어렵습니다.
 - 직급으로는 매니저지만, 실제 영향력은 낮을 수 있음
@@ -791,6 +796,67 @@ const centralityPracticeInstructions = `# 중심성 알고리즘 실습
 > - **PageRank**: 인기있는 사람의 친구 (영향력)
 > - **Betweenness**: 다른 그룹을 연결하는 사람 (브로커)
 > - **Closeness**: 모두에게 빨리 전달 가능한 사람 (전파력)
+
+---
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [프로젝션] 그래프 프로젝션 없이 알고리즘 실행
+
+**증상**: \`Unknown graph\` 에러
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 프로젝션 생성 없이 바로 실행
+CALL gds.pageRank.stream('myGraph')  // Error: Unknown graph 'myGraph'
+\`\`\`
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 프로젝션 먼저 생성
+CALL gds.graph.project('myGraph', 'Person', 'KNOWS')  // 1) 프로젝션 생성
+CALL gds.pageRank.stream('myGraph')                    // 2) 알고리즘 실행
+\`\`\`
+
+> **기억하세요**: GDS 알고리즘은 반드시 프로젝션된 그래프에서 실행됩니다.
+
+---
+
+### 2. [방향성] UNDIRECTED 미설정으로 잘못된 결과
+
+**증상**: 예상보다 낮은 Degree, Closeness 값
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 친구 관계를 단방향으로 처리
+CALL gds.graph.project('graph', 'Person', 'FRIENDS_WITH')
+// FRIENDS_WITH는 양방향이어야 하는데, A→B만 계산됨
+\`\`\`
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 양방향 관계 명시
+CALL gds.graph.project('graph', 'Person',
+  {FRIENDS_WITH: {orientation: 'UNDIRECTED'}})
+\`\`\`
+
+---
+
+### 3. [모드 선택] stream vs write vs mutate 혼동
+
+**증상**: 결과가 저장되지 않거나, 불필요한 저장으로 성능 저하
+
+| 모드 | 결과 저장 위치 | 사용 시점 |
+|------|---------------|----------|
+| **stream** | 반환만 (저장 X) | 탐색, 테스트 |
+| **write** | 노드 속성에 저장 | 영구 저장 필요 시 |
+| **mutate** | 프로젝션에만 저장 | 연속 알고리즘 실행 시 |
+
+\`\`\`cypher
+// 탐색 단계: stream 사용 (빠름, 저장 X)
+CALL gds.pageRank.stream('graph') YIELD nodeId, score ...
+
+// 분석 완료 후: write 사용 (영구 저장)
+CALL gds.pageRank.write('graph', {writeProperty: 'pagerank'})
+\`\`\`
+
+---
 
 ## 목표
 GDS 라이브러리를 사용하여 소셜 네트워크에서 핵심 인물을 찾습니다.
@@ -876,35 +942,166 @@ const centralityPracticeStarterCode = `// ======================================
 // 중심성 알고리즘 실습
 // ============================================
 
-// 📌 Step 1: 그래프 프로젝션 생성
+// ========================================
+// 과제 1: 그래프 프로젝션 생성
+// ========================================
+
+// [WHY] 왜 그래프 프로젝션이 필요한가?
+// - GDS 알고리즘은 Neo4j DB를 직접 조회하지 않습니다
+// - 메모리에 최적화된 그래프 구조를 생성해야 빠른 분석 가능
+// - 필요한 노드/관계만 선택하여 메모리 효율성 확보
+
+// [SELECTION GUIDE] 프로젝션 설정 선택 기준:
+// - 노드 레이블: 분석 대상만 선택 (불필요한 노드 제외)
+// - 관계 방향성:
+//   * NATURAL: 원본 방향 유지 (예: FOLLOWS - 누가 누구를 팔로우)
+//   * REVERSE: 방향 반전 (예: 역방향 영향력 분석)
+//   * UNDIRECTED: 무방향 (예: 협업, 친구 관계 - 양방향 동등)
+
+// [TODO] 구현할 내용:
+// Step 1: 노드 레이블 지정 - 'Employee'
+// Step 2: 관계 유형 3개 설정 (COLLABORATES_WITH, REPORTS_TO, MENTORS)
+// Step 3: 모든 관계를 UNDIRECTED로 설정 (조직 네트워크는 양방향 영향)
+
+// [HINT] 관계 설정 형식:
+// { RELATION_NAME: {orientation: 'UNDIRECTED'} }
+
 CALL gds.graph.project(
   'orgGraph',
-  // TODO: 노드 레이블
+  // TODO: 노드 레이블 지정
   ,
-  // TODO: 관계 설정 (UNDIRECTED로)
+  // TODO: 관계 설정 - 3개 관계, 모두 UNDIRECTED
+  {
+
+  }
 )
-
-// 📌 Step 2: Degree Centrality - 가장 많은 연결
-// TODO: 상위 5명 찾기
-
-
-// 📌 Step 3: PageRank - 영향력 분석
-// TODO: 영향력 있는 상위 5명 찾기
+YIELD graphName, nodeCount, relationshipCount
+RETURN graphName, nodeCount, relationshipCount;
 
 
-// 📌 Step 4: Betweenness - 브로커 역할
-// TODO: 브로커 역할의 상위 5명 찾기
+// ========================================
+// 과제 2: Degree Centrality
+// ========================================
+
+// [WHY] Degree Centrality는 무엇을 측정하는가?
+// - 노드의 직접 연결 수 = 가장 단순한 중심성 지표
+// - 비즈니스 의미: "가장 많은 사람과 직접 일하는 직원"
+// - 높은 Degree = 정보 전파의 허브, 과부하 위험
+
+// [SELECTION GUIDE] 언제 Degree Centrality를 사용?
+// - 직접적인 연결 수가 중요할 때
+// - 네트워크의 허브를 빠르게 찾을 때
+// - 계산 비용이 가장 낮음 (O(n))
+
+// [TODO] 구현할 내용:
+// Step 1: gds.degree.stream('orgGraph') 호출
+// Step 2: YIELD nodeId, score로 결과 받기
+// Step 3: gds.util.asNode(nodeId)로 노드 속성 접근
+// Step 4: ORDER BY score DESC, LIMIT 5
+
+CALL gds.degree.stream('orgGraph')
+// TODO: YIELD, RETURN, ORDER BY, LIMIT 추가
 
 
-// 📌 Step 5: 종합 분석 - 모든 지표 비교
-// TODO: 모든 중심성 지표를 노드에 저장하고 비교
+// ========================================
+// 과제 3: PageRank
+// ========================================
+
+// [WHY] PageRank는 Degree와 어떻게 다른가?
+// - Degree: 직접 연결 수만 계산
+// - PageRank: "중요한 노드와 연결되면 나도 중요" (간접 영향력)
+// - 비즈니스 의미: "영향력 있는 사람들과 연결된 직원"
+
+// [SELECTION GUIDE] PageRank 파라미터:
+// - maxIterations (기본: 20): 수렴 반복 횟수
+//   * 작은 그래프: 10-20 충분
+//   * 큰 그래프: 50-100 필요할 수 있음
+// - dampingFactor (기본: 0.85): 랜덤 점프 확률
+//   * 0.85: 표준값 (85% 링크 따라감, 15% 랜덤)
+//   * 높을수록 링크 구조 중시, 낮을수록 균등 분배
+
+// [TODO] 구현할 내용:
+// Step 1: gds.pageRank.stream 호출
+// Step 2: maxIterations: 20, dampingFactor: 0.85 설정
+// Step 3: score를 소수점 3자리로 반올림: round(score * 1000) / 1000
+
+CALL gds.pageRank.stream('orgGraph', {
+  // TODO: 파라미터 설정
+})
+// TODO: YIELD, RETURN, ORDER BY, LIMIT 추가
+
+
+// ========================================
+// 과제 4: Betweenness Centrality
+// ========================================
+
+// [WHY] Betweenness는 무엇을 측정하는가?
+// - "다른 노드들 사이의 최단 경로에 얼마나 자주 등장하는가"
+// - 비즈니스 의미: "정보 흐름의 병목점/브로커 역할"
+// - 높은 Betweenness = 부서 간 소통의 핵심 인물
+
+// [SELECTION GUIDE] Betweenness vs 다른 중심성:
+// - 부서 간 협업 브로커 찾기 → Betweenness
+// - 전체 영향력 측정 → PageRank
+// - 단순 연결 수 → Degree
+// - 정보 전파 속도 → Closeness
+
+// [TODO] 구현할 내용:
+// Step 1: gds.betweenness.stream 호출
+// Step 2: brokerScore로 별칭 지정
+// Step 3: round(score * 100) / 100 으로 소수점 처리
+
+CALL gds.betweenness.stream('orgGraph')
+// TODO: YIELD, RETURN, ORDER BY, LIMIT 추가
+
+
+// ========================================
+// 과제 5: 종합 분석
+// ========================================
+
+// [WHY] 왜 여러 중심성을 비교해야 하는가?
+// - 각 중심성은 다른 측면을 측정
+// - 종합적으로 봐야 진정한 "핵심 인물" 파악 가능
+// - 예: PageRank 높지만 Betweenness 낮음 = 영향력은 있지만 병목점은 아님
+
+// [SELECTION GUIDE] stream vs write 선택:
+// - stream: 즉시 결과 확인, 저장 X, 탐색용
+// - write: DB에 영구 저장, 후속 쿼리에서 사용 가능
+// - mutate: 프로젝션에만 저장, DB에는 X
+
+// [TODO] 구현할 내용:
+// Step 1: 4개 지표를 write 모드로 저장 (degree, pagerank, betweenness, closeness)
+// Step 2: MATCH로 Employee 노드 조회
+// Step 3: 저장된 속성으로 종합 비교
+
+// 지표 저장
+CALL gds.degree.write('orgGraph', {writeProperty: 'degree'});
+// TODO: pagerank, betweenness, closeness도 write
+
+// 종합 비교
+// TODO: MATCH (e:Employee) RETURN ... ORDER BY pagerank DESC
 `
 
 const centralityPracticeSolutionCode = `// ============================================
 // 중심성 알고리즘 실습 - 정답
 // ============================================
 
+
+// ========================================
 // 과제 1: 그래프 프로젝션 생성
+// ========================================
+
+// [WHY] 왜 프로젝션이 GDS의 첫 단계인가?
+// - GDS 알고리즘은 메모리 최적화된 그래프 구조에서만 실행됩니다
+// - 원본 DB가 아닌 프로젝션을 대상으로 연산하여 성능 최적화
+// - 필요한 노드/관계만 선택하여 메모리 효율성 확보
+
+// [STEP 1] gds.graph.project 호출
+// [PARAM] 'orgGraph': 프로젝션 이름 (나중에 알고리즘에서 참조)
+// [PARAM] 'Employee': 분석 대상 노드 레이블
+// [PARAM] orientation: 'UNDIRECTED': 양방향 관계로 변환
+//   - 조직 네트워크에서 협업/보고/멘토링은 양방향 영향력이 있음
+//   - NATURAL은 원본 방향 유지, REVERSE는 방향 반전
 CALL gds.graph.project(
   'orgGraph',
   'Employee',
@@ -917,47 +1114,127 @@ CALL gds.graph.project(
 YIELD graphName, nodeCount, relationshipCount
 RETURN graphName, nodeCount, relationshipCount;
 
+// [RESULT] 예상 결과:
+// | graphName | nodeCount | relationshipCount |
+// | 'orgGraph' | 15        | 42               |
+// (15명 직원, 관계 수는 UNDIRECTED로 인해 양방향 카운트)
 
+
+// ========================================
 // 과제 2: Degree Centrality
+// ========================================
+
+// [WHY] Degree Centrality를 먼저 분석하는 이유?
+// - 가장 단순하고 직관적인 지표 (연결 수)
+// - 계산 비용이 가장 낮음 O(n)
+// - 네트워크의 기본 구조를 파악하는 첫 단계
+
+// [STEP 1] gds.degree.stream 호출
+// [PARAM] 'orgGraph': 위에서 생성한 프로젝션 이름
+// [ALTERNATIVE] stream vs write: 탐색 단계에서는 stream이 적절 (결과만 확인)
 CALL gds.degree.stream('orgGraph')
 YIELD nodeId, score
+// [STEP 2] gds.util.asNode(nodeId)로 원본 노드 속성 접근
+// nodeId는 내부 ID이므로 변환 필요
 RETURN gds.util.asNode(nodeId).name AS employee,
        gds.util.asNode(nodeId).department AS department,
        score AS connections
 ORDER BY connections DESC
 LIMIT 5;
 
+// [RESULT] 예상 결과:
+// | employee        | department   | connections |
+// | VP Engineering  | Engineering  | 6           | ← 다양한 관계 허브
+// | Manager A       | Engineering  | 5           |
+// | CTO Park        | Engineering  | 4           |
+// [INSIGHT] 높은 Degree = 과부하 위험, 병목점이 될 수 있음
 
+
+// ========================================
 // 과제 3: PageRank
+// ========================================
+
+// [WHY] PageRank가 Degree보다 더 의미있는 이유?
+// - Degree: 단순 연결 수
+// - PageRank: "중요한 노드와 연결되면 나도 중요" (간접 영향력 포함)
+// - CEO와 연결된 사람 vs 신입과 연결된 사람 → PageRank가 구분
+
+// [STEP 1] gds.pageRank.stream 호출 with 파라미터
+// [PARAM] maxIterations: 20 - 알고리즘 수렴 반복 횟수
+//   - 작은 그래프(100 노드 미만)에서는 10-20이면 충분
+//   - 큰 그래프에서는 50-100 필요할 수 있음
+// [PARAM] dampingFactor: 0.85 - Google 논문의 표준값
+//   - 85% 확률로 링크 따라감, 15% 확률로 랜덤 점프
+//   - 높을수록 링크 구조 중시, 낮을수록 균등 분배
 CALL gds.pageRank.stream('orgGraph', {
   maxIterations: 20,
   dampingFactor: 0.85
 })
 YIELD nodeId, score
+// [STEP 2] score를 round로 소수점 처리 (가독성)
+// round(score * 1000) / 1000 → 소수점 3자리
 RETURN gds.util.asNode(nodeId).name AS employee,
        gds.util.asNode(nodeId).department AS department,
        round(score * 1000) / 1000 AS influence
 ORDER BY influence DESC
 LIMIT 5;
 
+// [RESULT] 예상 결과:
+// | employee       | department   | influence |
+// | CEO Kim        | Executive    | 2.156     | ← 최고 의사결정권자
+// | CTO Park       | Engineering  | 1.892     |
+// | VP Engineering | Engineering  | 1.543     |
+// [INSIGHT] PageRank는 조직 계층과 상관관계가 높음
+// BUT Degree와 순위가 다를 수 있음 (양보다 질)
 
+
+// ========================================
 // 과제 4: Betweenness Centrality
+// ========================================
+
+// [WHY] Betweenness가 조직 분석에서 중요한 이유?
+// - "다른 사람들 사이의 최단 경로에 얼마나 자주 등장하는가"
+// - 높은 Betweenness = 정보 흐름의 병목점/브로커
+// - 부서 간 협업의 핵심 인물 식별에 최적
+
+// [STEP 1] gds.betweenness.stream 호출
+// Betweenness는 계산 비용이 높음 O(n*e) - 큰 그래프에서 주의
 CALL gds.betweenness.stream('orgGraph')
 YIELD nodeId, score
+// [STEP 2] brokerScore로 별칭 지정 (비즈니스 의미 부여)
+// round(score * 100) / 100 → 소수점 2자리
 RETURN gds.util.asNode(nodeId).name AS employee,
        gds.util.asNode(nodeId).department AS department,
        round(score * 100) / 100 AS brokerScore
 ORDER BY brokerScore DESC
 LIMIT 5;
 
+// [RESULT] 예상 결과:
+// | employee       | department   | brokerScore |
+// | Manager A      | Engineering  | 45.67       | ← 부서 간 브로커!
+// | VP Engineering | Engineering  | 32.15       |
+// | CTO Park       | Engineering  | 28.90       |
+// [INSIGHT] Betweenness TOP ≠ PageRank TOP
+// Manager A는 영향력(PageRank)보다 연결 중개(Betweenness)에서 더 중요
 
+
+// ========================================
 // 과제 5: 종합 분석 - 모든 지표 저장
+// ========================================
+
+// [WHY] 왜 write 모드로 저장하는가?
+// - stream: 즉시 결과 확인, 저장 X (탐색용)
+// - write: DB에 영구 저장 → 후속 쿼리에서 사용 가능
+// - 종합 분석에서 여러 지표를 비교하려면 저장 필요
+
+// [STEP 1] 4개 중심성 지표를 DB에 저장
+// [PARAM] writeProperty: 저장할 속성 이름
 CALL gds.degree.write('orgGraph', {writeProperty: 'degree'});
 CALL gds.pageRank.write('orgGraph', {writeProperty: 'pagerank'});
 CALL gds.betweenness.write('orgGraph', {writeProperty: 'betweenness'});
 CALL gds.closeness.write('orgGraph', {writeProperty: 'closeness'});
 
-// 종합 비교
+// [STEP 2] 종합 비교 - 저장된 속성으로 조회
 MATCH (e:Employee)
 RETURN e.name AS employee,
        e.department AS department,
@@ -968,8 +1245,21 @@ RETURN e.name AS employee,
        round(e.closeness * 1000) / 1000 AS closeness
 ORDER BY e.pagerank DESC;
 
+// [RESULT] 각 직원의 4가지 중심성 지표를 한눈에 비교
+// 다른 지표에서 높은 사람이 다를 수 있음!
 
-// 핵심 인물 종합 점수 (정규화 후 합산)
+
+// ========================================
+// 보너스: 핵심 인물 종합 점수
+// ========================================
+
+// [WHY] 종합 점수가 필요한 이유?
+// - 각 중심성은 다른 측면을 측정
+// - 단일 지표로 "핵심 인물"을 정의하기 어려움
+// - 정규화 후 합산으로 종합적 평가
+
+// [STEP 1] Window 함수로 최대값 계산 (정규화용)
+// [PARAM] max() OVER (): 전체 데이터셋에서 최대값
 MATCH (e:Employee)
 WITH e,
      e.degree AS degree,
@@ -981,14 +1271,31 @@ WITH e, degree, pr, bt, cl,
      max(pr) OVER () AS maxPR,
      max(bt) OVER () AS maxBT,
      max(cl) OVER () AS maxCL
+// [STEP 2] 정규화 후 합산 (각 지표 0-1 범위로 변환)
+// * 25: 총점 100점 만점 (4개 지표 × 25)
 RETURN e.name AS employee,
        e.department AS department,
        round((degree/maxDeg + pr/maxPR + bt/maxBT + cl/maxCL) * 25) AS compositeScore
 ORDER BY compositeScore DESC
 LIMIT 5;
 
+// [RESULT] 예상 결과:
+// | employee       | department   | compositeScore |
+// | VP Engineering | Engineering  | 87             | ← 종합 1위!
+// | CTO Park       | Engineering  | 82             |
+// | Manager A      | Engineering  | 79             |
+// [INSIGHT] 종합 점수 TOP = 진정한 "핵심 인물"
+// 여러 측면에서 고르게 높은 중심성을 가진 사람
 
-// 프로젝션 정리
+
+// ========================================
+// 정리: 프로젝션 삭제
+// ========================================
+
+// [WHY] 프로젝션을 삭제하는 이유?
+// - 프로젝션은 메모리에 상주 → 불필요 시 메모리 낭비
+// - 같은 이름으로 새 프로젝션 생성 시 충돌
+// - 분석 완료 후 항상 정리하는 습관!
 CALL gds.graph.drop('orgGraph');
 `
 

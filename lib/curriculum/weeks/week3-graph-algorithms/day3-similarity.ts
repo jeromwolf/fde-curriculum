@@ -397,58 +397,206 @@ const task3JaccardPractice = createCodeTask(
 - Customer 노드 (10명)
 - Book 노드 (15권)
 - PURCHASED 관계
+
+---
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [프로젝션] 이분 그래프에서 한 종류 노드만 포함
+
+**증상**: 유사도 결과가 없거나 이상함
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - Customer만 포함
+CALL gds.graph.project('graph', ['Customer'], 'PURCHASED')
+// → Book 노드가 없어서 공유 이웃 계산 불가!
+\`\`\`
+
+**왜 잘못되었나**:
+- 유사도는 "공유 이웃"을 측정
+- Customer의 이웃은 Book
+- Book을 포함해야 공유 이웃(공통 구매 책) 계산 가능
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 두 종류 노드 모두 포함
+CALL gds.graph.project('graph', ['Customer', 'Book'], 'PURCHASED')
+\`\`\`
+
+**기억할 점**:
+> 유사도 알고리즘은 이분 그래프(Bipartite Graph)에서 작동합니다.
+> 두 종류의 노드를 모두 포함해야 합니다.
+
+---
+
+### 2. [임계값] similarityCutoff 없이 대규모 실행
+
+**증상**: 메모리 부족, 너무 많은 관계 생성
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 모든 쌍 저장
+CALL gds.nodeSimilarity.write('graph', {
+  writeRelationshipType: 'SIMILAR'
+})
+// → N명 고객 → N*(N-1)/2 관계 = 폭발!
+\`\`\`
+
+**왜 잘못되었나**:
+- 10,000명 고객 → 약 5천만 관계 생성
+- 대부분 유사도 0.1 미만의 무의미한 관계
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 임계값 + topK 설정
+CALL gds.nodeSimilarity.write('graph', {
+  writeRelationshipType: 'SIMILAR',
+  similarityCutoff: 0.3,  // 30% 이상만
+  topK: 10  // 노드당 최대 10개
+})
+\`\`\`
+
+**기억할 점**:
+> 실무에서는 항상 similarityCutoff와 topK를 설정하세요.
   `,
   `
-// 실습 시작 코드
+// ============================================
+// Jaccard Similarity 실습
+// ============================================
 
-// 📌 Step 1: 샘플 데이터 확인
-// Customer, Book 노드와 PURCHASED 관계 (이미 생성됨)
 
-// 📌 Step 2: 그래프 프로젝션 생성
+// ========================================
+// 과제 1: 그래프 프로젝션 생성
+// ========================================
+
+// [WHY] 왜 두 종류의 노드가 필요한가?
+// - Jaccard는 "공유 이웃"을 측정
+// - Customer의 이웃 = 구매한 Book
+// - 두 Customer가 같은 Book을 구매하면 유사
+// - Book 노드 없이는 공유 이웃 계산 불가
+
+// [SELECTION GUIDE] 이분 그래프 (Bipartite Graph):
+// - 두 종류 노드: Customer ↔ Book
+// - 한 종류 노드끼리는 직접 연결 없음
+// - PURCHASED 관계가 두 종류를 연결
+
+// [TODO] 구현할 내용:
+// Step 1: 노드 라벨 배열: ['Customer', 'Book']
+// Step 2: PURCHASED 관계를 UNDIRECTED로 설정
+
 CALL gds.graph.project(
   'customer-book',
-  // TODO: 노드 라벨 배열 ['Customer', 'Book']
-  ___,
-  // TODO: 관계 타입 설정
-  ___
+  // TODO: 노드 라벨 배열 지정
+  ,
+  // TODO: 관계 타입 설정 (UNDIRECTED 권장)
+  {
+
+  }
 );
 
-// 📌 Step 3: Jaccard Similarity 계산
-CALL gds.nodeSimilarity.stream('___', {
-  similarityMetric: '___',  // JACCARD
-  topK: ___  // 5
+
+// ========================================
+// 과제 2: Jaccard Similarity 계산
+// ========================================
+
+// [WHY] gds.nodeSimilarity 사용하는 이유?
+// - Jaccard, Overlap, Cosine 등 다양한 메트릭 지원
+// - 효율적인 대규모 계산 (모든 쌍 O(N²) 최적화)
+// - topK, threshold 필터링 내장
+
+// [SELECTION GUIDE] stream vs write:
+// - stream: 결과 확인, 저장 X (탐색용)
+// - write: DB에 관계로 저장 (프로덕션용)
+// - mutate: 프로젝션에만 저장
+
+// [TODO] 구현할 내용:
+// Step 1: gds.nodeSimilarity.stream 호출
+// Step 2: similarityMetric: 'JACCARD' 설정
+// Step 3: topK: 5 (노드당 상위 5개)
+// Step 4: gds.util.asNode()로 노드 이름 추출
+
+CALL gds.nodeSimilarity.stream('customer-book', {
+  // TODO: similarityMetric 설정
+  // TODO: topK 설정
 })
 YIELD node1, node2, similarity
 RETURN
-  ___ AS customer1,  // gds.util.asNode(node1).name
-  ___ AS customer2,
+  // TODO: gds.util.asNode(node1).name
+  AS customer1,
+  // TODO: gds.util.asNode(node2).name
+  AS customer2,
   round(similarity, 3) AS jaccard
 ORDER BY jaccard DESC;
 
-// 📌 Step 4: 유사도 0.3 이상만 저장
-CALL gds.nodeSimilarity.write('___', {
+
+// ========================================
+// 과제 3: 유사도 관계 저장
+// ========================================
+
+// [WHY] 유사도를 관계로 저장하는 이유?
+// - 실시간 추천에서 빠른 조회 가능
+// - MATCH (c1)-[:SIMILAR_TO]->(c2) 간단한 쿼리
+// - 유사도 점수를 관계 속성으로 저장
+
+// [SELECTION GUIDE] 임계값 설정:
+// - similarityCutoff: 최소 유사도 (0.3 = 30% 공유)
+// - topK: 노드당 최대 유사 노드 수
+// 실무에서는 둘 다 설정 권장 (메모리/스토리지 보호)
+
+// [TODO] 구현할 내용:
+// Step 1: gds.nodeSimilarity.write 호출
+// Step 2: writeRelationshipType: 'SIMILAR_TO'
+// Step 3: writeProperty: 'score'
+// Step 4: similarityCutoff: 0.3
+
+CALL gds.nodeSimilarity.write('customer-book', {
   similarityMetric: 'JACCARD',
-  writeRelationshipType: '___',  // SIMILAR_TO
-  writeProperty: '___',  // score
-  similarityCutoff: ___  // 0.3
+  // TODO: 나머지 파라미터 설정
 })
 YIELD nodesCompared, relationshipsWritten
 RETURN nodesCompared, relationshipsWritten;
 
-// 📌 Step 5: 저장된 관계 확인
+
+// ========================================
+// 과제 4: 저장된 관계 확인
+// ========================================
+
+// [WHY] 저장된 유사도 관계 활용?
+// - 추천 쿼리에서 직접 사용
+// - "유사한 고객이 구매한 상품" 추천 가능
+
 MATCH (c1:Customer)-[s:SIMILAR_TO]->(c2:Customer)
 RETURN c1.name, c2.name, s.score
 ORDER BY s.score DESC
 LIMIT 10;
   `,
   `
-// 정답 코드
+// ============================================
+// Jaccard Similarity 실습 - 정답
+// ============================================
 
-// 1. 샘플 데이터 확인
+
+// ========================================
+// 과제 0: 샘플 데이터 확인
+// ========================================
+
+// [WHY] 데이터 구조를 먼저 파악하는 이유?
+// - 알고리즘 적용 전 데이터 검증
+// - 각 고객이 구매한 책 목록 확인
+// - "공유 이웃" = 공통 구매 책 이해
 MATCH (c:Customer)-[:PURCHASED]->(b:Book)
 RETURN c.name, collect(b.title) AS purchasedBooks;
 
-// 2. 그래프 프로젝션 생성
+
+// ========================================
+// 과제 1: 그래프 프로젝션 생성
+// ========================================
+
+// [WHY] 이분 그래프 프로젝션이 필요한 이유?
+// - Jaccard는 "공유 이웃"으로 유사도 측정
+// - Customer 입장에서 이웃 = 구매한 Book
+// - Book을 포함해야 두 Customer의 공유 Book 계산 가능
+
+// [STEP 1] 두 종류 노드 포함
+// [PARAM] ['Customer', 'Book']: 이분 그래프의 두 파티션
+// [PARAM] UNDIRECTED: 양방향으로 탐색 가능하게 설정
 CALL gds.graph.project(
   'customer-book',
   ['Customer', 'Book'],
@@ -459,19 +607,55 @@ CALL gds.graph.project(
   }
 );
 
-// 3. Jaccard Similarity 스트림 모드 실행
+// [RESULT] 프로젝션 생성 완료
+// Customer 10명, Book 15권, 관계 양방향화
+
+
+// ========================================
+// 과제 2: Jaccard Similarity 계산
+// ========================================
+
+// [WHY] stream 모드로 먼저 확인하는 이유?
+// - 저장 전에 결과 미리 확인
+// - 임계값, topK 조정에 활용
+// - 탐색적 분석 단계
+
+// [STEP 1] gds.nodeSimilarity.stream 호출
+// [PARAM] similarityMetric: 'JACCARD' - Jaccard 계수 사용
+// [PARAM] topK: 5 - 노드당 가장 유사한 5개만 반환 (효율성)
 CALL gds.nodeSimilarity.stream('customer-book', {
   similarityMetric: 'JACCARD',
   topK: 5
 })
 YIELD node1, node2, similarity
+// [STEP 2] gds.util.asNode()로 노드 속성 접근
+// node1, node2는 내부 ID → 실제 노드로 변환 필요
 RETURN
   gds.util.asNode(node1).name AS customer1,
   gds.util.asNode(node2).name AS customer2,
   round(similarity, 3) AS jaccard
 ORDER BY jaccard DESC;
 
-// 4. 유사도 0.3 이상 관계만 그래프에 쓰기
+// [RESULT] 예상:
+// | customer1 | customer2 | jaccard |
+// | Alice     | Bob       | 0.667   | ← 3권 공유 / 5권 합집합
+// [INSIGHT] 비슷한 책을 산 고객일수록 높은 유사도
+
+
+// ========================================
+// 과제 3: 유사도 관계 저장
+// ========================================
+
+// [WHY] 유사도를 관계로 저장하는 이유?
+// - 실시간 추천 시 빠른 조회
+// - 복잡한 유사도 계산 미리 수행
+// - 추천 쿼리 단순화
+
+// [STEP 1] gds.nodeSimilarity.write 호출
+// [PARAM] writeRelationshipType: 저장할 관계 이름
+// [PARAM] writeProperty: 유사도 점수 저장 속성
+// [PARAM] similarityCutoff: 0.3 - 30% 미만은 저장 안 함
+//   - 실무에서 필수! 불필요한 관계 폭발 방지
 CALL gds.nodeSimilarity.write('customer-book', {
   similarityMetric: 'JACCARD',
   writeRelationshipType: 'SIMILAR_TO',
@@ -481,16 +665,36 @@ CALL gds.nodeSimilarity.write('customer-book', {
 YIELD nodesCompared, relationshipsWritten
 RETURN nodesCompared, relationshipsWritten;
 
-// 5. 저장된 SIMILAR_TO 관계 확인
+// [RESULT] nodesCompared: 10, relationshipsWritten: 15
+// [INSIGHT] 45개 가능한 쌍 중 15개만 저장 (30% 이상인 쌍만)
+
+
+// ========================================
+// 과제 4: 저장된 관계 확인
+// ========================================
+
+// [STEP 1] SIMILAR_TO 관계 조회
 MATCH (c1:Customer)-[s:SIMILAR_TO]->(c2:Customer)
 RETURN c1.name, c2.name, s.score
 ORDER BY s.score DESC
 LIMIT 10;
 
-// 6. 추천 시스템 활용 예시
-// 특정 고객과 유사한 고객이 구매한 책 추천
+// [RESULT] 유사도 높은 고객 쌍 확인
+
+
+// ========================================
+// 보너스: 추천 시스템 활용
+// ========================================
+
+// [WHY] 유사도 관계를 추천에 활용하는 방법?
+// - "나와 비슷한 고객이 산 책 = 내가 좋아할 책"
+// - Collaborative Filtering의 핵심 아이디어
+
+// [STEP 1] 타겟 고객과 유사한 고객 찾기
+// [STEP 2] 유사한 고객이 구매한 책 중 내가 안 산 책 추천
 MATCH (target:Customer {name: 'Alice'})-[sim:SIMILAR_TO]->(similar:Customer)
 MATCH (similar)-[:PURCHASED]->(book:Book)
+// [EDGE CASE] 타겟이 이미 구매한 책 제외
 WHERE NOT (target)-[:PURCHASED]->(book)
 RETURN DISTINCT book.title AS recommendation,
        count(*) AS recommendedBy,
@@ -498,7 +702,15 @@ RETURN DISTINCT book.title AS recommendation,
 ORDER BY recommendedBy DESC, avgSimilarity DESC
 LIMIT 5;
 
-// 정리
+// [RESULT] Alice에게 추천할 책 5권
+// [INSIGHT] 여러 유사 고객이 구매할수록 + 유사도 높을수록 추천 순위 상승
+
+
+// ========================================
+// 정리: 프로젝션 삭제
+// ========================================
+
+// [WHY] 분석 완료 후 정리
 CALL gds.graph.drop('customer-book');
   `,
   [

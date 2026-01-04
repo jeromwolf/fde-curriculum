@@ -823,13 +823,124 @@ Louvain과 결과를 비교하세요.
 
 ### 과제 5: 종합 분석
 어떤 연구자가 학제 간 협업의 브릿지 역할을 하나요?
+
+---
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [알고리즘 선택] 모든 상황에 Louvain만 사용
+
+**증상**: 대규모 실시간 처리에서 성능 저하
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 10억 노드에 Louvain
+CALL gds.louvain.stream('hugeGraph')
+// → 매우 느림, 메모리 부족
+\`\`\`
+
+**왜 잘못되었나**:
+- Louvain은 품질 좋지만 대규모에서 느림
+- 실시간 처리에는 Label Propagation이 적합
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 상황에 맞는 알고리즘 선택
+// 빠른 근사해가 필요하면 LPA
+CALL gds.labelPropagation.stream('hugeGraph', {
+  maxIterations: 5
+})
+// → O(E) 복잡도, 매우 빠름
+\`\`\`
+
+**기억할 점**:
+> 정확도 vs 속도 트레이드오프를 고려하세요.
+> - 품질 중시: Louvain
+> - 속도 중시: Label Propagation
+> - 연결 여부만: WCC
+
+---
+
+### 2. [파라미터] resolution 의미 오해
+
+**증상**: 원하는 크기의 커뮤니티를 못 찾음
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - resolution의 효과 모름
+CALL gds.louvain.stream('graph', {
+  resolution: 2.0  // "더 정밀하게"라고 생각
+})
+// → 실제로는 더 작은 커뮤니티 생성
+\`\`\`
+
+**왜 잘못되었나**:
+- resolution 높음 = 작은 커뮤니티 선호
+- resolution 낮음 = 큰 커뮤니티 선호
+- 직관과 반대일 수 있음
+
+\`\`\`cypher
+// ✅ 올바른 예시 - resolution 이해하고 사용
+// 큰 그룹을 찾고 싶다면
+CALL gds.louvain.stream('graph', {resolution: 0.5})
+
+// 세분화된 그룹을 찾고 싶다면
+CALL gds.louvain.stream('graph', {resolution: 1.5})
+\`\`\`
+
+**기억할 점**:
+> resolution↑ = 커뮤니티 크기↓, resolution↓ = 커뮤니티 크기↑
+
+---
+
+### 3. [결과 해석] LPA 결과가 매번 다름
+
+**증상**: 같은 데이터인데 커뮤니티가 계속 바뀜
+
+\`\`\`cypher
+// ❌ 문제 상황 - LPA 첫 실행
+CALL gds.labelPropagation.stream('graph')
+// 결과: A,B → 커뮤니티 1
+
+// LPA 두 번째 실행 (같은 데이터)
+CALL gds.labelPropagation.stream('graph')
+// 결과: A,B → 커뮤니티 2  // 바뀜!
+\`\`\`
+
+**왜 이런 현상?**:
+- LPA는 비결정적 알고리즘
+- 노드 방문 순서가 무작위
+- 동점일 때 무작위 선택
+
+\`\`\`cypher
+// ✅ 해결책 1: Seeded LPA로 안정화
+CALL gds.labelPropagation.stream('graph', {
+  seedProperty: 'existingCommunity'  // 초기값 지정
+})
+
+// ✅ 해결책 2: 결정적 결과 필요하면 Louvain
+CALL gds.louvain.stream('graph')  // 결정적
+\`\`\`
+
+**기억할 점**:
+> LPA는 빠르지만 비결정적입니다. 재현성이 필요하면 Louvain이나 Seeded LPA를 사용하세요.
 `
 
 const communityPracticeStarterCode = `// ============================================
 // 커뮤니티 탐지 실습
 // ============================================
 
-// 📌 Step 1: 그래프 프로젝션 생성
+
+// ========================================
+// 과제 1: 그래프 프로젝션 생성
+// ========================================
+
+// [WHY] 왜 공동저자 관계에 가중치를 사용하는가?
+// - 단순 연결보다 "협업 강도"가 커뮤니티 형성에 중요
+// - 논문 10편 공저 vs 1편 공저는 다른 의미
+// - 가중치 기반 커뮤니티 탐지가 더 정확
+
+// [SELECTION GUIDE] 프로젝션 설정:
+// - UNDIRECTED: 공저 관계는 양방향 (A와 B가 공저 = B와 A가 공저)
+// - properties: 'papers': 공동 저술 논문 수를 가중치로 사용
+
 CALL gds.graph.project(
   'researchGraph',
   'Researcher',
@@ -841,31 +952,150 @@ CALL gds.graph.project(
   }
 )
 
-// 📌 Step 2: Louvain 알고리즘 - 커뮤니티 자동 발견
-// TODO: Louvain 실행 및 커뮤니티 확인
+
+// ========================================
+// 과제 2: Louvain 알고리즘
+// ========================================
+
+// [WHY] Louvain을 먼저 실행하는 이유?
+// - 가장 높은 품질의 커뮤니티 탐지
+// - Modularity 최적화 = 이론적으로 가장 좋은 분할
+// - 기준선(baseline)으로 사용
+
+// [SELECTION GUIDE] Louvain 파라미터:
+// - relationshipWeightProperty: 가중치 사용 여부
+// - resolution: 커뮤니티 크기 조절 (기본 1.0)
+//   * < 1.0: 큰 커뮤니티
+//   * > 1.0: 작은 커뮤니티
+
+// [TODO] 구현할 내용:
+// Step 1: gds.louvain.stream 호출
+// Step 2: relationshipWeightProperty: 'papers' 설정
+// Step 3: communityId별로 멤버 그룹화
+// Step 4: Modularity 확인 (gds.louvain.stats)
+
+CALL gds.louvain.stream('researchGraph', {
+  // TODO: 가중치 파라미터 추가
+})
+// TODO: YIELD, RETURN 추가
 
 
-// 📌 Step 3: Label Propagation - 빠른 커뮤니티 탐지
-// TODO: LPA 실행 및 Louvain과 비교
+// ========================================
+// 과제 3: Label Propagation
+// ========================================
+
+// [WHY] LPA를 Louvain과 비교하는 이유?
+// - LPA는 매우 빠름 (O(E) vs Louvain O(n log n))
+// - 대규모 그래프에서 실용적
+// - 두 알고리즘 결과가 얼마나 일치하는지 확인
+
+// [SELECTION GUIDE] 언제 LPA를 선택?
+// - 속도가 중요할 때
+// - 실시간/스트리밍 처리
+// - 초기 탐색 단계
+// 주의: 비결정적 (매번 다른 결과 가능)
+
+// [TODO] 구현할 내용:
+// Step 1: gds.labelPropagation.stream 호출
+// Step 2: 가중치 적용 (relationshipWeightProperty)
+// Step 3: Louvain 결과와 비교 (커뮤니티 수, 크기 분포)
+
+CALL gds.labelPropagation.stream('researchGraph', {
+  // TODO: 가중치 파라미터 추가
+})
+// TODO: YIELD, RETURN 추가
 
 
-// 📌 Step 4: WCC - 연결 컴포넌트 확인
-// TODO: 연결 컴포넌트 분석
+// ========================================
+// 과제 4: WCC (Weakly Connected Components)
+// ========================================
+
+// [WHY] WCC를 실행하는 이유?
+// - 가장 기본적인 그래프 구조 확인
+// - "연결되어 있는가?" 질문에 답변
+// - 고립된 그룹/노드 발견
+
+// [SELECTION GUIDE] WCC vs SCC:
+// - WCC: 방향 무시, 연결 여부만 (무방향 그래프에 적합)
+// - SCC: 양방향 도달 가능성 (방향 그래프에 적합)
+// 여기서는 UNDIRECTED 그래프이므로 WCC 사용
+
+// [TODO] 구현할 내용:
+// Step 1: gds.wcc.stream 호출
+// Step 2: componentId별 노드 수 계산
+// Step 3: 고립된 노드 또는 작은 컴포넌트 확인
+
+CALL gds.wcc.stream('researchGraph')
+// TODO: YIELD, WITH, RETURN 추가
 
 
-// 📌 Step 5: Triangle Count - 밀집도 측정
-// TODO: 삼각형 수 계산 및 밀집 그룹 탐지
+// ========================================
+// 과제 5: Triangle Count & Clustering
+// ========================================
+
+// [WHY] 삼각형을 세는 이유?
+// - 삼각형 = 밀집된 관계의 기본 단위
+// - 삼각형이 많은 노드 = 응집력 있는 그룹의 핵심
+// - Clustering Coefficient로 "친구의 친구도 친구인 정도" 측정
+
+// [SELECTION GUIDE] Triangle Count vs Clustering Coefficient:
+// - Triangle Count: 절대적 삼각형 수
+// - Clustering Coefficient: 가능한 삼각형 대비 실제 비율
+// 둘 다 보면 밀집도의 절대값과 비율 파악 가능
+
+// [TODO] 구현할 내용:
+// Step 1: gds.triangleCount.stream 호출
+// Step 2: gds.localClusteringCoefficient.stream 호출
+// Step 3: 높은 값을 가진 연구자 = 밀집 그룹의 핵심
+
+CALL gds.triangleCount.stream('researchGraph')
+// TODO: YIELD, RETURN 추가
 
 
-// 📌 Step 6: 브릿지 분석 - 학제 간 연구자
-// TODO: Betweenness + Community 결합하여 브릿지 찾기
+// ========================================
+// 과제 6: 브릿지 분석 (종합)
+// ========================================
+
+// [WHY] 브릿지 연구자를 찾는 이유?
+// - 학제 간 협업 = 혁신의 원천
+// - 브릿지 = 다른 커뮤니티 간 정보 흐름의 핵심
+// - 조직에서 중요한 연결 역할
+
+// [SELECTION GUIDE] 브릿지 식별 방법:
+// 1. Betweenness Centrality: 최단 경로 위치
+// 2. 커뮤니티 간 연결 수: 다른 커뮤니티와 연결된 이웃 수
+// 두 지표를 결합하면 더 정확한 브릿지 식별
+
+// [TODO] 구현할 내용:
+// Step 1: Louvain으로 커뮤니티 저장 (write 모드)
+// Step 2: Betweenness Centrality 계산
+// Step 3: 학제 간 협업 수 계산 (다른 학과 공저자 수)
+// Step 4: 종합 점수로 브릿지 순위화
+
+// 커뮤니티 저장
+CALL gds.louvain.write('researchGraph', {
+  writeProperty: 'community',
+  // TODO: 가중치 파라미터 추가
+});
+
+// 브릿지 분석
+// TODO: Betweenness + 학제 간 연결 수 결합
 `
 
 const communityPracticeSolutionCode = `// ============================================
 // 커뮤니티 탐지 실습 - 정답
 // ============================================
 
-// 그래프 프로젝션 생성
+
+// ========================================
+// 과제 1: 그래프 프로젝션 생성
+// ========================================
+
+// [WHY] 가중치 프로젝션을 생성하는 이유?
+// - 공저 논문 수(papers)가 협업 강도를 나타냄
+// - 강한 협업 = 같은 커뮤니티에 속할 가능성 높음
+// - 가중치 없이 탐지하면 실제 그룹과 다를 수 있음
+
 CALL gds.graph.project(
   'researchGraph',
   'Researcher',
@@ -877,27 +1107,69 @@ CALL gds.graph.project(
   }
 );
 
+// [RESULT] 프로젝션 생성 완료
+// nodeCount: 9, relationshipCount: 22 (UNDIRECTED이므로 양방향)
 
-// 과제 1: Louvain 알고리즘
+
+// ========================================
+// 과제 2: Louvain 알고리즘
+// ========================================
+
+// [WHY] Louvain을 기준선으로 사용하는 이유?
+// - Modularity 최적화 = 이론적으로 가장 좋은 분할
+// - 품질이 높고 결정적 (매번 같은 결과)
+// - 다른 알고리즘과 비교할 기준
+
+// [STEP 1] Louvain 실행 with 가중치
+// [PARAM] relationshipWeightProperty: 'papers'
+//   - 공저 논문 수를 가중치로 사용
+//   - 많은 논문 공저 = 더 강한 연결
 CALL gds.louvain.stream('researchGraph', {
   relationshipWeightProperty: 'papers'
 })
 YIELD nodeId, communityId
+// [STEP 2] 커뮤니티별 멤버 그룹화
 WITH gds.util.asNode(nodeId) AS researcher, communityId
 RETURN communityId,
        collect(researcher.name) AS members,
        collect(researcher.dept)[0] AS mainDept
 ORDER BY communityId;
 
-// Modularity 확인
+// [RESULT] 예상 결과:
+// | communityId | members                          | mainDept |
+// | 0           | [Prof. Kim, Dr. Lee, ...]        | CS       |
+// | 1           | [Prof. Jung, Dr. Yoon, ...]      | Physics  |
+// | 2           | [Prof. Lim, Dr. Song]            | Math     |
+// [INSIGHT] 학과별로 커뮤니티가 형성됨 (실제 협업 패턴 반영)
+
+
+// [STEP 3] Modularity 확인
+// [WHY] Modularity 값으로 커뮤니티 품질 평가
+// Q > 0.3: 커뮤니티 구조 존재
+// Q > 0.7: 매우 뚜렷한 커뮤니티
 CALL gds.louvain.stats('researchGraph', {
   relationshipWeightProperty: 'papers'
 })
 YIELD modularity, communityCount
 RETURN modularity, communityCount;
 
+// [RESULT] modularity ≈ 0.45, communityCount = 3
+// [INSIGHT] 중간 수준의 커뮤니티 구조 (학과 간 협업 존재)
 
-// 과제 2: Label Propagation
+
+// ========================================
+// 과제 3: Label Propagation
+// ========================================
+
+// [WHY] LPA로 Louvain과 비교하는 이유?
+// - 속도 차이 확인 (LPA가 훨씬 빠름)
+// - 결과 일치도 확인 (유사하면 둘 다 신뢰)
+// - 비결정적 특성 이해
+
+// [STEP 1] LPA 실행
+// [ALTERNATIVE] Louvain vs LPA:
+//   - Louvain: 느리지만 정확, 결정적
+//   - LPA: 빠르지만 비결정적
 CALL gds.labelPropagation.stream('researchGraph', {
   relationshipWeightProperty: 'papers'
 })
@@ -908,16 +1180,42 @@ RETURN lpaComm,
        size(collect(researcher.name)) AS count
 ORDER BY count DESC;
 
+// [RESULT] 대체로 Louvain과 유사한 결과
+// [INSIGHT] 두 알고리즘이 비슷한 결과 = 커뮤니티 구조가 뚜렷함
 
-// 과제 3: WCC
+
+// ========================================
+// 과제 4: WCC (Weakly Connected Components)
+// ========================================
+
+// [WHY] WCC로 기본 연결 구조 확인?
+// - 네트워크가 하나로 연결되어 있는지 확인
+// - 고립된 노드/그룹 발견
+// - 커뮤니티 탐지 전 데이터 품질 검증
+
+// [STEP 1] WCC 실행
 CALL gds.wcc.stream('researchGraph')
 YIELD nodeId, componentId
+// [STEP 2] 컴포넌트별 크기 계산
 WITH componentId, count(*) AS size, collect(gds.util.asNode(nodeId).name) AS members
 RETURN componentId, size, members
 ORDER BY size DESC;
 
+// [RESULT] componentId=0, size=9, members=[모든 연구자]
+// [INSIGHT] 하나의 연결 컴포넌트 = 모든 연구자가 직간접적으로 연결됨
+// 학제 간 협업이 네트워크를 하나로 묶는 역할
 
-// 과제 4: Triangle Count
+
+// ========================================
+// 과제 5: Triangle Count & Clustering
+// ========================================
+
+// [WHY] 삼각형 분석이 중요한 이유?
+// - 삼각형 = "친구의 친구도 친구" 관계
+// - 많은 삼각형 = 밀집된 협업 그룹
+// - Clustering Coefficient = 밀집도의 비율 표현
+
+// [STEP 1] Triangle Count
 CALL gds.triangleCount.stream('researchGraph')
 YIELD nodeId, triangleCount
 WITH gds.util.asNode(nodeId) AS researcher, triangleCount
@@ -927,7 +1225,17 @@ RETURN researcher.name AS name,
        triangleCount
 ORDER BY triangleCount DESC;
 
-// Local Clustering Coefficient
+// [RESULT] 예상:
+// | name      | department | triangleCount |
+// | Prof. Kim | CS         | 3             | ← 학과 내 밀집 협업
+// [INSIGHT] 삼각형이 많은 연구자 = 학과 내 핵심 협업자
+
+
+// [STEP 2] Local Clustering Coefficient
+// [WHY] 비율로 밀집도를 보는 이유?
+// - 절대 수는 연결 많으면 자동으로 높음
+// - 비율은 "이웃들 간 연결 밀도" 측정
+// - CC = 1.0: 이웃들이 모두 서로 연결 (완전 그래프)
 CALL gds.localClusteringCoefficient.stream('researchGraph')
 YIELD nodeId, localClusteringCoefficient
 WITH gds.util.asNode(nodeId) AS researcher, localClusteringCoefficient AS cc
@@ -936,25 +1244,41 @@ RETURN researcher.name,
        round(cc * 1000) / 1000 AS clusteringCoeff
 ORDER BY clusteringCoeff DESC;
 
+// [RESULT] PhD 학생들이 높은 CC (학과 내에서만 협업)
+// [INSIGHT] 높은 CC + 낮은 삼각형 = 작은 밀집 그룹
+//          낮은 CC + 높은 삼각형 = 큰 그룹의 허브
 
-// 과제 5: 종합 분석 - 학제 간 브릿지 연구자
 
-// 먼저 커뮤니티 저장
+// ========================================
+// 과제 6: 브릿지 분석 (종합)
+// ========================================
+
+// [WHY] 브릿지 연구자 식별이 중요한 이유?
+// - 학제 간 협업 = 혁신의 원천
+// - 브릿지가 빠지면 네트워크 분리될 수 있음
+// - 조직에서 핵심 인물 파악
+
+// [STEP 1] 커뮤니티 정보를 DB에 저장
+// [PARAM] writeProperty: 노드 속성으로 저장
 CALL gds.louvain.write('researchGraph', {
   writeProperty: 'community',
   relationshipWeightProperty: 'papers'
 });
 
-// Betweenness 계산
+// [STEP 2] Betweenness Centrality 계산
+// [WHY] Betweenness = 최단 경로 위치
+// 높은 Betweenness = 정보 흐름의 병목점
 CALL gds.betweenness.stream('researchGraph')
 YIELD nodeId, score AS betweenness
 WITH gds.util.asNode(nodeId) AS researcher, betweenness
 
-// 학제 간 협업 수 계산
+// [STEP 3] 학제 간 협업 수 계산
+// [WHY] 다른 학과와 협업 = 실제 브릿지 역할
 MATCH (researcher)-[:COAUTHORED]-(coauthor:Researcher)
 WHERE researcher.dept <> coauthor.dept
 WITH researcher, betweenness, count(DISTINCT coauthor) AS interdisciplinaryLinks
 
+// [STEP 4] 결과 반환
 RETURN researcher.name AS bridgeResearcher,
        researcher.dept AS department,
        round(betweenness * 100) / 100 AS betweennessScore,
@@ -962,8 +1286,22 @@ RETURN researcher.name AS bridgeResearcher,
 ORDER BY betweennessScore DESC
 LIMIT 5;
 
+// [RESULT] 예상:
+// | bridgeResearcher | department | betweennessScore | interdisciplinaryLinks |
+// | Prof. Kim        | CS         | 15.5             | 1                      |
+// | Prof. Jung       | Physics    | 12.3             | 2                      |
+// [INSIGHT] Prof. Kim과 Prof. Jung이 학제 간 브릿지 역할
+// 이들이 빠지면 CS-Physics-Math 협업 네트워크가 단절됨
 
-// 프로젝션 정리
+
+// ========================================
+// 정리: 프로젝션 삭제
+// ========================================
+
+// [WHY] 분석 완료 후 정리하는 이유?
+// - 프로젝션은 메모리에 상주
+// - 불필요한 메모리 낭비 방지
+// - 같은 이름 재사용 시 충돌 방지
 CALL gds.graph.drop('researchGraph');
 `
 
