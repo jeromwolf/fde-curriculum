@@ -182,6 +182,80 @@ class GraphRAGEngine:
 `,
   keyPoints: ['LLM 기반 질문 분류', '키워드 기반 빠른 라우팅', '유형별 검색 파이프라인'],
   practiceGoal: 'Query Router 구현',
+  commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. 라우팅 실패 시 Fallback 없음
+**증상**: JSON 파싱 실패로 전체 쿼리 실패
+
+\`\`\`python
+# ❌ 잘못된 예시: 예외 처리 없음
+def route(self, question: str) -> Dict:
+    result = self.chain.invoke({"question": question})
+    data = json.loads(result.content)  # 파싱 실패 시 crash!
+    return {"type": QueryType(data["type"])}
+
+# ✅ 올바른 예시: Fallback 처리
+def route(self, question: str) -> Dict:
+    try:
+        result = self.chain.invoke({"question": question})
+        data = json.loads(result.content)
+        return {"type": QueryType(data["type"]), "reason": data.get("reason")}
+    except (json.JSONDecodeError, KeyError, ValueError) as e:
+        # 기본값: 하이브리드 (둘 다 검색)
+        return {"type": QueryType.HYBRID, "reason": f"분류 실패: {e}"}
+\`\`\`
+
+💡 **기억할 점**: LLM 응답은 항상 파싱 실패 가능성 고려, Fallback 필수
+
+### 2. 라우터 + 검색 이중 LLM 호출 → 지연
+**증상**: 응답 시간 3초 이상
+
+\`\`\`python
+# ❌ 잘못된 예시: 항상 LLM 라우터 사용
+def query(self, question: str):
+    route = self.router.route(question)  # LLM 호출 1
+    cypher = self.text2cypher.generate(question)  # LLM 호출 2
+    # 총 2회 LLM 호출 = 2초+
+
+# ✅ 올바른 예시: 키워드 기반 빠른 라우팅 우선
+def query(self, question: str):
+    # 1. 빠른 키워드 라우팅 시도 (LLM 호출 없음)
+    route = self.router.route_with_keywords(question)
+
+    # 2. 확실하지 않으면 LLM 라우팅
+    if route["reason"] == "기본값":
+        route = self.router.route(question)  # LLM 호출
+
+    # 3. 검색 수행
+    ...
+\`\`\`
+
+💡 **기억할 점**: 명확한 패턴은 키워드 라우팅, 모호할 때만 LLM 사용
+
+### 3. Hybrid 검색 시 결과 중복
+**증상**: 같은 엔티티가 Text2Cypher와 Vector 결과에 모두 포함
+
+\`\`\`python
+# ❌ 잘못된 예시: 단순 병합
+contexts = cypher_results + vector_results  # 중복 포함!
+
+# ✅ 올바른 예시: 통합 시 중복 제거
+def aggregate(self, contexts: List[Dict]) -> List[ContextItem]:
+    items = []
+    for ctx in contexts:
+        items.extend(self._process_results(ctx))
+
+    # 중복 제거 (콘텐츠 해시 기반)
+    items = self._deduplicate(items)
+
+    # 점수순 정렬
+    items.sort(key=lambda x: x.score, reverse=True)
+    return items
+\`\`\`
+
+💡 **기억할 점**: Context Aggregator에서 반드시 중복 제거 수행
+`,
   codeExample: `# 라우터 테스트
 router = QueryRouter(openai_key)
 

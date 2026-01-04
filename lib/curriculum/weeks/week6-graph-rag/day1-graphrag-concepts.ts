@@ -339,6 +339,68 @@ def normalize_entity(extracted_name, kg_entities):
       '🔗 엔티티 정규화로 KG 노드와 매칭',
       '🔍 Fuzzy matching으로 유사한 엔티티 연결',
     ],
+    commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [JSON 파싱 실패] LLM 응답이 항상 유효한 JSON이 아님
+**증상**: \`json.loads()\` 에러, 마크다운 코드블록 포함
+
+\`\`\`python
+# ❌ 잘못된 예시: LLM 응답을 그대로 파싱
+result = chain.invoke({"question": question})
+entities = json.loads(result.content)  # 에러 가능!
+# LLM이 \`\`\`json ... \`\`\` 형태로 응답할 수 있음
+
+# ✅ 올바른 예시: 정리 후 파싱
+import re
+content = result.content
+# 마크다운 코드블록 제거
+content = re.sub(r'\`\`\`json?\\n?', '', content)
+content = re.sub(r'\`\`\`', '', content).strip()
+entities = json.loads(content)
+\`\`\`
+
+💡 **기억할 점**: LLM 응답은 항상 정리(sanitize) 후 파싱
+
+---
+
+### 2. [정규화 실패] KG에 없는 엔티티 처리 누락
+**증상**: 매칭 안 되는 엔티티로 그래프 검색 실패
+
+\`\`\`python
+# ❌ 잘못된 예시: 매칭 실패 시 None 반환 후 무시
+normalized = normalize_entity("삼성")  # None 반환
+context = get_graph_context(normalized)  # None으로 쿼리!
+
+# ✅ 올바른 예시: 매칭 실패 시 벡터 검색으로 폴백
+normalized = normalize_entity("삼성")
+if normalized:
+    context = get_graph_context(normalized)
+else:
+    # KG에 없으면 벡터 검색으로 대체
+    context = vector_search("삼성")
+\`\`\`
+
+💡 **기억할 점**: 엔티티 정규화 실패 시 폴백 전략 필수
+
+---
+
+### 3. [과도한 추출] 모든 명사를 엔티티로 추출
+**증상**: 노이즈 엔티티로 그래프 검색 결과 품질 저하
+
+\`\`\`python
+# ❌ 잘못된 예시: "최근 삼성전자의 주가가 올랐다"
+# 추출: ["최근", "삼성전자", "주가"] - "최근", "주가"는 KG 엔티티 아님
+
+# ✅ 올바른 예시: 프롬프트에서 명확한 유형 제한
+prompt = """다음 유형만 추출:
+- Company: 기업명 (예: 삼성전자, SK하이닉스)
+- Person: 인물명 (예: 이재용)
+일반 명사(주가, 시장)는 제외"""
+\`\`\`
+
+💡 **기억할 점**: 엔티티 유형을 KG 스키마에 맞춰 명확히 제한
+`,
     practiceGoal: 'LLM 기반 엔티티 추출 및 정규화 구현',
     codeExample: `from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -517,6 +579,79 @@ def format_graph_context(graph_data: list) -> str:
       '📝 LLM이 이해하기 쉬운 텍스트 포맷으로 변환',
       '⚡ LIMIT으로 컨텍스트 크기 제한',
     ],
+    commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [무제한 탐색] 멀티홉 깊이 제한 없음
+**증상**: 쿼리 타임아웃, 메모리 폭발, 무관한 결과 포함
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 무제한 깊이 탐색
+MATCH path = (e {name: $name})-[*]-(connected)  // 전체 그래프 탐색!
+RETURN path
+
+// ✅ 올바른 예시: 합리적인 깊이 제한
+MATCH path = (e {name: $name})-[*1..2]-(connected)  // 2홉까지만
+RETURN path
+LIMIT 30
+\`\`\`
+
+💡 **기억할 점**: 멀티홉은 1..2 또는 1..3으로 제한, LIMIT 필수
+
+---
+
+### 2. [컨텍스트 과다] 토큰 제한 초과
+**증상**: LLM API 에러, 중요 정보가 잘림
+
+\`\`\`python
+# ❌ 잘못된 예시: 모든 이웃 정보 포함
+context = get_graph_context(entity)  # 수백 개 관계 반환
+llm.invoke(context + question)  # 토큰 초과!
+
+# ✅ 올바른 예시: 관련성 기반 필터링 + 토큰 제한
+def get_graph_context(entity, max_tokens=2000):
+    results = graph_query(entity, limit=20)
+
+    # 관련성 높은 관계 우선
+    results = sort_by_relevance(results, question)
+
+    # 토큰 수 체크하며 구성
+    context = []
+    tokens = 0
+    for r in results:
+        line = format_relation(r)
+        if tokens + len(line.split()) * 1.3 > max_tokens:
+            break
+        context.append(line)
+        tokens += len(line.split()) * 1.3
+
+    return "\\n".join(context)
+\`\`\`
+
+💡 **기억할 점**: 그래프 컨텍스트도 토큰 예산 내로 관리
+
+---
+
+### 3. [빈 결과 처리] 엔티티가 KG에 없을 때
+**증상**: 빈 컨텍스트로 LLM이 "정보 없음" 응답
+
+\`\`\`python
+# ❌ 잘못된 예시: 빈 결과 그대로 전달
+context = get_graph_context(entity)  # 결과 없음
+llm.invoke(f"Context: {context}\\nQuestion: {question}")
+# LLM: "정보가 없어 답변할 수 없습니다"
+
+# ✅ 올바른 예시: 빈 결과 시 벡터 검색으로 폴백
+context = get_graph_context(entity)
+if not context:
+    context = vector_search(entity, k=5)  # 벡터 검색 폴백
+    context = "관련 문서:\\n" + "\\n".join([d.page_content for d in context])
+
+llm.invoke(f"Context: {context}\\nQuestion: {question}")
+\`\`\`
+
+💡 **기억할 점**: 그래프 컨텍스트 없으면 벡터 검색으로 폴백
+`,
     practiceGoal: 'Neo4j에서 엔티티 기반 그래프 컨텍스트 생성',
     codeExample: `from neo4j import GraphDatabase
 

@@ -157,6 +157,72 @@ constructor.process_documents(["문서1 내용...", "문서2 내용..."])
       '청크 단위 처리로 긴 문서 지원',
       '구조화된 JSON 출력으로 파싱 용이',
     ],
+    commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [MERGE 키 누락] name만으로 MERGE 시 충돌
+**증상**: 다른 타입의 동명 엔티티가 병합됨
+
+\`\`\`cypher
+// ❌ 잘못된 예시: name만으로 MERGE
+MERGE (e:Entity {name: $name})
+// "Apple" (회사) 와 "Apple" (과일) 가 같은 노드!
+
+// ✅ 올바른 예시: type도 함께 MERGE 키로
+MERGE (e:Entity {name: $name, type: $type})
+// 또는 라벨 분리
+MERGE (e:Company {name: $name})
+\`\`\`
+
+💡 **기억할 점**: MERGE 키에 type 또는 별도 라벨 사용
+
+---
+
+### 2. [관계 소스/타겟 불일치] 엔티티가 없는데 관계 생성 시도
+**증상**: 관계 생성 실패, 고아 관계 또는 에러
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 엔티티 확인 없이 관계 생성
+MATCH (s:Entity {name: $source})
+MATCH (t:Entity {name: $target})
+CREATE (s)-[:RELATES]->(t)
+// source 또는 target이 없으면 아무 일도 안 일어남
+
+// ✅ 올바른 예시: 없으면 생성 후 연결
+MERGE (s:Entity {name: $source})
+MERGE (t:Entity {name: $target})
+MERGE (s)-[:RELATES {type: $relation}]->(t)
+\`\`\`
+
+💡 **기억할 점**: 관계 생성 전 MERGE로 엔티티 보장
+
+---
+
+### 3. [트랜잭션 과부하] 청크마다 개별 트랜잭션
+**증상**: 대량 문서 처리 시 매우 느림
+
+\`\`\`python
+# ❌ 잘못된 예시: 매 청크마다 쿼리
+for chunk in chunks:
+    data = extract(chunk)
+    for entity in data['entities']:
+        graph.query("MERGE ...", entity)  # 개별 트랜잭션!
+
+# ✅ 올바른 예시: 배치 처리
+all_entities = []
+for chunk in chunks:
+    data = extract(chunk)
+    all_entities.extend(data['entities'])
+
+# UNWIND로 한 번에 처리
+graph.query('''
+    UNWIND $entities AS e
+    MERGE (:Entity {name: e.name, type: e.type})
+''', entities=all_entities)
+\`\`\`
+
+💡 **기억할 점**: UNWIND로 배치 처리하여 트랜잭션 수 최소화
+`,
     practiceGoal: '문서로부터 Knowledge Graph 자동 구축',
     codeExample: `# KG 구축 실행 예시
 documents = [

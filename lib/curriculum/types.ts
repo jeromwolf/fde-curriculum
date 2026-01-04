@@ -25,6 +25,7 @@ export interface TaskContent {
   // 공통
   objectives?: string[]      // 학습 목표
   keyPoints?: string[]       // 핵심 포인트
+  commonPitfalls?: string    // 자주 하는 실수 (마크다운)
   simulators?: SimulatorLink[]  // 연결된 시뮬레이터
 
   // video

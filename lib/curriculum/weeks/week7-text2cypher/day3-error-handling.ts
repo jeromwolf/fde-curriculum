@@ -138,6 +138,85 @@ def create_error_feedback(error_msg: str, cypher: str) -> str:
 `,
   keyPoints: ['에러 메시지를 프롬프트에 포함', '유형별 맞춤 피드백으로 수정 유도', '최대 재시도 횟수 제한'],
   practiceGoal: '에러 기반 자동 재시도 시스템 구현',
+  commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. 무한 재시도 루프
+**증상**: 동일한 에러가 반복되며 API 비용 폭발
+
+\`\`\`python
+# ❌ 잘못된 예시: 재시도 횟수 제한 없음
+def query(self, question: str):
+    while True:  # 무한 루프!
+        cypher = self.generate_cypher(question)
+        try:
+            return self.graph.query(cypher)
+        except:
+            continue
+
+# ✅ 올바른 예시: 최대 재시도 횟수 + 동일 에러 감지
+def query(self, question: str, max_retries: int = 3):
+    last_error = None
+    for attempt in range(max_retries):
+        cypher = self.generate_cypher(question, error_context)
+        try:
+            return {"success": True, "results": self.graph.query(cypher)}
+        except Exception as e:
+            if str(e) == last_error:  # 동일 에러 반복 → 즉시 중단
+                break
+            last_error = str(e)
+    return {"success": False, "error": "최대 재시도 초과"}
+\`\`\`
+
+💡 **기억할 점**: max_retries 필수, 동일 에러 반복 시 조기 종료
+
+### 2. 에러 컨텍스트 누적으로 토큰 초과
+**증상**: 재시도할수록 프롬프트가 길어져 "context length exceeded" 에러
+
+\`\`\`python
+# ❌ 잘못된 예시: 모든 에러 누적
+error_history = []
+for attempt in range(max_retries):
+    try:
+        ...
+    except Exception as e:
+        error_history.append(str(e))  # 계속 누적
+        error_context = "\\n".join(error_history)  # 점점 길어짐
+
+# ✅ 올바른 예시: 마지막 에러만 포함
+def query(self, question: str):
+    error_context = ""  # 마지막 에러만
+    for attempt in range(max_retries):
+        cypher = self.generate_cypher(question + error_context)
+        try:
+            return self.graph.query(cypher)
+        except Exception as e:
+            error_context = f"\\n[에러] {str(e)[:200]}"  # 길이 제한
+\`\`\`
+
+💡 **기억할 점**: 최근 1-2개 에러만 포함, 에러 메시지 길이 제한
+
+### 3. 에러 유형 구분 없이 일괄 처리
+**증상**: 수정 불가능한 에러에도 계속 재시도
+
+\`\`\`python
+# ❌ 잘못된 예시: 모든 에러 동일 처리
+except Exception as e:
+    error_context = f"에러: {e}"  # 수정 불가 에러도 재시도
+
+# ✅ 올바른 예시: 에러 유형별 처리
+except Exception as e:
+    error_msg = str(e)
+    if "connection refused" in error_msg.lower():
+        return {"error": "DB 연결 실패", "retryable": False}
+    if "timeout" in error_msg.lower():
+        return {"error": "시간 초과", "retryable": True}
+    # 문법/스키마 에러만 재시도
+    error_context = create_error_feedback(error_msg, cypher)
+\`\`\`
+
+💡 **기억할 점**: 연결 에러, 인증 에러 등은 재시도해도 무의미
+`,
   codeExample: `t2c = Text2CypherWithRetry(graph, llm, max_retries=3)
 result = t2c.query("삼성전자의 모든 경쟁사")
 print(f"성공 (시도: {result.get('attempts')})")

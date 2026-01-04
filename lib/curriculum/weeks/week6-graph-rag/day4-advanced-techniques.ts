@@ -192,6 +192,44 @@ class GraphRAGWithReranking:
       'Cohere Rerank API로 쉽게 구현 가능',
       '그래프 + 벡터 결과 통합 후 Re-ranking',
     ],
+    commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [Re-ranking 병목] 너무 많은 후보에 Cross-Encoder 적용
+**증상**: Re-ranking 단계에서 응답 시간 급증 (5초+)
+
+\`\`\`python
+# ❌ 잘못된 예시: 100개 문서 모두 Re-ranking
+initial_results = vector_store.search(question, k=100)
+reranked = reranker.predict([(question, doc) for doc in initial_results])
+# Cross-Encoder는 느림! 100개 처리에 5-10초 소요
+
+# ✅ 올바른 예시: 상위 20개만 Re-ranking
+initial_results = vector_store.search(question, k=20)  # 적당한 후보
+reranked = reranker.predict([(question, doc) for doc in initial_results])
+# 상위 5개만 최종 사용
+final = reranked[:5]
+\`\`\`
+
+💡 **기억할 점**: Re-ranking 후보는 10-30개로 제한
+
+---
+
+### 2. [모델 불일치] 잘못된 Cross-Encoder 모델 선택
+**증상**: 한국어 질문인데 영어 모델 사용, 점수 신뢰 불가
+
+\`\`\`python
+# ❌ 잘못된 예시: 한국어에 영어 전용 모델
+reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')
+# 영어 전용! 한국어 성능 저하
+
+# ✅ 올바른 예시: 다국어 또는 한국어 특화 모델
+reranker = CrossEncoder('cross-encoder/mmarco-mMiniLMv2-L12-H384-v1')
+# mmarco = 다국어 지원
+\`\`\`
+
+💡 **기억할 점**: 다국어는 mmarco 시리즈, 또는 Cohere multilingual 사용
+`,
     practiceGoal: 'Cross-Encoder Re-ranking 구현',
     codeExample: `from sentence_transformers import CrossEncoder
 

@@ -124,6 +124,86 @@ class ConversationalText2Cypher:
 `,
   keyPoints: ['질문 재구성으로 독립적 쿼리 생성', '결과에서 엔티티 추출하여 맥락 유지', '최근 N턴만 사용하여 컨텍스트 제한'],
   practiceGoal: '대화형 Text2Cypher 구현',
+  commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. 대화 히스토리 무제한 증가 → 메모리/토큰 폭발
+**증상**: 오래 사용할수록 느려지다가 "context length exceeded" 에러
+
+\`\`\`python
+# ❌ 잘못된 예시: 히스토리 무제한
+def query(self, question: str):
+    self.history.append({"role": "user", "content": question})
+    # history가 계속 증가...
+
+# ✅ 올바른 예시: 최근 N턴만 유지
+MAX_HISTORY = 10
+
+def query(self, question: str):
+    self.history.append({"role": "user", "content": question})
+    if len(self.history) > MAX_HISTORY:
+        self.history = self.history[-MAX_HISTORY:]  # 오래된 것 제거
+
+    # 컨텍스트 구성 시에도 제한
+    context = "\\n".join([h['content'][:100] for h in self.history[-4:]])
+\`\`\`
+
+💡 **기억할 점**: 최근 4-5턴만 사용, 오래된 대화는 삭제 또는 요약
+
+### 2. 대명사 해결 실패 → 엉뚱한 엔티티 참조
+**증상**: "그 회사의 경쟁사"가 의도와 다른 회사 참조
+
+\`\`\`python
+# ❌ 잘못된 예시: 단순 대명사 치환
+def resolve(question):
+    return question.replace("그 회사", self.last_entity)  # 항상 마지막 엔티티?
+
+# ✅ 올바른 예시: LLM으로 맥락 기반 해결
+def reformulate_question(self, question: str) -> str:
+    if not self.history:
+        return question
+
+    context = "\\n".join([f"{h['role']}: {h['content'][:100]}" for h in self.history[-4:]])
+
+    prompt = f'''대화 맥락:
+{context}
+
+현재 질문: {question}
+
+대화 맥락을 고려하여 대명사(그, 그것, 그 회사)를 실제 이름으로 교체하고,
+독립적으로 이해할 수 있는 질문으로 재구성하세요.
+
+재구성된 질문:'''
+    return self.llm.invoke(prompt).content.strip()
+\`\`\`
+
+💡 **기억할 점**: 대명사 해결은 LLM에게 맥락과 함께 위임
+
+### 3. 엔티티 추출 실패 → 맥락 손실
+**증상**: 결과에서 엔티티를 못 찾아 다음 턴에서 대명사 해결 실패
+
+\`\`\`python
+# ❌ 잘못된 예시: 첫 번째 값만 추출
+def extract_entities(self, results):
+    self.last_entity = results[0].get('name', '')  # 다른 키일 수 있음
+
+# ✅ 올바른 예시: 여러 키에서 엔티티 추출
+def extract_entities_from_results(self, results: list):
+    entities = []
+    name_keys = ['name', 'title', 'company_name', 'person_name']
+    for row in results:
+        for key in name_keys:
+            if key in row and isinstance(row[key], str):
+                entities.append(row[key])
+        # 또는 모든 문자열 값 추출
+        for value in row.values():
+            if isinstance(value, str) and len(value) > 1:
+                entities.append(value)
+    self.context_entities = list(set(entities))[:5]  # 중복 제거, 최대 5개
+\`\`\`
+
+💡 **기억할 점**: 여러 키에서 엔티티 추출, 중복 제거, 개수 제한
+`,
   codeExample: `t2c = ConversationalText2Cypher(graph, llm)
 t2c.query("삼성전자에 대해 알려줘")
 result = t2c.query("그 회사의 경쟁사는?")

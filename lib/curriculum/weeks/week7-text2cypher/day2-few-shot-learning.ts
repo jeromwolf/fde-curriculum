@@ -153,6 +153,64 @@ dynamic_few_shot = FewShotChatMessagePromptTemplate(
 `,
   keyPoints: ['FEW_SHOT_EXAMPLES로 예시 정의', 'FewShotChatMessagePromptTemplate 활용', 'SemanticSimilarityExampleSelector로 동적 선택'],
   practiceGoal: 'Few-shot 프롬프트 구현 및 동적 예시 선택',
+  commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. 예시 개수 과다로 컨텍스트 초과
+**증상**: API 호출 시 "context length exceeded" 에러
+
+\`\`\`python
+# ❌ 잘못된 예시: 20개 이상 예시
+examples = [...]  # 20개
+few_shot = FewShotChatMessagePromptTemplate(examples=examples)  # 토큰 폭발
+
+# ✅ 올바른 예시: 동적 선택으로 3-5개만
+selector = SemanticSimilarityExampleSelector.from_examples(
+    examples, OpenAIEmbeddings(), k=3  # 유사한 3개만 선택
+)
+\`\`\`
+
+💡 **기억할 점**: 전체 예시를 다 넣지 말고, 질문과 유사한 3-5개만 동적 선택
+
+### 2. 예시 다양성 부족
+**증상**: 특정 유형 질문만 잘 작동하고, 다른 유형은 실패
+
+\`\`\`python
+# ❌ 잘못된 예시: 단순 조회만
+examples = [
+    {"question": "모든 회사", "cypher": "MATCH (c:Company) RETURN c"},
+    {"question": "모든 인물", "cypher": "MATCH (p:Person) RETURN p"},
+]
+
+# ✅ 올바른 예시: 다양한 패턴 포함
+examples = [
+    {"question": "모든 회사", "cypher": "MATCH (c:Company) RETURN c.name LIMIT 10"},
+    {"question": "삼성 경쟁사", "cypher": "MATCH (:Company {name:'삼성전자'})-[:COMPETES_WITH]->(x) RETURN x.name"},
+    {"question": "경쟁사 개수 순위", "cypher": "MATCH (c)-[:COMPETES_WITH]->(x) RETURN c.name, count(x) ORDER BY count(x) DESC"},
+]
+\`\`\`
+
+💡 **기억할 점**: 단순조회, 관계탐색, 집계, 필터링 등 다양한 패턴 예시 필요
+
+### 3. 임베딩 모델 불일치
+**증상**: SemanticSimilarityExampleSelector가 엉뚱한 예시 선택
+
+\`\`\`python
+# ❌ 잘못된 예시: 한글 예시 + 영어 임베딩
+examples = [{"question": "삼성전자 경쟁사", "cypher": "..."}]
+selector = SemanticSimilarityExampleSelector.from_examples(
+    examples, OpenAIEmbeddings(model="text-embedding-ada-002"), k=3  # 영어 최적화 모델
+)
+
+# ✅ 올바른 예시: 다국어 지원 임베딩 또는 키워드 기반 선택
+selector = SemanticSimilarityExampleSelector.from_examples(
+    examples, OpenAIEmbeddings(model="text-embedding-3-small"), k=3  # 다국어 지원
+)
+# 또는 키워드 기반 선택 함수 구현
+\`\`\`
+
+💡 **기억할 점**: 한글 데이터에는 다국어 지원 임베딩 모델 사용
+`,
   codeExample: `from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
 
 examples = [

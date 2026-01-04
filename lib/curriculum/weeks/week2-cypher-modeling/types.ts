@@ -59,13 +59,14 @@ export const createCodeTask = (
   instructions: string,
   starterCode: string,
   solutionCode: string,
-  hints: string[]
+  hints: string[],
+  commonPitfalls?: string
 ) => ({
   id,
   type: 'code' as const,
   title,
   duration,
-  content: { objectives, instructions, starterCode, solutionCode, hints }
+  content: { objectives, instructions, starterCode, solutionCode, hints, commonPitfalls }
 })
 
 export const createQuizTask = (

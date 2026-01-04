@@ -224,6 +224,60 @@ else:
 `,
   keyPoints: ['pyvis로 인터랙티브 그래프', '노드 타입별 색상', '신뢰도 기반 엣지 두께'],
   practiceGoal: 'KG 시각화 페이지 구현',
+  commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. 대량 노드 렌더링 → 브라우저 멈춤
+**증상**: 1000개 이상 노드 시 페이지 무응답
+
+\`\`\`python
+# ❌ 잘못된 예시: 제한 없이 전체 로드
+query = "MATCH (a)-[r]->(b) RETURN a, r, b"  # 전체 그래프!
+
+# ✅ 올바른 예시: LIMIT + 필터링
+query = """
+MATCH (a)-[r]->(b)
+WHERE r.confidence >= $min_conf
+RETURN a.uri, type(r), b.uri
+LIMIT 200  # 최대 200개 관계만
+"""
+\`\`\`
+
+💡 **기억할 점**: 시각화는 200-500 노드가 적정, LIMIT 필수
+
+### 2. pyvis HTML 파일 경로 문제
+**증상**: 그래프가 표시되지 않음 (로컬에서는 됨)
+
+\`\`\`python
+# ❌ 잘못된 예시: 고정 경로 사용
+net.save_graph("graph.html")  # 권한/경로 문제 가능
+
+# ✅ 올바른 예시: tempfile 사용
+import tempfile
+with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as f:
+    net.save_graph(f.name)
+    with open(f.name, "r") as html_file:
+        st.components.v1.html(html_file.read(), height=650)
+\`\`\`
+
+💡 **기억할 점**: Streamlit Cloud에서는 tempfile 사용 권장
+
+### 3. 캐시 미사용 → 페이지 전환마다 재쿼리
+**증상**: 필터 변경할 때마다 느린 로딩
+
+\`\`\`python
+# ❌ 잘못된 예시: 캐시 없음
+def load_graph_data(node_type, min_conf):
+    return run_neo4j_query(...)  # 매번 DB 쿼리!
+
+# ✅ 올바른 예시: 캐시 적용
+@st.cache_data(ttl=300)  # 5분 캐시
+def load_graph_data(node_type: str, min_conf: float):
+    return run_neo4j_query(...)  # 동일 파라미터면 캐시 반환
+\`\`\`
+
+💡 **기억할 점**: @st.cache_data로 쿼리 결과 캐싱, ttl로 만료 설정
+`,
   codeExample: `# Streamlit 멀티페이지 앱 구조
 # app/
 # ├── streamlit_app.py  (메인)

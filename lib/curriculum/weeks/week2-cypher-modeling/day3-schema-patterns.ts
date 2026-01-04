@@ -834,7 +834,69 @@ ORDER BY m.value;
           '💡 FollowerGroup은 팔로워 1000명당 하나씩 생성',
           '💡 시간 트리는 Year → Month → Day 계층 구조',
           '💡 OPTIONAL MATCH로 데이터가 없는 경우도 처리'
-        ]
+        ],
+        keyPoints: [
+          '중간 노드 패턴: 관계에 복잡한 데이터나 추가 관계가 필요할 때 사용',
+          '슈퍼노드 방지: 계층 분리, 버킷팅, Fan-Out 노드로 해결',
+          '시간 트리 패턴: 날짜 기반 쿼리 성능 최적화'
+        ],
+        commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [과도한 중간 노드] 단순한 관계도 노드로 만들기
+**증상**: 모든 관계를 Intermediate Node로 만들어 스키마가 복잡해짐
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 단순 관계에 불필요한 중간 노드
+(:User)-[:HAS_FOLLOW]->(:Follow {createdAt: datetime()})-[:FOLLOWS]->(:User)
+
+// 왜 잘못되었나:
+// - 단순 팔로우에는 관계 속성으로 충분
+// - 조인이 늘어나 쿼리 성능 저하
+// - 스키마 복잡도만 증가
+
+// ✅ 올바른 예시: 관계 속성으로 충분한 경우
+(:User)-[:FOLLOWS {createdAt: datetime()}]->(:User)
+\`\`\`
+
+💡 **기억할 점**: 관계 속성이 5개 미만이고, 관계에 관계를 연결할 필요 없으면 단순 관계 사용
+
+---
+
+### 2. [버킷 크기 오류] Fan-Out 그룹 크기를 너무 작게 설정
+**증상**: 그룹 수가 폭증하여 관리 오버헤드 증가
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 그룹당 10명으로 너무 작게 설정
+(:FollowerGroup {maxSize: 10, targetUserId: 'celeb1'})
+// 1억 팔로워 = 1천만 개 그룹 노드! 관리 불가
+
+// ✅ 올바른 예시: 적절한 그룹 크기 (1000-10000)
+(:FollowerGroup {maxSize: 10000, targetUserId: 'celeb1'})
+// 1억 팔로워 = 1만 개 그룹 노드로 관리 가능
+\`\`\`
+
+💡 **기억할 점**: 버킷 크기는 쓰기 빈도와 읽기 패턴에 따라 1,000 ~ 10,000 사이 권장
+
+---
+
+### 3. [시간 트리 범위 오류] 필요 이상으로 상세한 시간 계층
+**증상**: 초 단위까지 시간 트리를 만들어 노드 수 폭발
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 초 단위까지 시간 트리
+(:Year)-[:HAS_MONTH]->(:Month)-[:HAS_DAY]->(:Day)
+  -[:HAS_HOUR]->(:Hour)-[:HAS_MINUTE]->(:Minute)-[:HAS_SECOND]->(:Second)
+// 1년 = 31,536,000개 Second 노드!
+
+// ✅ 올바른 예시: 비즈니스 요구에 맞는 수준
+// 일별 집계면 Day까지, 시간별 분석이면 Hour까지
+(:Year)-[:HAS_MONTH]->(:Month)-[:HAS_DAY]->(:Day)
+// 1년 = 약 365개 Day 노드로 충분
+\`\`\`
+
+💡 **기억할 점**: 시간 트리 깊이는 실제 쿼리 패턴에 맞춰 최소화
+`
       }
     },
 
@@ -1318,7 +1380,70 @@ ORDER BY level, e.name;
           '💡 SET으로 라벨 추가, REMOVE로 라벨/속성 제거',
           '💡 NOT EXISTS { }로 특정 패턴이 없는지 확인',
           '💡 순환 검사는 *를 사용해 모든 경로 확인'
-        ]
+        ],
+        keyPoints: [
+          '속성 폭발: 동적 속성을 별도 노드로 분리하여 관계로 연결',
+          '일반 노드: Entity {type: "..."} 대신 명시적 라벨 사용',
+          '순환 방지: 관계 생성 전 NOT EXISTS로 순환 경로 검증'
+        ],
+        commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [라벨 변경 순서] 기존 라벨 제거 전 새 라벨 미추가
+**증상**: 라벨 없는 "고아 노드" 발생, 인덱스 쿼리 불가
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 라벨 제거 먼저, 추가 나중
+MATCH (e:Entity {type: 'person'})
+REMOVE e:Entity
+// 이 시점에 노드에 라벨이 없음!
+SET e:Person
+
+// ✅ 올바른 예시: 새 라벨 먼저 추가, 기존 라벨 나중 제거
+MATCH (e:Entity {type: 'person'})
+SET e:Person
+REMOVE e:Entity, e.type
+\`\`\`
+
+💡 **기억할 점**: SET으로 라벨 추가 후 REMOVE로 기존 라벨 제거
+
+---
+
+### 2. [순환 검증 범위] 깊이 제한 없이 순환 검사
+**증상**: 대규모 그래프에서 순환 검사가 너무 오래 걸림
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 무제한 깊이 탐색
+WHERE NOT EXISTS {
+  MATCH (a)-[:REPORTS_TO*]->(b)  // 전체 그래프 탐색!
+}
+
+// ✅ 올바른 예시: 합리적인 깊이 제한
+WHERE NOT EXISTS {
+  MATCH (a)-[:REPORTS_TO*1..20]->(b)  // 최대 20단계까지만
+}
+\`\`\`
+
+💡 **기억할 점**: 조직도 깊이가 보통 10단계 이내이므로 실용적 제한 설정
+
+---
+
+### 3. [관계 타입 변경] APOC 없이 관계 타입 변경 시도
+**증상**: 순수 Cypher로 관계 타입 변경 불가
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 관계 타입 직접 변경 (불가능)
+MATCH (p)-[r:RELATION {type: 'works_at'}]->(c)
+SET type(r) = 'WORKS_AT'  // ERROR: 관계 타입은 변경 불가
+
+// ✅ 올바른 예시: 새 관계 생성 후 기존 삭제
+MATCH (p)-[old:RELATION {type: 'works_at'}]->(c)
+CREATE (p)-[:WORKS_AT]->(c)
+DELETE old
+\`\`\`
+
+💡 **기억할 점**: 관계 타입은 변경 불가, 새로 생성 후 기존 삭제 필요
+`
       }
     },
 

@@ -32,6 +32,7 @@ interface Week7TaskContent {
   keyPoints?: string[]
   practiceGoal?: string
   codeExample?: string
+  commonPitfalls?: string
   questions?: Week7QuizQuestion[]
 }
 
@@ -65,6 +66,7 @@ export function createCodeTask(id: string, title: string, duration: number, cont
       instructions: content.introduction,
       starterCode: content.codeExample,
       keyPoints: content.keyPoints,
+      commonPitfalls: content.commonPitfalls,
       objectives: content.practiceGoal ? [content.practiceGoal] : [],
     },
   }

@@ -159,6 +159,85 @@ class NaverNewsCollector(BaseCollector):
     '🔌 서브클래스는 collect()만 구현 - 재사용성',
   ],
   practiceGoal: '도메인에 맞는 수집기 구현',
+  commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. Rate Limiting 무시 → API 차단
+**증상**: "429 Too Many Requests" 또는 API 키 정지
+
+\`\`\`python
+# ❌ 잘못된 예시: Rate limiting 없이 빠르게 호출
+for query in queries:
+    items.extend(collector.collect(query))  # 초당 100개 요청!
+
+# ✅ 올바른 예시: Rate limiting 적용
+class BaseCollector:
+    def __init__(self, rate_limit: float = 1.0):  # 초당 1요청
+        self.rate_limit = rate_limit
+        self.last_request_time = 0
+
+    def _rate_limit(self):
+        elapsed = time.time() - self.last_request_time
+        wait_time = (1 / self.rate_limit) - elapsed
+        if wait_time > 0:
+            time.sleep(wait_time)
+        self.last_request_time = time.time()
+\`\`\`
+
+💡 **기억할 점**: 모든 API 호출 전 _rate_limit() 호출 필수
+
+### 2. API 인증 정보 하드코딩
+**증상**: GitHub에 푸시 후 API 키 노출
+
+\`\`\`python
+# ❌ 잘못된 예시: 코드에 직접 입력
+collector = NaverNewsCollector(
+    client_id="ABC123",  # 코드에 노출!
+    client_secret="XYZ789"
+)
+
+# ✅ 올바른 예시: 환경 변수 사용
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+collector = NaverNewsCollector(
+    client_id=os.getenv("NAVER_CLIENT_ID"),
+    client_secret=os.getenv("NAVER_CLIENT_SECRET")
+)
+\`\`\`
+
+💡 **기억할 점**: .env 파일 사용, .gitignore에 .env 추가
+
+### 3. 예외 처리 누락으로 전체 파이프라인 중단
+**증상**: 하나의 API 오류로 전체 수집 실패
+
+\`\`\`python
+# ❌ 잘못된 예시: 예외 처리 없음
+def collect_all(queries):
+    results = []
+    for query in queries:
+        items = collector.collect(query)  # 하나 실패하면 전체 중단
+        results.extend(items)
+    return results
+
+# ✅ 올바른 예시: 개별 예외 처리 + 로깅
+def collect_all(queries):
+    results = []
+    failed = []
+    for query in queries:
+        try:
+            items = collector.collect_with_retry(query)
+            results.extend(items)
+        except Exception as e:
+            failed.append({"query": query, "error": str(e)})
+            continue  # 다음 쿼리 계속
+    print(f"성공: {len(results)}, 실패: {len(failed)}")
+    return results, failed
+\`\`\`
+
+💡 **기억할 점**: 개별 항목 실패는 로깅하고 계속 진행, 전체 실패만 중단
+`,
   codeExample: `# 📌 Step 5: 수집기 사용
 collector = NaverNewsCollector(
     client_id=os.getenv("NAVER_CLIENT_ID"),

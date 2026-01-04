@@ -124,6 +124,86 @@ A:'''
 `,
   keyPoints: ['Few-shot 예시 선택기 통합', '검증 + 재시도 로직', '구조화된 결과 반환'],
   practiceGoal: 'Text2Cypher 핵심 엔진 구현',
+  commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. SemanticSimilarityExampleSelector 초기화 비용
+**증상**: 첫 쿼리가 매우 느림 (임베딩 생성 시간)
+
+\`\`\`python
+# ❌ 잘못된 예시: 매 쿼리마다 초기화
+def generate_cypher(self, question):
+    selector = SemanticSimilarityExampleSelector.from_examples(
+        self.examples, OpenAIEmbeddings(), k=3
+    )  # 매번 임베딩 생성!
+
+# ✅ 올바른 예시: __init__에서 한 번만 초기화
+def __init__(self, ...):
+    self.selector = SemanticSimilarityExampleSelector.from_examples(
+        self.examples, OpenAIEmbeddings(api_key=openai_key), k=3
+    )  # 한 번만 생성
+
+def generate_cypher(self, question):
+    selected = self.selector.select_examples({"question": question})  # 재사용
+\`\`\`
+
+💡 **기억할 점**: 임베딩 기반 선택기는 __init__에서 한 번만 초기화
+
+### 2. 에러 컨텍스트가 질문에 섞여 쿼리 오염
+**증상**: "삼성전자 경쟁사\\n이전 오류: ..." 같은 이상한 쿼리 생성
+
+\`\`\`python
+# ❌ 잘못된 예시: 질문에 에러 직접 추가
+cypher = self.generate_cypher(question + error_context)  # 질문 오염
+
+# ✅ 올바른 예시: 프롬프트 구조 분리
+def generate_cypher(self, question: str, error_context: str = "") -> str:
+    prompt = f'''스키마: {self.graph.schema}
+
+예시:
+{examples_text}
+
+{error_context}  # 별도 섹션으로 분리
+
+규칙:
+- MATCH로 시작
+- Cypher만 출력
+
+Q: {question}
+A:'''
+\`\`\`
+
+💡 **기억할 점**: 질문과 에러 컨텍스트는 프롬프트 내에서 별도 섹션으로 분리
+
+### 3. 검증 로직 우회 가능
+**증상**: "MATCH ... DELETE ..." 같은 교묘한 쿼리가 통과
+
+\`\`\`python
+# ❌ 잘못된 예시: 단순 키워드 검사
+forbidden = ['DELETE', 'CREATE']
+for kw in forbidden:
+    if kw in cypher.upper():  # "DELETEE" 또는 "DE LETE"는 통과
+
+# ✅ 올바른 예시: 정규식으로 단어 경계 검사
+import re
+def validate(self, cypher: str) -> tuple[bool, str]:
+    forbidden_patterns = [
+        r'\\bDELETE\\b', r'\\bCREATE\\b', r'\\bDROP\\b',
+        r'\\bSET\\b', r'\\bREMOVE\\b', r'\\bMERGE\\b'
+    ]
+    for pattern in forbidden_patterns:
+        if re.search(pattern, cypher, re.IGNORECASE):
+            return False, f"금지된 키워드 감지: {pattern}"
+
+    # MATCH로 시작 검증
+    if not re.match(r'^\\s*MATCH\\b', cypher, re.IGNORECASE):
+        return False, "MATCH로 시작해야 함"
+
+    return True, "OK"
+\`\`\`
+
+💡 **기억할 점**: 정규식 \\b(단어 경계)로 정확한 키워드 매칭
+`,
   codeExample: `engine = Text2CypherEngine(
     "bolt://localhost:7687", "neo4j", "password", "sk-..."
 )

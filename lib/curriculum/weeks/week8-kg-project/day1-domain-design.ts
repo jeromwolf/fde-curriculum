@@ -236,6 +236,73 @@ def generate_neo4j_constraints():
     '🔄 대칭/추이적 관계 설정 - 추론 규칙 기반',
   ],
   practiceGoal: '도메인 온톨로지 설계 문서 작성',
+  commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. 엔티티 타입 과도하게 세분화
+**증상**: 온톨로지가 복잡해지고 유지보수 어려움
+
+\`\`\`python
+# ❌ 잘못된 예시: 과도한 세분화
+class EntityType(Enum):
+    CEO = "CEO"
+    CTO = "CTO"
+    CFO = "CFO"
+    ENGINEER = "Engineer"
+    MANAGER = "Manager"
+    # 30개 이상의 엔티티 타입...
+
+# ✅ 올바른 예시: 속성으로 세분화
+class EntityType(Enum):
+    PERSON = "Person"  # role 속성으로 CEO, CTO 등 구분
+    ORGANIZATION = "Organization"  # type 속성으로 Company, Institute 등 구분
+\`\`\`
+
+💡 **기억할 점**: 엔티티 타입은 5-10개로 제한, 세부 구분은 속성으로
+
+### 2. 관계 방향 불명확
+**증상**: 같은 관계가 양방향으로 정의되어 중복 데이터 발생
+
+\`\`\`python
+# ❌ 잘못된 예시: 양방향 관계 중복 정의
+relations = [
+    Relation(type="works_for", source="Person", target="Organization"),
+    Relation(type="employs", source="Organization", target="Person"),  # 역관계 중복!
+]
+
+# ✅ 올바른 예시: 단방향 정의 + 역관계 추론
+relations = [
+    Relation(
+        type=RelationType.WORKS_FOR,
+        source_types=[EntityType.PERSON],
+        target_types=[EntityType.ORGANIZATION],
+        inverse="employs"  # 역관계는 속성으로 명시
+    ),
+]
+\`\`\`
+
+💡 **기억할 점**: 관계는 단방향으로 정의, 역관계는 inverse 속성 또는 추론 규칙
+
+### 3. URI 명명 규칙 불일치
+**증상**: 동일 엔티티가 다른 URI로 중복 저장
+
+\`\`\`python
+# ❌ 잘못된 예시: 일관성 없는 URI
+uris = [
+    "news:Person_홍길동",      # 한글
+    "news:Person-Hong_Gil_Dong",  # 영문 + 하이픈
+    "news:person_홍길동",      # 소문자 prefix
+]
+
+# ✅ 올바른 예시: 일관된 명명 규칙
+def _to_uri(entity_type: str, name: str) -> str:
+    safe_name = name.replace(" ", "_").replace("/", "_")
+    return f"{self.namespace}:{entity_type}_{safe_name}"
+    # 항상: namespace:Type_Name 형식
+\`\`\`
+
+💡 **기억할 점**: URI 생성 함수를 하나만 사용, 정규화 규칙 명확히 정의
+`,
   codeExample: `# 📌 Step 5: 온톨로지 검증
 print("엔티티 타입:", [e.type.value for e in DOMAIN_ONTOLOGY["entities"]])
 print("관계 타입:", [r.type.value for r in DOMAIN_ONTOLOGY["relations"]])

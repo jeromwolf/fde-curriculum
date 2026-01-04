@@ -1426,7 +1426,76 @@ export const day5WeeklyProject: Day = {
         'IF NOT EXISTS를 사용하면 중복 생성 에러 방지',
         'MERGE는 중복 방지, CREATE는 항상 생성',
         'Intermediate Node는 속성을 가진 관계에 사용'
-      ]
+      ],
+      `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [제약조건 순서] 데이터 로드 후 제약조건 생성
+**증상**: 중복 데이터로 인해 제약조건 생성 실패
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 데이터 먼저, 제약조건 나중
+CREATE (c1:Customer {id: 'C001', name: 'Kim'})
+CREATE (c2:Customer {id: 'C001', name: 'Lee'})  // 중복 ID
+
+CREATE CONSTRAINT customer_id FOR (c:Customer) REQUIRE c.id IS UNIQUE
+// ERROR: 이미 중복 데이터 존재!
+
+// ✅ 올바른 예시: 제약조건 먼저, 데이터 나중
+CREATE CONSTRAINT customer_id FOR (c:Customer) REQUIRE c.id IS UNIQUE
+
+CREATE (c1:Customer {id: 'C001', name: 'Kim'})  // 성공
+CREATE (c2:Customer {id: 'C001', name: 'Lee'})  // 즉시 에러로 차단
+\`\`\`
+
+💡 **기억할 점**: 스키마 정의(제약조건, 인덱스) → 데이터 로드 순서 필수
+
+---
+
+### 2. [Intermediate Node ID] OrderItem에 고유 ID 미부여
+**증상**: 특정 주문 항목을 직접 조회하거나 업데이트할 수 없음
+
+\`\`\`cypher
+// ❌ 잘못된 예시: OrderItem에 ID 없음
+CREATE (oi:OrderItem {quantity: 2, unitPrice: 25000})
+// 나중에 이 OrderItem만 찾으려면?
+
+// ✅ 올바른 예시: Intermediate Node에도 고유 ID
+CREATE (oi:OrderItem {
+  id: 'OI-' + randomUUID(),  // 고유 식별자
+  quantity: 2,
+  unitPrice: 25000
+})
+
+// 직접 조회 가능
+MATCH (oi:OrderItem {id: 'OI-xxx'})
+SET oi.quantity = 3
+\`\`\`
+
+💡 **기억할 점**: 모든 노드에 고유 ID 부여 (randomUUID() 또는 시퀀스)
+
+---
+
+### 3. [카테고리 계층 방향] PARENT_OF vs CHILD_OF 혼동
+**증상**: 하위 카테고리 조회 쿼리 방향 오류
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 방향 혼동
+// PARENT_OF: 부모 → 자식
+(Electronics)-[:PARENT_OF]->(Mobile)
+
+// 하위 카테고리 조회 시
+MATCH (root:Category {name: 'Electronics'})<-[:PARENT_OF*]-(child)
+// 결과: 없음! 방향이 반대
+
+// ✅ 올바른 예시: 방향 명확히 이해
+// PARENT_OF: 부모 → 자식 방향
+MATCH (root:Category {name: 'Electronics'})-[:PARENT_OF*]->(child)
+// 결과: Mobile, Accessories 등 모든 하위 카테고리
+\`\`\`
+
+💡 **기억할 점**: 관계 방향은 일관되게, 쿼리 시 화살표 방향 확인
+`
     ),
 
     // Task 5: 데이터 로드

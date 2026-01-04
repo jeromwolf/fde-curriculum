@@ -196,6 +196,69 @@ def process_documents(documents: list, llm) -> dict:
       '🔄 청크 단위 처리 후 중복 제거',
       '🎯 엔티티 타입과 관계 타입 정의 중요',
     ],
+    commonPitfalls: `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [중복 엔티티] 같은 엔티티가 여러 이름으로 추출
+**증상**: "삼성전자", "Samsung", "삼성" 이 별도 노드로 생성
+
+\`\`\`python
+# ❌ 잘못된 예시: 중복 엔티티 그대로 저장
+entities = [{"name": "삼성전자"}, {"name": "Samsung"}, {"name": "삼성"}]
+for e in entities:
+    graph.query("CREATE (:Entity {name: $name})", name=e['name'])
+
+# ✅ 올바른 예시: 정규화 후 저장
+def normalize_name(name):
+    aliases = {"Samsung": "삼성전자", "삼성": "삼성전자"}
+    return aliases.get(name, name)
+
+for e in entities:
+    normalized = normalize_name(e['name'])
+    graph.query("MERGE (:Entity {name: $name})", name=normalized)
+\`\`\`
+
+💡 **기억할 점**: 엔티티 별칭 사전 구축 또는 LLM에 정규화 요청
+
+---
+
+### 2. [관계 방향 불일치] 같은 관계가 다른 방향으로 추출
+**증상**: A→B와 B→A가 모두 존재하여 혼란
+
+\`\`\`python
+# ❌ 잘못된 예시: LLM이 방향을 일관되게 추출 못함
+# 청크1: {"source": "삼성", "relation": "경쟁", "target": "SK"}
+# 청크2: {"source": "SK", "relation": "경쟁", "target": "삼성"}
+
+# ✅ 올바른 예시: 관계 정규화 (알파벳 순서)
+def normalize_relation(source, target, relation):
+    if relation in ['COMPETES_WITH', 'PARTNERS_WITH']:  # 대칭 관계
+        if source > target:
+            source, target = target, source
+    return source, target, relation
+\`\`\`
+
+💡 **기억할 점**: 대칭 관계는 일관된 방향으로 정규화
+
+---
+
+### 3. [API 비용 폭발] 긴 문서를 청킹 없이 처리
+**증상**: 토큰 초과 에러 또는 예상치 못한 높은 비용
+
+\`\`\`python
+# ❌ 잘못된 예시: 전체 문서를 한 번에 처리
+document = "50,000 토큰짜리 긴 문서..."
+result = llm.invoke(f"추출: {document}")  # 토큰 초과!
+
+# ✅ 올바른 예시: 청크 단위 처리
+splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=200)
+chunks = splitter.split_text(document)
+for chunk in chunks:
+    result = llm.invoke(f"추출: {chunk}")  # 각 청크별 처리
+\`\`\`
+
+💡 **기억할 점**: chunk_size=2000 권장, overlap으로 경계 엔티티 보존
+`,
     practiceGoal: '문서에서 엔티티와 관계 자동 추출',
     codeExample: `from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate

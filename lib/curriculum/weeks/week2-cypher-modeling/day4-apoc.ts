@@ -1571,7 +1571,68 @@ RETURN apoc.coll.intersection(portfolio_a, portfolio_b) AS common`,
         '💡 apoc.coll.zip은 두 리스트를 쌍으로 묶습니다',
         '💡 apoc.coll.intersection은 공통 요소를 반환합니다',
         '💡 결과는 배열 형태로 반환됩니다'
-      ]
+      ],
+      `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [리스트 길이 불일치] zip 시 리스트 길이가 다름
+**증상**: 짧은 리스트 기준으로 잘림, 데이터 손실
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 길이가 다른 리스트 zip
+WITH ['A', 'B', 'C'] AS names, [1, 2] AS values
+RETURN apoc.coll.zip(names, values)
+// 결과: [['A', 1], ['B', 2]] - 'C'가 누락됨!
+
+// ✅ 올바른 예시: 길이 확인 후 처리
+WITH ['A', 'B', 'C'] AS names, [1, 2] AS values
+WHERE size(names) = size(values)
+RETURN apoc.coll.zip(names, values)
+// 또는 기본값으로 패딩
+\`\`\`
+
+💡 **기억할 점**: zip 전에 size()로 리스트 길이가 같은지 확인
+
+---
+
+### 2. [집합 연산 순서] subtract의 방향 혼동
+**증상**: A-B와 B-A 결과가 다른데 혼동
+
+\`\`\`cypher
+// ❌ 잘못된 예시: subtract 방향 혼동
+WITH [1,2,3] AS a, [2,3,4] AS b
+RETURN apoc.coll.subtract(a, b) AS result
+// 결과: [1] (a에만 있는 요소)
+
+// 반대로 하면?
+RETURN apoc.coll.subtract(b, a) AS result
+// 결과: [4] (b에만 있는 요소)
+
+// ✅ 명확하게 사용
+// A - B = A에는 있지만 B에는 없는 요소
+\`\`\`
+
+💡 **기억할 점**: subtract(A, B)는 "A에서 B를 뺀다" = A에만 있는 요소
+
+---
+
+### 3. [null 처리] 컬렉션에 null 포함 시 예상치 못한 결과
+**증상**: null이 포함된 리스트 연산에서 오류 또는 누락
+
+\`\`\`cypher
+// ❌ 잘못된 예시: null 포함 리스트
+WITH [1, null, 3] AS list
+RETURN apoc.coll.sum(list)
+// 결과: null (전체가 null이 됨!)
+
+// ✅ 올바른 예시: null 제거 후 연산
+WITH [1, null, 3] AS list
+RETURN apoc.coll.sum([x IN list WHERE x IS NOT NULL])
+// 결과: 4
+\`\`\`
+
+💡 **기억할 점**: 컬렉션 연산 전 [x IN list WHERE x IS NOT NULL]로 null 제거
+`
     ),
 
     // Task 7: 배치 처리 영상
@@ -1606,7 +1667,80 @@ RETURN apoc.coll.intersection(portfolio_a, portfolio_b) AS common`,
         '💡 실행 쿼리에서 소스 쿼리의 변수를 사용합니다',
         '💡 삭제 작업은 parallel: false를 권장합니다',
         '💡 apoc.create.addLabels로 동적 레이블 추가'
-      ]
+      ],
+      `
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [MERGE + parallel] MERGE 작업에 parallel: true 사용
+**증상**: 중복 노드 생성, 데드락, 트랜잭션 실패
+
+\`\`\`cypher
+// ❌ 잘못된 예시: MERGE에 병렬 처리
+CALL apoc.periodic.iterate(
+  'CALL apoc.load.csv("file:///users.csv") YIELD map RETURN map',
+  'MERGE (u:User {id: map.id}) SET u.name = map.name',
+  {batchSize: 10000, parallel: true}  // 동일 노드에 동시 접근!
+)
+// 결과: 중복 노드 생성 또는 데드락
+
+// ✅ 올바른 예시: MERGE는 반드시 순차 처리
+CALL apoc.periodic.iterate(
+  'CALL apoc.load.csv("file:///users.csv") YIELD map RETURN map',
+  'MERGE (u:User {id: map.id}) SET u.name = map.name',
+  {batchSize: 10000, parallel: false}  // 순차 처리로 안전
+)
+\`\`\`
+
+💡 **기억할 점**: MERGE, CREATE (동일 키), DELETE는 parallel: false 필수
+
+---
+
+### 2. [소스 쿼리 오류] 소스 쿼리에 RETURN 누락
+**증상**: 실행 쿼리에서 변수를 찾을 수 없음
+
+\`\`\`cypher
+// ❌ 잘못된 예시: RETURN 없음
+CALL apoc.periodic.iterate(
+  'MATCH (n:User)',  // RETURN 없음!
+  'SET n.verified = true',
+  {batchSize: 1000}
+)
+// ERROR: Variable 'n' not defined
+
+// ✅ 올바른 예시: RETURN으로 변수 전달
+CALL apoc.periodic.iterate(
+  'MATCH (n:User) RETURN n',  // n을 반환
+  'SET n.verified = true',
+  {batchSize: 1000}
+)
+\`\`\`
+
+💡 **기억할 점**: 소스 쿼리는 반드시 RETURN으로 끝나야 함
+
+---
+
+### 3. [batchSize 과대] 배치 크기를 너무 크게 설정
+**증상**: 메모리 부족, 트랜잭션 타임아웃
+
+\`\`\`cypher
+// ❌ 잘못된 예시: 배치 크기 100만
+CALL apoc.periodic.iterate(
+  'MATCH (n:Log) RETURN n',
+  'DETACH DELETE n',
+  {batchSize: 1000000}  // 한 트랜잭션에 100만 개!
+)
+// 결과: 메모리 부족 또는 타임아웃
+
+// ✅ 올바른 예시: 적절한 배치 크기 (1,000 ~ 50,000)
+CALL apoc.periodic.iterate(
+  'MATCH (n:Log) RETURN n',
+  'DETACH DELETE n',
+  {batchSize: 10000}  // 1만 개씩 안전하게
+)
+\`\`\`
+
+💡 **기억할 점**: batchSize는 1,000 ~ 50,000 사이, 삭제는 10,000 이하 권장
+`
     ),
 
     // Task 9: 그래프 알고리즘
