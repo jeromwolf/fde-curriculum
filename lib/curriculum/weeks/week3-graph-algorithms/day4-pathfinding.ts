@@ -448,29 +448,124 @@ const task3DijkstraPractice = createCodeTask(
 ## 데이터 구조
 - Warehouse 노드 (10개 창고)
 - ROUTE 관계 (cost, time 속성)
+
+---
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [가중치] 음수 가중치 사용
+
+**증상**: 잘못된 경로 또는 무한 루프
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 음수 비용
+CREATE (a)-[:ROUTE {cost: -10}]->(b)
+// → Dijkstra는 음수 가중치 미지원!
+\`\`\`
+
+**왜 잘못되었나**:
+- Dijkstra는 "이미 확정된 경로가 최적"이라고 가정
+- 음수 가중치가 있으면 나중에 더 좋은 경로 발견 가능
+- 무한 루프에 빠질 수 있음
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 양수 가중치만 사용
+CREATE (a)-[:ROUTE {cost: 10}]->(b)
+// 음수 가중치 필요하면 Bellman-Ford 사용 (GDS 미지원)
+\`\`\`
+
+**기억할 점**:
+> Dijkstra는 양수 가중치 전용입니다. 음수가 있으면 다른 알고리즘 필요.
+
+---
+
+### 2. [알고리즘 선택] 상황에 맞지 않는 알고리즘
+
+**증상**: 불필요하게 느리거나 메모리 부족
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 한 쌍만 필요한데 모든 쌍 계산
+CALL gds.allShortestPaths.dijkstra.stream('graph', {
+  sourceNode: source
+})
+// → 모든 노드까지 계산하지만 하나만 필요!
+\`\`\`
+
+**왜 잘못되었나**:
+- 10,000개 노드면 10,000개 경로 계산
+- 한 쌍만 필요하면 낭비
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 한 쌍이면 단일 최단 경로
+CALL gds.shortestPath.dijkstra.stream('graph', {
+  sourceNode: source,
+  targetNode: target  // 목적지 지정!
+})
+\`\`\`
+
+**기억할 점**:
+> 한 쌍: shortestPath, 한 출발지→모든 도착지: allShortestPaths
   `,
   `
-// 실습 시작 코드
+// ============================================
+// Dijkstra 알고리즘 실습
+// ============================================
 
-// 📌 Step 1: 그래프 프로젝션 생성 (비용 가중치)
+
+// ========================================
+// 과제 1: 그래프 프로젝션 생성
+// ========================================
+
+// [WHY] 왜 비용 속성을 프로젝션에 포함하는가?
+// - Dijkstra는 가중치 기반 알고리즘
+// - cost 속성 = 각 경로의 비용
+// - 가중치 없으면 모든 엣지가 동일 비용 (BFS와 같음)
+
+// [SELECTION GUIDE] 가중치 선택:
+// - cost: 배송 비용 최소화
+// - time: 배송 시간 최소화
+// - distance: 물리적 거리 최소화
+// 목표에 맞는 가중치 선택 중요!
+
+// [TODO] 구현할 내용:
+// Step 1: 노드 라벨: 'Warehouse'
+// Step 2: properties: ['cost']
+// Step 3: orientation: 'UNDIRECTED' (양방향 이동 가능)
+
 CALL gds.graph.project(
   'logistics-network',
-  '___',  // TODO: 'Warehouse'
+  // TODO: 노드 라벨 지정
+  ,
   {
     ROUTE: {
-      properties: ['___'],  // TODO: 'cost'
-      orientation: '___'  // TODO: 'UNDIRECTED'
+      // TODO: properties, orientation 설정
     }
   }
 );
 
-// 📌 Step 2: HQ → 창고 E 최단 경로
+
+// ========================================
+// 과제 2: 단일 최단 경로 (HQ → Warehouse_E)
+// ========================================
+
+// [WHY] shortestPath.dijkstra 사용?
+// - 한 쌍의 노드 간 최단 경로
+// - 가중치 기반 최적 경로 계산
+// - allShortestPaths보다 효율적 (목적지 도달 시 중단)
+
+// [SELECTION GUIDE] stream vs write:
+// - stream: 결과 확인용 (저장 X)
+// - write: 경로를 관계로 저장
+
+// [TODO] 구현할 내용:
+// Step 1: sourceNode: source (MATCH로 찾은 노드)
+// Step 2: targetNode: target
+// Step 3: relationshipWeightProperty: 'cost'
+
 MATCH (source:Warehouse {name: 'HQ'}),
       (target:Warehouse {name: 'Warehouse_E'})
-CALL gds.shortestPath.dijkstra.stream('___', {
-  sourceNode: ___,
-  targetNode: ___,
-  relationshipWeightProperty: '___'
+CALL gds.shortestPath.dijkstra.stream('logistics-network', {
+  // TODO: sourceNode, targetNode, relationshipWeightProperty
 })
 YIELD totalCost, nodeIds, costs
 RETURN
@@ -478,11 +573,23 @@ RETURN
   totalCost,
   costs;
 
-// 📌 Step 3: HQ에서 모든 창고까지 최단 경로
+
+// ========================================
+// 과제 3: 단일 출발지 → 모든 도착지
+// ========================================
+
+// [WHY] allShortestPaths 사용?
+// - 한 출발지에서 모든 노드까지의 최단 경로
+// - 물류 허브에서 모든 창고까지 비용 계산에 유용
+// - 한 번 실행으로 모든 경로 확보
+
+// [TODO] 구현할 내용:
+// Step 1: sourceNode만 지정 (targetNode 없음)
+// Step 2: size(nodeIds) - 1 = 경유지 수 (홉 수)
+
 MATCH (source:Warehouse {name: 'HQ'})
-CALL gds.allShortestPaths.dijkstra.stream('___', {
-  sourceNode: ___,
-  relationshipWeightProperty: '___'
+CALL gds.allShortestPaths.dijkstra.stream('logistics-network', {
+  // TODO: sourceNode, relationshipWeightProperty
 })
 YIELD targetNode, totalCost, nodeIds
 RETURN
@@ -491,23 +598,35 @@ RETURN
   size(nodeIds) - 1 AS hops
 ORDER BY totalCost;
 
-// 📌 Step 4: 대안 경로 3개 찾기 (Yen's K-shortest)
+
+// ========================================
+// 과제 4: K개 대안 경로 (Yen's Algorithm)
+// ========================================
+
+// [WHY] 대안 경로가 필요한 이유?
+// - 최단 경로가 막혔을 때 (도로 공사, 사고 등)
+// - 비용 vs 시간 트레이드오프 검토
+// - 리스크 분산 (하나의 경로에 의존 X)
+
+// [SELECTION GUIDE] k 값 설정:
+// - k=3: 일반적인 대안 수
+// - k가 클수록 계산 시간 증가
+// - 실무에서는 2~5개 권장
+
+// [TODO] 구현할 내용:
+// Step 1: k: 3 (대안 경로 3개)
+// Step 2: index + 1 = 순위 (0-based → 1-based)
+
 MATCH (source:Warehouse {name: 'HQ'}),
       (target:Warehouse {name: 'Warehouse_E'})
-CALL gds.shortestPath.yens.stream('___', {
-  sourceNode: ___,
-  targetNode: ___,
-  k: ___,  // TODO: 3
-  relationshipWeightProperty: '___'
+CALL gds.shortestPath.yens.stream('logistics-network', {
+  // TODO: sourceNode, targetNode, k, relationshipWeightProperty
 })
 YIELD index, totalCost, nodeIds
 RETURN
   index + 1 AS rank,
   totalCost,
   [n IN nodeIds | gds.util.asNode(n).name] AS path;
-
-// 📌 Step 5: 비용 vs 시간 비교
-// TODO: time 속성으로 새 프로젝션 만들고 비교
   `,
   `
 // 정답 코드
