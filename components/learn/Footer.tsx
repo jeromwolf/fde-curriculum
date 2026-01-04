@@ -1,6 +1,16 @@
 import Link from 'next/link'
 
 export function Footer() {
+  const version = process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0'
+  const gitCommit = process.env.NEXT_PUBLIC_GIT_COMMIT || 'unknown'
+  const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME
+    ? new Date(process.env.NEXT_PUBLIC_BUILD_TIME).toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      })
+    : ''
+
   return (
     <footer className="bg-gray-900 text-white mt-16">
       <div className="max-w-6xl mx-auto px-6 py-12">
@@ -20,8 +30,11 @@ export function Footer() {
             </Link>
           </div>
         </div>
-        <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-500">
-          © 2025 FDE Academy. All rights reserved.
+        <div className="mt-8 pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+          <span>© 2025 FDE Academy. All rights reserved.</span>
+          <span className="font-mono text-xs text-gray-600">
+            v{version} ({gitCommit}){buildTime && ` • ${buildTime}`}
+          </span>
         </div>
       </div>
     </footer>
