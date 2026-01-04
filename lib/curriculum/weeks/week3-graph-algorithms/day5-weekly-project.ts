@@ -330,19 +330,50 @@ const task3InfluencerAnalysis = createCodeTask(
 - Micro: 상위 5-20%
 - Nano: 상위 20-50%
 - Regular: 하위 50%
+
+---
+
+## 💡 핵심 팁
+
+### 프로젝션 방향성
+- **NATURAL**: 원본 방향 유지 (A→B는 A follows B)
+- **REVERSE**: 방향 반전 (In-Degree 계산에 필수)
+- **UNDIRECTED**: 양방향 (커뮤니티 탐지에 적합)
+
+### 알고리즘 선택 가이드
+| 목적 | 알고리즘 |
+|-----|---------|
+| 전체 영향력 | PageRank |
+| 팔로워 수 | In-Degree (REVERSE) |
+| 정보 브로커 | Betweenness |
+| 근접성 | Closeness |
+
+### mutate vs write
+- **mutate**: 프로젝션에만 저장 (빠름, 후속 계산용)
+- **write**: DB에 영구 저장 (쿼리에서 사용)
   `,
   `
-// 인플루언서 분석 시작
+// ============================================
+// Part 2: 인플루언서 분석
+// ============================================
+
 
 // ========================================
 // Step 1: 그래프 프로젝션
 // ========================================
+
+// [WHY] FOLLOWS 방향이 중요한 이유?
+// - A→B: A가 B를 팔로우
+// - In-Degree(B) = B의 팔로워 수 = 인기 지표
+// - NATURAL로 방향 유지해야 올바른 분석
+
 CALL gds.graph.project(
   'follow-network',
   'User',
   {
     FOLLOWS: {
-      orientation: '___'  // 방향 유지
+      // TODO: orientation 설정 (NATURAL 권장)
+      orientation: '___'
     }
   }
 );
