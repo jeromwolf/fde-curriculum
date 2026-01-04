@@ -958,6 +958,73 @@ print(f"수집 완료: {result['total_documents']}개 문서, {result['total_chu
 result = pipeline.ingest_incremental("./documents")
 print(f"업데이트: {result.get('files_updated', 0)}개 파일")
 \`\`\`
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [인코딩] PDF/Word 파일 인코딩 문제
+
+\`\`\`python
+# ❌ 잘못된 예시: 인코딩 처리 없이 읽기
+text = Path(file_path).read_text()  # 🔴 한글 PDF에서 깨짐
+
+# ✅ 올바른 예시: 라이브러리가 바이너리로 처리
+from langchain_community.document_loaders import PyPDFLoader
+
+loader = PyPDFLoader(file_path)  # ✅ 바이너리 처리
+docs = loader.load()
+\`\`\`
+
+**기억할 점**: PDF/Word는 텍스트 파일 아님. 전용 로더 사용 필수.
+
+---
+
+### 2. [메모리] 대용량 파일 일괄 로드
+
+\`\`\`python
+# ❌ 잘못된 예시: 모든 파일 한 번에 메모리에 로드
+all_docs = []
+for path in glob.glob("*.pdf"):
+    loader = PyPDFLoader(path)
+    all_docs.extend(loader.load())  # 🔴 1000개 PDF → 메모리 부족
+
+# ✅ 올바른 예시: 스트리밍 + 배치 처리
+for batch in chunked(file_paths, size=50):
+    docs = []
+    for path in batch:
+        loader = PyPDFLoader(path)
+        docs.extend(loader.load())
+    vectorstore.add_documents(docs)  # 배치별로 저장
+    docs = []  # 메모리 해제
+\`\`\`
+
+**기억할 점**: 대용량 수집 시 배치 처리 + 명시적 메모리 해제.
+
+---
+
+### 3. [증분 수집] 파일 해시만으로 변경 감지
+
+\`\`\`python
+# ❌ 잘못된 예시: 파일 해시만 확인
+def is_changed(file_path):
+    current_hash = hashlib.md5(Path(file_path).read_bytes()).hexdigest()
+    return current_hash != self.cache.get(file_path)
+# 문제: 삭제된 파일 감지 못함, 메타데이터 변경 무시
+
+# ✅ 올바른 예시: 해시 + mtime + 삭제 감지
+def detect_changes(self, directory):
+    current_files = set(glob.glob(f"{directory}/**/*", recursive=True))
+    cached_files = set(self.cache.keys())
+
+    new_files = current_files - cached_files      # 신규
+    deleted_files = cached_files - current_files  # 삭제됨
+    modified_files = [f for f in current_files & cached_files
+                      if self._is_modified(f)]    # 수정됨
+    return new_files, deleted_files, modified_files
+\`\`\`
+
+**기억할 점**: 신규/삭제/수정 세 가지 상태 모두 감지해야 완전한 증분 수집.
       `,
       keyPoints: [
         '📄 PDF, Word, HTML, Code 등 다양한 포맷 처리',

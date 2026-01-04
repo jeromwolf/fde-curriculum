@@ -397,6 +397,56 @@ print(get_chosung("삼성"))      # ㅅㅅ
 2. **Jaccard** = 토큰/단어 기반 비교
 3. **FuzzyWuzzy** = 다양한 상황에 대응
 4. **한글** = 형태소 분석 + 초성 추출 활용
+
+---
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [임계값] 모든 상황에 같은 임계값 사용
+
+**증상**: 너무 많은 매칭 또는 놓치는 매칭
+
+\`\`\`python
+# ❌ 잘못된 예시 - 고정 임계값
+if similarity > 0.8:  # 항상 80%?
+    match = True
+\`\`\`
+
+**왜 잘못되었나**:
+- 짧은 이름 (예: "이철수")은 0.9에서도 오매칭 가능
+- 긴 회사명은 0.7에서도 정확히 매칭
+
+\`\`\`python
+# ✅ 올바른 예시 - 데이터 특성에 맞춘 임계값
+if len(s1) <= 5:
+    threshold = 0.9  # 짧은 문자열은 엄격하게
+else:
+    threshold = 0.75  # 긴 문자열은 느슨하게
+\`\`\`
+
+---
+
+### 2. [메트릭 선택] 이름에 Jaccard 사용
+
+**증상**: "김철수" vs "이철수"가 높은 유사도
+
+\`\`\`python
+# ❌ 잘못된 예시 - 이름에 문자 Jaccard
+char_jaccard("김철수", "이철수")  # 0.6 (철, 수 공유)
+\`\`\`
+
+**왜 잘못되었나**:
+- 이름은 순서가 중요 (성 + 이름)
+- Jaccard는 순서를 무시
+
+\`\`\`python
+# ✅ 올바른 예시 - 이름에 Jaro-Winkler
+jellyfish.jaro_winkler_similarity("김철수", "이철수")  # 0.56 (낮음)
+jellyfish.jaro_winkler_similarity("김철수", "김철호")  # 0.87 (높음)
+\`\`\`
+
+**기억할 점**:
+> 이름 = Jaro-Winkler, 문서/태그 = Jaccard
         `,
         keyPoints: [
           '🎯 Levenshtein은 편집 거리 기반, 오타 처리에 적합',

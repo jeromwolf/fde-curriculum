@@ -202,6 +202,61 @@ class KnowledgeGraphBuilder:
             result = session.run(query)
             return {r["label"]: r["cnt"] for r in result}
 \`\`\`
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [중복 노드] CREATE 대신 MERGE 사용 필수
+
+\`\`\`python
+# ❌ 잘못된 예시: CREATE로 노드 생성
+session.run("CREATE (n:Person {name: '이재용'})")
+session.run("CREATE (n:Person {name: '이재용'})")  # 🔴 중복 노드 생성!
+
+# ✅ 올바른 예시: MERGE로 upsert
+session.run("MERGE (n:Person {name: '이재용'})")  # ✅ 중복 방지
+\`\`\`
+
+**기억할 점**: KG 구축에서는 CREATE 대신 MERGE. 중복 노드는 쿼리 결과 왜곡.
+
+---
+
+### 2. [인덱스 누락] 대량 데이터 전 인덱스 생성
+
+\`\`\`python
+# ❌ 잘못된 예시: 데이터 추가 후 인덱스 생성
+for triple in 100000_triples:
+    builder.add_triple(triple)  # 🔴 인덱스 없이 MERGE → 매우 느림!
+session.run("CREATE INDEX ...")  # 뒤늦게 인덱스
+
+# ✅ 올바른 예시: 인덱스 먼저, 데이터 나중
+session.run("CREATE INDEX node_uri FOR (n:Entity) ON (n.uri)")
+session.run("CREATE INDEX edge_source FOR ()-[r:RELATION]->() ON (r.source_url)")
+for triple in 100000_triples:
+    builder.add_triple(triple)  # ✅ 인덱스 있어서 빠름
+\`\`\`
+
+**기억할 점**: 인덱스 없이 MERGE는 전체 스캔. 대량 데이터 전 반드시 인덱스 생성.
+
+---
+
+### 3. [세션 관리] 세션 미종료로 연결 풀 고갈
+
+\`\`\`python
+# ❌ 잘못된 예시: 세션 종료 안 함
+def add_triple(self, triple):
+    session = self.driver.session()
+    session.run("MERGE ...")  # 🔴 session.close() 없음!
+# 1000번 호출 → 1000개 세션 열림 → 연결 풀 고갈
+
+# ✅ 올바른 예시: with 문으로 자동 종료
+def add_triple(self, triple):
+    with self.driver.session() as session:  # ✅ 자동 종료
+        session.run("MERGE ...")
+\`\`\`
+
+**기억할 점**: Neo4j 세션은 반드시 with 문 또는 finally에서 close().
 `,
   keyPoints: ['MERGE로 중복 방지', 'URI 파싱으로 노드 타입 추론', '배치 처리 지원'],
   practiceGoal: 'Neo4j KG 빌더 구현',

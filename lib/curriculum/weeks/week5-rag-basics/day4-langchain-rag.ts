@@ -620,6 +620,78 @@ for q, r in zip(questions, responses):
     print(f"\\nQ: {q}")
     print(f"A: {r.answer[:100]}...")
 \`\`\`
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [타입 불일치] RunnableParallel 출력 형식 오해
+
+\`\`\`python
+# ❌ 잘못된 예시: 딕셔너리 키 접근 실패
+chain = RunnableParallel({
+    "context": retriever | format_docs,
+    "question": RunnablePassthrough()
+})
+
+# 다음 체인에서 바로 사용하려고 함
+chain = chain | prompt  # 🔴 prompt는 {context}, {question}을 기대
+# 문제: chain 출력은 {"context": ..., "question": ...}
+
+# ✅ 올바른 예시: 출력 형식 맞추기
+chain = (
+    RunnableParallel({
+        "context": retriever | format_docs,
+        "question": RunnablePassthrough()
+    })
+    | prompt  # ✅ 이제 딕셔너리가 prompt 템플릿에 매핑됨
+    | llm
+)
+\`\`\`
+
+**기억할 점**: RunnableParallel 출력은 딕셔너리. 다음 컴포넌트가 딕셔너리를 받을 수 있는지 확인.
+
+---
+
+### 2. [Lambda 순서] lambda 함수 직접 사용 시 invoke 필요
+
+\`\`\`python
+# ❌ 잘못된 예시: lambda 직접 파이프 연결
+chain = retriever | lambda docs: format_docs(docs)  # 🔴 동작하지만 경고!
+
+# LangChain은 lambda를 RunnableLambda로 자동 변환하지만,
+# 복잡한 체인에서는 예상치 못한 동작 가능
+
+# ✅ 올바른 예시: RunnableLambda 명시적 사용
+from langchain_core.runnables import RunnableLambda
+
+chain = retriever | RunnableLambda(format_docs)
+\`\`\`
+
+**기억할 점**: 복잡한 체인에서는 RunnableLambda로 명시적 래핑 권장.
+
+---
+
+### 3. [비동기 혼동] invoke vs ainvoke 혼용
+
+\`\`\`python
+# ❌ 잘못된 예시: 비동기 컨텍스트에서 동기 호출
+async def query(question: str):
+    result = chain.invoke(question)  # 🔴 동기 호출! 이벤트 루프 블로킹
+    return result
+
+# ✅ 올바른 예시: 비동기 환경에서는 ainvoke 사용
+async def query(question: str):
+    result = await chain.ainvoke(question)  # ✅ 비동기 호출
+    return result
+
+# 스트리밍도 마찬가지
+async def stream_query(question: str):
+    async for chunk in chain.astream(question):  # ✅ astream
+        yield chunk
+\`\`\`
+
+**기억할 점**: FastAPI, asyncio 환경에서는 반드시 ainvoke/astream 사용. 동기 호출은 이벤트 루프 블로킹.
       `,
       keyPoints: [
         '🔁 with_retry()로 재시도 로직 구현',
@@ -941,6 +1013,97 @@ rag_b.query("벡터 DB란?")
 print(f"Session A history: {len(rag_a.get_history())} messages")
 print(f"Session B history: {len(rag_b.get_history())} messages")
 \`\`\`
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [히스토리 폭발] 무한 히스토리 저장
+
+\`\`\`python
+# ❌ 잘못된 예시: 히스토리 제한 없음
+class BadConversationalRAG:
+    def __init__(self):
+        self.history = []  # 🔴 제한 없음!
+
+    def query(self, question):
+        # 히스토리 계속 추가
+        self.history.append(HumanMessage(content=question))
+        self.history.append(AIMessage(content=answer))
+        # 문제: 100턴 대화 시 200개 메시지 → 컨텍스트 오버플로우
+
+# ✅ 올바른 예시: 히스토리 제한
+class GoodConversationalRAG:
+    def __init__(self, max_history: int = 10):
+        self.history = []
+        self.max_history = max_history
+
+    def _get_recent_history(self):
+        return self.history[-self.max_history:]  # 최근 N개만
+\`\`\`
+
+**기억할 점**: max_history로 히스토리 크기 제한. 보통 10-20개면 충분.
+
+---
+
+### 2. [질문 재작성] 불필요한 재작성 비용
+
+\`\`\`python
+# ❌ 잘못된 예시: 항상 질문 재작성
+def query(self, question):
+    contextualized = (contextualize_prompt | llm).invoke({
+        "history": self.history,  # 🔴 히스토리 없어도 LLM 호출!
+        "question": question
+    })
+
+# ✅ 올바른 예시: 히스토리 있을 때만 재작성
+def query(self, question):
+    if self.history:  # ✅ 히스토리 있을 때만
+        contextualized = (contextualize_prompt | llm).invoke({
+            "history": self.history,
+            "question": question
+        })
+    else:
+        contextualized = question  # 첫 질문은 그대로 사용
+\`\`\`
+
+**기억할 점**: 첫 번째 질문은 재작성 불필요. LLM 호출 비용 절약.
+
+---
+
+### 3. [세션 관리] 메모리 누수
+
+\`\`\`python
+# ❌ 잘못된 예시: 세션 정리 안 함
+class BadSessionManager:
+    def __init__(self):
+        self.sessions = {}  # 🔴 세션이 계속 쌓임!
+
+    def create_session(self):
+        session_id = str(uuid4())
+        self.sessions[session_id] = ConversationalRAG()
+        return session_id
+        # 문제: 10만 사용자 → 10만 세션 → 메모리 부족
+
+# ✅ 올바른 예시: TTL 기반 세션 정리
+from datetime import datetime, timedelta
+
+class GoodSessionManager:
+    def __init__(self, ttl_minutes: int = 30):
+        self.sessions = {}
+        self.last_access = {}
+        self.ttl = timedelta(minutes=ttl_minutes)
+
+    def cleanup_expired(self):
+        now = datetime.now()
+        expired = [sid for sid, t in self.last_access.items()
+                   if now - t > self.ttl]
+        for sid in expired:
+            del self.sessions[sid]
+            del self.last_access[sid]
+\`\`\`
+
+**기억할 점**: TTL 설정으로 오래된 세션 자동 정리. Redis 등 외부 저장소 사용도 고려.
       `,
       keyPoints: [
         '💬 질문 재작성으로 대명사 해결',

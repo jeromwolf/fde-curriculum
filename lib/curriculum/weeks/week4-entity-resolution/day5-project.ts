@@ -86,6 +86,44 @@ export const day5Project: Day = {
 | Neo4j 데이터 모델 | 20% |
 | 시각화 대시보드 | 25% |
 | 코드 품질 및 문서화 | 15% |
+
+## 💡 핵심 팁: 자주 하는 실수 방지
+
+### 1. [ER 임계값] 데이터 특성에 맞게 조정
+\`\`\`python
+# [WHY] 한글 기업명은 0.8, 영문은 0.85가 적절
+# "삼성전자" vs "삼성" = 0.77 (한글 짧아서 낮음)
+# "Samsung Electronics" vs "Samsung" = 0.79
+threshold = 0.78 if has_korean(records) else 0.85
+\`\`\`
+
+### 2. [Neo4j 성능] 인덱스 먼저, 데이터 나중
+\`\`\`python
+# [WHY] MERGE는 인덱스 없으면 O(n) 스캔
+loader.create_indexes()  # 먼저!
+loader.load_companies(companies)  # 나중!
+\`\`\`
+
+### 3. [시각화 성능] 대규모 그래프는 샘플링
+\`\`\`python
+# [WHY] PyVis는 500노드 이상에서 느려짐
+if len(companies) > 500:
+    # 상위 PageRank 노드만 표시
+    top_nodes = get_top_pagerank(companies, limit=200)
+\`\`\`
+
+### 4. [디버깅] 단계별 검증 필수
+\`\`\`python
+# 수집 후 검증
+print(f"수집: {len(all_companies)}개, 소스별: {Counter(r['_source'] for r in all_companies)}")
+
+# ER 후 검증
+print(f"ER 전: {before}, ER 후: {after}, 병합률: {(before-after)/before*100:.1f}%")
+
+# 로드 후 검증
+stats = loader.get_stats()
+print(f"Neo4j: {stats}")
+\`\`\`
       `,
       keyPoints: ['다중 소스 → ER → Neo4j → 시각화', '기업/산업/도시 데이터 모델', 'Streamlit + PyVis 대시보드'],
       practiceGoal: '프로젝트 아키텍처와 요구사항을 이해한다',

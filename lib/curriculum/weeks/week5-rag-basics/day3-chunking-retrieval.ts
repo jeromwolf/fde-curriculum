@@ -668,6 +668,76 @@ def compare_chunking_strategies(text: str):
 
     return results
 \`\`\`
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [크기 설정] chunk_overlap이 chunk_size보다 큼
+
+\`\`\`python
+# ❌ 잘못된 예시: overlap이 size보다 큼
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=100,
+    chunk_overlap=150  # 🔴 chunk_size보다 큼!
+)
+# ValueError: chunk_overlap must be less than chunk_size
+
+# ✅ 올바른 예시: overlap은 size의 10-20%
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,
+    chunk_overlap=50  # 10% (권장: 10-20%)
+)
+\`\`\`
+
+**기억할 점**: overlap은 chunk_size의 10-20%가 적정. 너무 크면 중복, 너무 작으면 문맥 단절.
+
+---
+
+### 2. [구분자 순서] separators 우선순위 무시
+
+\`\`\`python
+# ❌ 잘못된 예시: 작은 단위부터 시작
+splitter = RecursiveCharacterTextSplitter(
+    separators=[" ", ".", "\\n", "\\n\\n"]  # 🔴 공백이 먼저!
+)
+# 결과: 모든 곳에서 공백으로 분할 → 의미 없는 단편
+
+# ✅ 올바른 예시: 큰 단위부터 작은 단위로
+splitter = RecursiveCharacterTextSplitter(
+    separators=["\\n\\n\\n", "\\n\\n", "\\n", ".", " ", ""]
+)
+# 결과: 단락 → 문장 → 단어 순으로 시도
+\`\`\`
+
+**기억할 점**: separators는 "가장 먼저 시도할 구분자"가 첫 번째. 큰 단위(단락)부터 시작해야 구조 보존.
+
+---
+
+### 3. [토큰 vs 문자] 임베딩 모델 토큰 제한 무시
+
+\`\`\`python
+# ❌ 잘못된 예시: 문자 수로만 설정
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=8000,  # 8000자 = 약 2000 토큰
+    length_function=len  # 문자 수 기준
+)
+# 문제: text-embedding-3-small 최대 8191 토큰
+#       8000자 한글 → 일부 청크가 토큰 제한 초과 가능
+
+# ✅ 올바른 예시: 토큰 기준으로 설정
+import tiktoken
+
+encoder = tiktoken.encoding_for_model("gpt-4o")
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,  # 토큰 기준!
+    chunk_overlap=50,
+    length_function=lambda text: len(encoder.encode(text))
+)
+\`\`\`
+
+**기억할 점**: 임베딩 모델 토큰 제한 확인 필수. 한글은 영어보다 토큰 효율 낮음 (1글자 ≈ 1-2 토큰).
       `,
       keyPoints: [
         '🔄 RecursiveCharacterTextSplitter가 가장 범용적',
@@ -1289,6 +1359,80 @@ config = SearchConfig(
 retriever = AdvancedRetriever(vectorstore, docs, config)
 results = retriever.search("RAG 시스템 구축 방법")
 \`\`\`
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [앙상블 가중치] 극단적인 가중치 설정
+
+\`\`\`python
+# ❌ 잘못된 예시: 한쪽에 100% 가중치
+ensemble = EnsembleRetriever(
+    retrievers=[bm25, vector],
+    weights=[1.0, 0.0]  # 🔴 BM25만 사용 → 하이브리드 의미 없음
+)
+
+# ❌ 또 다른 실수: 가중치 합이 1이 아님
+ensemble = EnsembleRetriever(
+    retrievers=[bm25, vector],
+    weights=[0.7, 0.7]  # 🔴 합이 1.4 → 예상치 못한 동작
+)
+
+# ✅ 올바른 예시: 균형 잡힌 가중치
+ensemble = EnsembleRetriever(
+    retrievers=[bm25, vector],
+    weights=[0.4, 0.6]  # 일반적으로 벡터에 약간 높은 가중치
+)
+\`\`\`
+
+**기억할 점**: 가중치 합은 1.0이 권장. 도메인에 따라 0.3~0.7 범위에서 조정.
+
+---
+
+### 2. [Re-ranking 비용] 모든 결과에 Re-ranking 적용
+
+\`\`\`python
+# ❌ 잘못된 예시: 1차 검색 결과 전체에 Re-ranking
+initial_results = vectorstore.similarity_search(query, k=1000)  # 🔴 1000개!
+reranked = reranker.rerank(query, initial_results, top_n=5)
+# 문제: Cross-Encoder는 느림 → 1000개 처리에 수십 초
+
+# ✅ 올바른 예시: 2단계 파이프라인
+# 1차: 빠른 검색으로 후보군 (20-50개)
+initial_results = vectorstore.similarity_search(query, k=20)
+# 2차: Re-ranking으로 정제 (5개)
+final_results = reranker.rerank(query, initial_results, top_n=5)
+\`\`\`
+
+**기억할 점**: Re-ranking은 1차 검색 후 20-50개 후보에만 적용. 전체에 적용하면 비용/시간 폭증.
+
+---
+
+### 3. [MMR lambda] 다양성과 관련성 혼동
+
+\`\`\`python
+# ❌ 잘못된 예시: lambda 이해 부족
+retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "lambda_mult": 0.0  # 🔴 관련성 0%, 다양성 100%
+    }
+)
+# 결과: 관련 없는 문서도 다양성 때문에 포함!
+
+# ✅ 올바른 예시: 균형 있는 lambda
+retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={
+        "k": 5,
+        "fetch_k": 20,
+        "lambda_mult": 0.5  # 관련성 50% + 다양성 50%
+    }
+)
+\`\`\`
+
+**기억할 점**: lambda_mult=1.0은 순수 관련성(MMR 아님), 0.5가 일반적 시작점. 너무 낮으면 관련 없는 문서 포함.
       `,
       keyPoints: [
         '🎯 EnsembleRetriever로 하이브리드 검색 구현',

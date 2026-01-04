@@ -124,6 +124,59 @@ if nx.has_path(G, "Kim", "Choi"):
     path = nx.shortest_path(G, "Kim", "Choi")
     print(f"최단 경로: {path}")
 \`\`\`
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [방향성] DiGraph에서 무방향 메트릭 사용
+**증상**: 에러 또는 의미 없는 결과
+\`\`\`python
+# ❌ 잘못된 예시 - DiGraph에 clustering 적용
+G = nx.DiGraph()
+G.add_edges_from([(1, 2), (2, 3)])
+clustering = nx.clustering(G)  # 💥 에러 또는 이상한 값
+\`\`\`
+**왜 잘못되었나**: clustering은 무방향 그래프 개념, 방향 그래프엔 부적합
+\`\`\`python
+# ✅ 올바른 예시 - 무방향 변환 후 적용
+G_undirected = G.to_undirected()
+clustering = nx.clustering(G_undirected)
+
+# 또는 방향 그래프용 메트릭 사용
+in_degree = dict(G.in_degree())
+out_degree = dict(G.out_degree())
+\`\`\`
+**기억할 점**: \`clustering\`, \`connected_components\` → 무방향용, \`in/out_degree\`, \`pagerank\` → 방향용
+
+### 2. [연결성] 끊어진 그래프에서 최단 경로
+**증상**: NetworkXNoPath 에러
+\`\`\`python
+# ❌ 잘못된 예시 - 연결 확인 없이 경로 탐색
+path = nx.shortest_path(G, "A", "Z")  # A와 Z가 연결 안됐다면 💥
+\`\`\`
+**왜 잘못되었나**: 연결되지 않은 노드 간 경로는 존재하지 않음
+\`\`\`python
+# ✅ 올바른 예시 - has_path로 먼저 확인
+if nx.has_path(G, "A", "Z"):
+    path = nx.shortest_path(G, "A", "Z")
+else:
+    print("경로 없음")
+\`\`\`
+**기억할 점**: 경로 탐색 전 항상 \`has_path\` 확인
+
+### 3. [성능] 대규모 그래프에서 모든 쌍 계산
+**증상**: 시간 초과, 메모리 부족
+\`\`\`python
+# ❌ 잘못된 예시 - 10만 노드에서 all_pairs_shortest_path
+all_paths = dict(nx.all_pairs_shortest_path(G))  # O(V * (V + E)) 💥
+\`\`\`
+**왜 잘못되었나**: 모든 쌍 계산은 O(V²) 이상 복잡도
+\`\`\`python
+# ✅ 올바른 예시 - 샘플링 또는 필요한 쌍만
+sample_nodes = list(G.nodes())[:100]
+subgraph = G.subgraph(sample_nodes)
+betweenness = nx.betweenness_centrality(subgraph)  # 작은 그래프에서
+\`\`\`
+**기억할 점**: 노드 1000개 이상이면 샘플링 고려
       `,
       keyPoints: ['📊 밀도, 연결 컴포넌트 분석', '⭐ 중심성 메트릭 계산', '🛣️ 최단 경로 탐색'],
       practiceGoal: 'NetworkX로 그래프 분석 메트릭을 계산할 수 있다',
@@ -265,6 +318,67 @@ query = "MATCH (a)-[r]->(b) RETURN a.name AS source, b.name AS target LIMIT 100"
 net = create_pyvis_from_neo4j(driver, query)
 net.show("neo4j_graph.html")
 \`\`\`
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [성능] 노드 500개 이상에서 물리 시뮬레이션
+**증상**: 브라우저 멈춤, 로딩 시간 초과
+\`\`\`python
+# ❌ 잘못된 예시 - 대규모 그래프에 물리 활성화
+net = Network()
+net.from_nx(large_graph)  # 5000노드
+net.show("graph.html")  # 💥 브라우저 멈춤
+\`\`\`
+**왜 잘못되었나**: 물리 시뮬레이션은 O(n²), 노드 많으면 계산량 폭발
+\`\`\`python
+# ✅ 올바른 예시 - 물리 비활성화 또는 샘플링
+net = Network()
+net.toggle_physics(False)  # 물리 끔
+# 또는 초기 안정화 후 끔
+net.set_options('{"physics": {"stabilization": {"iterations": 50}}}')
+\`\`\`
+**기억할 점**: 500노드 이상 → \`toggle_physics(False)\` 또는 샘플링
+
+### 2. [파일 경로] notebook=True인데 파일로 저장
+**증상**: HTML 파일 안열림, Jupyter에서 안보임
+\`\`\`python
+# ❌ 잘못된 예시 - 환경 불일치
+net.show("graph.html", notebook=True)  # 로컬 스크립트에서
+# Jupyter가 아니면 에러 또는 빈 화면
+\`\`\`
+**왜 잘못되었나**: notebook=True는 Jupyter용, 일반 Python에선 False
+\`\`\`python
+# ✅ 올바른 예시 - 환경에 맞게
+# 일반 Python 스크립트
+net.show("graph.html", notebook=False)
+
+# Jupyter Notebook
+net.show("graph.html", notebook=True)
+\`\`\`
+**기억할 점**: 로컬 스크립트 = \`notebook=False\`, Jupyter = \`notebook=True\`
+
+### 3. [중복 노드] add_node 중복 호출
+**증상**: 같은 노드가 여러 번 추가되어 시각화 깨짐
+\`\`\`python
+# ❌ 잘못된 예시 - 엣지 추가 시 노드 중복
+for source, target in edges:
+    net.add_node(source)  # 매번 추가
+    net.add_node(target)  # 이미 있어도 추가
+    net.add_edge(source, target)
+\`\`\`
+**왜 잘못되었나**: 같은 ID로 add_node 여러 번 → 덮어쓰거나 중복
+\`\`\`python
+# ✅ 올바른 예시 - 노드 먼저 수집 후 한번에
+nodes = set()
+for source, target in edges:
+    nodes.add(source)
+    nodes.add(target)
+for node in nodes:
+    net.add_node(node)
+for source, target in edges:
+    net.add_edge(source, target)
+\`\`\`
+**기억할 점**: 노드 추가 → 엣지 추가 순서로 분리
       `,
       keyPoints: ['🕹️ PyVis로 인터랙티브 HTML 그래프 생성', '🔄 from_nx()로 NetworkX 변환', '⚙️ 물리 시뮬레이션 설정'],
       practiceGoal: 'PyVis로 인터랙티브 그래프를 생성할 수 있다',

@@ -168,6 +168,64 @@ graph.query('''
     MERGE (samsung)-[:SUPPLIES_TO]->(apple)
 ''')
 \`\`\`
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [인증 실패] bolt:// vs neo4j:// 프로토콜 혼동
+
+\`\`\`python
+# ❌ 잘못된 예시: Aura DB에 bolt:// 사용
+graph = Neo4jGraph(
+    url="bolt://xxx.databases.neo4j.io:7687",  # 🔴 Aura는 neo4j+s://
+    username="neo4j",
+    password="password"
+)
+# 에러: Unable to connect
+
+# ✅ 올바른 예시: 환경에 맞는 프로토콜
+# 로컬: bolt://localhost:7687
+# Aura: neo4j+s://xxx.databases.neo4j.io
+\`\`\`
+
+**기억할 점**: 로컬은 bolt://, Neo4j Aura는 neo4j+s:// 사용.
+
+---
+
+### 2. [스키마 동기화] 노드/관계 추가 후 schema 갱신 누락
+
+\`\`\`python
+# ❌ 잘못된 예시: 스키마 갱신 없이 사용
+graph.query("CREATE (:NewLabel {name: 'test'})")
+print(graph.schema)  # 🔴 NewLabel이 안 보임!
+
+# ✅ 올바른 예시: 데이터 변경 후 스키마 갱신
+graph.query("CREATE (:NewLabel {name: 'test'})")
+graph.refresh_schema()  # ✅ 스키마 갱신
+print(graph.schema)     # NewLabel 표시됨
+\`\`\`
+
+**기억할 점**: 노드/관계 추가/삭제 후 반드시 refresh_schema() 호출.
+
+---
+
+### 3. [Cypher 인젝션] 사용자 입력 직접 삽입
+
+\`\`\`python
+# ❌ 잘못된 예시: 문자열 포매팅으로 쿼리 생성
+company_name = user_input  # "'; MATCH (n) DETACH DELETE n; //"
+query = f"MATCH (c:Company {{name: '{company_name}'}}) RETURN c"
+graph.query(query)  # 🔴 전체 DB 삭제 가능!
+
+# ✅ 올바른 예시: 파라미터 바인딩 사용
+graph.query(
+    "MATCH (c:Company {name: $name}) RETURN c",
+    params={"name": company_name}  # ✅ 안전한 파라미터 바인딩
+)
+\`\`\`
+
+**기억할 점**: 사용자 입력은 절대 문자열 포매팅 금지. params 사용 필수.
 `,
     keyPoints: [
       '🔌 환경 변수 또는 직접 파라미터로 연결 설정',
@@ -337,6 +395,80 @@ chain = GraphCypherQAChain.from_llm(
     verbose=True
 )
 \`\`\`
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [스키마 누락] 스키마 없이 Chain 생성
+
+\`\`\`python
+# ❌ 잘못된 예시: 빈 DB에 Chain 생성
+graph = Neo4jGraph(...)  # 빈 DB
+chain = GraphCypherQAChain.from_llm(llm=llm, graph=graph)
+chain.invoke("삼성전자의 경쟁사는?")
+# 🔴 LLM이 스키마를 모르므로 잘못된 Cypher 생성
+
+# ✅ 올바른 예시: 데이터 추가 후 스키마 갱신
+graph.query("MERGE (:Company {name: '삼성전자'})")
+graph.refresh_schema()  # ✅ 스키마 갱신
+chain = GraphCypherQAChain.from_llm(llm=llm, graph=graph)
+\`\`\`
+
+**기억할 점**: Chain 생성 전에 데이터와 스키마가 존재해야 LLM이 올바른 Cypher 생성.
+
+---
+
+### 2. [응답 없음] return_direct=True 오용
+
+\`\`\`python
+# ❌ 잘못된 예시: 쿼리 결과만 반환 (자연어 변환 없음)
+chain = GraphCypherQAChain.from_llm(
+    llm=llm,
+    graph=graph,
+    return_direct=True  # 🔴 결과가 [{...}] 형태로 반환
+)
+result = chain.invoke("삼성전자의 경쟁사는?")
+# 결과: [{'comp.name': 'SK하이닉스'}]  ← 사용자에게 불친절
+
+# ✅ 올바른 예시: 자연어 응답 생성
+chain = GraphCypherQAChain.from_llm(
+    llm=llm,
+    graph=graph,
+    return_direct=False  # ✅ 기본값, 자연어 응답
+)
+# 결과: "삼성전자의 경쟁사는 SK하이닉스입니다."
+\`\`\`
+
+**기억할 점**: return_direct=True는 디버깅용. 프로덕션에서는 False(기본값) 사용.
+
+---
+
+### 3. [환각] LLM이 없는 노드/관계 생성
+
+\`\`\`python
+# ❌ LLM이 스키마에 없는 관계 생성
+# 스키마: Company, COMPETES_WITH, SUPPLIES_TO
+# 질문: "애플의 자회사는?"
+# 생성된 Cypher: MATCH (c:Company)-[:SUBSIDIARY_OF]->(...)  🔴 없는 관계!
+
+# ✅ 올바른 예시: 커스텀 프롬프트로 제한
+cypher_prompt = """스키마를 엄격하게 따르세요.
+존재하지 않는 노드 라벨이나 관계 타입을 사용하지 마세요.
+스키마에 없는 질문은 "해당 정보를 찾을 수 없습니다"로 응답하세요.
+
+스키마: {schema}
+
+질문: {question}"""
+
+chain = GraphCypherQAChain.from_llm(
+    llm=llm,
+    graph=graph,
+    cypher_prompt=PromptTemplate(template=cypher_prompt, input_variables=["schema", "question"])
+)
+\`\`\`
+
+**기억할 점**: 스키마 제약을 프롬프트에 명시하여 LLM 환각 방지.
 `,
     keyPoints: [
       '🔄 GraphCypherQAChain: 자연어 → Cypher → 결과 → 자연어 응답',

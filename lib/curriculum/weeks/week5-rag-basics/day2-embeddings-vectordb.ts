@@ -1234,6 +1234,55 @@ import chromadb
 client = chromadb.HttpClient(host="localhost", port=8000)
 collection = client.get_or_create_collection("my_collection")
 \`\`\`
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [영구 저장] Client() 대신 PersistentClient() 사용
+**증상**: 프로그램 재시작 시 모든 데이터 사라짐
+\`\`\`python
+# ❌ 잘못된 예시 - 인메모리 클라이언트
+client = chromadb.Client()  # 데이터 휘발!
+\`\`\`
+**왜 잘못되었나**: Client()는 인메모리, 프로세스 종료 시 데이터 손실
+\`\`\`python
+# ✅ 올바른 예시 - 영구 저장
+client = chromadb.PersistentClient(path="./my_chroma_db")
+\`\`\`
+**기억할 점**: 프로덕션에서는 항상 \`PersistentClient\` 사용
+
+### 2. [중복 추가] 같은 ID로 add 반복
+**증상**: 에러 발생 또는 데이터 무시
+\`\`\`python
+# ❌ 잘못된 예시 - 동일 ID 반복 add
+collection.add(documents=["doc1"], ids=["id1"])
+collection.add(documents=["doc1 updated"], ids=["id1"])  # 💥 에러!
+\`\`\`
+**왜 잘못되었나**: add는 새 문서 추가용, 기존 ID는 에러
+\`\`\`python
+# ✅ 올바른 예시 - upsert 사용
+collection.upsert(documents=["doc1 updated"], ids=["id1"])  # 업데이트
+\`\`\`
+**기억할 점**: 기존 문서 갱신은 \`upsert()\`, 새 문서는 \`add()\`
+
+### 3. [메타데이터 필터] where 문법 오류
+**증상**: 필터가 작동 안 함, 모든 결과 반환
+\`\`\`python
+# ❌ 잘못된 예시 - 잘못된 필터 문법
+results = collection.query(
+    query_texts=["AI"],
+    where={"year": 2024}  # 문자열이어야 함!
+)
+\`\`\`
+**왜 잘못되었나**: Chroma 메타데이터 필터는 특정 문법 필요
+\`\`\`python
+# ✅ 올바른 예시 - 올바른 연산자 사용
+results = collection.query(
+    query_texts=["AI"],
+    where={"year": {"$eq": 2024}},  # $eq 연산자
+    # 또는 문자열: where={"category": "AI"}
+)
+\`\`\`
+**기억할 점**: 숫자 비교는 \`$eq\`, \`$gt\`, \`$lt\` 등 연산자 필수
       `,
       keyPoints: [
         '💾 PersistentClient로 영구 저장',
@@ -1714,6 +1763,67 @@ answer = qa.invoke("Pinecone과 LangChain을 어떻게 통합하나요?")
 | **운영** | 직접 관리 | 완전 관리형 |
 | **사용처** | 프로토타입, 소규모 | 대규모 프로덕션 |
 | **성장 경로** | 개발 → Pinecone 이전 | 바로 프로덕션 |
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [메타데이터 크기] 40KB 제한 초과
+**증상**: 업서트 시 에러 발생
+\`\`\`python
+# ❌ 잘못된 예시 - 전체 문서를 메타데이터에
+index.upsert(vectors=[{
+    "id": "doc1",
+    "values": embedding,
+    "metadata": {"content": very_long_document}  # 💥 40KB 초과!
+}])
+\`\`\`
+**왜 잘못되었나**: Pinecone 메타데이터는 벡터당 40KB 제한
+\`\`\`python
+# ✅ 올바른 예시 - 요약만 저장, 전체는 외부 DB
+index.upsert(vectors=[{
+    "id": "doc1",
+    "values": embedding,
+    "metadata": {
+        "content": document[:1000],  # 처음 1000자만
+        "full_content_id": "external_db_id_123"  # 전체는 PostgreSQL 등에
+    }
+}])
+\`\`\`
+**기억할 점**: 메타데이터는 필터용, 전체 문서는 외부 저장소
+
+### 2. [네임스페이스] 삭제 시 네임스페이스 미지정
+**증상**: 의도치 않은 데이터 삭제 또는 삭제 안됨
+\`\`\`python
+# ❌ 잘못된 예시 - 네임스페이스 없이 삭제
+index.delete(ids=["doc1"])  # 어느 네임스페이스?
+\`\`\`
+**왜 잘못되었나**: 기본 네임스페이스("")에서만 삭제됨
+\`\`\`python
+# ✅ 올바른 예시 - 네임스페이스 명시
+index.delete(ids=["doc1"], namespace="customer_a")
+\`\`\`
+**기억할 점**: upsert/query/delete 모두 네임스페이스 명시
+
+### 3. [비용] 불필요한 include_values=True
+**증상**: 응답 느림, 대역폭 낭비
+\`\`\`python
+# ❌ 잘못된 예시 - 벡터 값까지 반환
+results = index.query(
+    vector=query_emb,
+    top_k=10,
+    include_values=True  # 1536차원 * 10개 = 대역폭!
+)
+\`\`\`
+**왜 잘못되었나**: 검색 결과에 벡터 값 필요 없는 경우가 대부분
+\`\`\`python
+# ✅ 올바른 예시 - 메타데이터만 반환
+results = index.query(
+    vector=query_emb,
+    top_k=10,
+    include_values=False,  # 기본값
+    include_metadata=True
+)
+\`\`\`
+**기억할 점**: \`include_values\`는 디버깅/분석용, 프로덕션에선 False
       `,
       keyPoints: [
         '☁️ Pinecone은 대규모 프로덕션에 최적화된 관리형 서비스',

@@ -722,6 +722,71 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "안녕하세요!"}]
 )
 print(response.choices[0].message.content)
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [서버 상태] Ollama 서버 미실행 상태에서 API 호출
+
+\`\`\`python
+# ❌ 잘못된 예시: 서버 확인 없이 바로 호출
+client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+response = client.chat.completions.create(...)  # 🔴 ConnectionRefusedError
+
+# ✅ 올바른 예시: 서버 상태 확인 후 호출
+import requests
+
+def check_ollama_running():
+    try:
+        requests.get("http://localhost:11434/api/tags", timeout=2)
+        return True
+    except:
+        return False
+
+if not check_ollama_running():
+    print("ollama serve 명령으로 서버를 먼저 시작하세요!")
+\`\`\`
+
+**기억할 점**: Ollama는 클라이언트/서버 구조. 서버 실행 상태 항상 확인.
+
+---
+
+### 2. [메모리 부족] GPU VRAM 초과
+
+\`\`\`bash
+# ❌ 잘못된 예시: VRAM 확인 없이 큰 모델 실행
+ollama run llama3.1:70b  # 🔴 8GB GPU에서 OOM 에러
+
+# ✅ 올바른 예시: 모델 크기 확인 후 선택
+# 8GB VRAM → 7B 모델 (Q4 양자화)
+# 16GB VRAM → 13B 모델 (Q4 양자화)
+# 24GB+ VRAM → 70B 모델 (Q4 양자화)
+
+ollama run llama3.1:8b-instruct-q4_0  # 약 5GB VRAM 사용
+\`\`\`
+
+**기억할 점**: 모델 크기(B) × 0.6 ≈ 필요 VRAM(GB) (Q4 양자화 기준).
+
+---
+
+### 3. [API 호환성] OpenAI SDK 버전 불일치
+
+\`\`\`python
+# ❌ 잘못된 예시: 구버전 OpenAI SDK 문법
+import openai
+openai.api_base = "http://localhost:11434/v1"  # 🔴 1.0+ 버전에서 에러!
+
+# ✅ 올바른 예시: OpenAI SDK 1.0+ 문법
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:11434/v1",  # ✅ 1.0+ 문법
+    api_key="ollama"
+)
+\`\`\`
+
+**기억할 점**: OpenAI SDK 1.0+ 버전에서는 \`OpenAI(base_url=...)\` 형식 사용.
 `,
       keyPoints: [
         '💡 Ollama = "Docker for LLMs" (한 줄로 설치/실행)',

@@ -221,6 +221,60 @@ result = t2c.query("삼성전자의 경쟁사는?")
 print(result['cypher'])
 print(result['results'])
 \`\`\`
+
+---
+
+## 💥 Common Pitfalls (자주 하는 실수)
+
+### 1. [temperature 설정] 창의적 쿼리 생성
+
+\`\`\`python
+# ❌ 잘못된 예시: temperature > 0
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)  # 🔴 창의적 = 불안정
+# 같은 질문에 다른 Cypher 생성 → 에러 발생 확률 높음
+
+# ✅ 올바른 예시: temperature = 0
+llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)  # ✅ 결정론적
+# 같은 질문에 항상 같은 Cypher 생성
+\`\`\`
+
+**기억할 점**: Text2Cypher는 창의성이 아닌 정확성이 중요. temperature=0 필수.
+
+---
+
+### 2. [스키마 누락] 스키마 없이 Cypher 생성
+
+\`\`\`python
+# ❌ 잘못된 예시: 스키마 없는 프롬프트
+prompt = "다음 질문을 Cypher로 변환하세요: {question}"
+# 🔴 LLM이 Company 대신 Organization 등 잘못된 레이블 사용
+
+# ✅ 올바른 예시: 스키마 포함 프롬프트
+prompt = """스키마: {schema}
+규칙: 위 스키마에 있는 노드와 관계만 사용하세요.
+질문: {question}
+Cypher:"""
+\`\`\`
+
+**기억할 점**: 스키마 없으면 LLM이 추측 → 높은 에러율.
+
+---
+
+### 3. [직접 실행] 검증 없이 쿼리 실행
+
+\`\`\`python
+# ❌ 잘못된 예시: 생성된 쿼리 바로 실행
+cypher = llm.invoke(prompt)  # "MATCH (n) DELETE n" 생성 가능!
+results = graph.query(cypher)  # 🔴 전체 DB 삭제
+
+# ✅ 올바른 예시: 검증 후 실행
+cypher = llm.invoke(prompt)
+if 'DELETE' in cypher.upper() or 'CREATE' in cypher.upper():
+    raise ValueError("위험한 쿼리 감지됨")
+results = graph.query(cypher)
+\`\`\`
+
+**기억할 점**: LLM 출력은 신뢰 불가. 실행 전 반드시 검증.
 `,
   keyPoints: [
     '🔑 LLM이 자연어 → Cypher 번역가 역할',

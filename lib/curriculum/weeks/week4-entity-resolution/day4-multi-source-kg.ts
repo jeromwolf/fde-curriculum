@@ -165,6 +165,59 @@ def fetch_wikidata_companies(country_qid="Q884"):
 
     return companies
 \`\`\`
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [인코딩] 한글 CSV 파일 읽기 실패
+**증상**: UnicodeDecodeError 또는 글자 깨짐
+\`\`\`python
+# ❌ 잘못된 예시 - 인코딩 미지정
+df = pd.read_csv("korean_companies.csv")  # 💥 UnicodeDecodeError
+\`\`\`
+**왜 잘못되었나**: 한글 CSV는 보통 EUC-KR 또는 CP949, 기본은 UTF-8
+\`\`\`python
+# ✅ 올바른 예시 - 인코딩 명시
+df = pd.read_csv("korean_companies.csv", encoding='utf-8')
+# 또는 Windows Excel 저장 파일
+df = pd.read_csv("korean_companies.csv", encoding='cp949')
+\`\`\`
+**기억할 점**: 한글 파일은 \`encoding='utf-8'\` 또는 \`'cp949'\` 시도
+
+### 2. [API 호출] Rate Limiting 무시
+**증상**: HTTP 429 에러, IP 차단
+\`\`\`python
+# ❌ 잘못된 예시 - 무한 반복 호출
+for company in companies:
+    response = requests.get(f"{api_url}/{company}")  # 💥 429 Too Many Requests
+\`\`\`
+**왜 잘못되었나**: 대부분 API는 초당/분당 호출 제한이 있음
+\`\`\`python
+# ✅ 올바른 예시 - Rate Limiting 적용
+import time
+for company in companies:
+    response = requests.get(f"{api_url}/{company}")
+    time.sleep(0.5)  # 초당 2회로 제한
+\`\`\`
+**기억할 점**: API 문서 확인 후 적절한 \`time.sleep\` 추가
+
+### 3. [Wikidata] SPARQL 타임아웃
+**증상**: 쿼리 타임아웃, 빈 결과
+\`\`\`python
+# ❌ 잘못된 예시 - LIMIT 없는 대규모 쿼리
+query = "SELECT * WHERE { ?s ?p ?o }"  # 💥 타임아웃
+\`\`\`
+**왜 잘못되었나**: Wikidata는 60초 타임아웃, 대규모 쿼리 실패
+\`\`\`python
+# ✅ 올바른 예시 - LIMIT과 필터 사용
+query = '''
+SELECT ?company ?label WHERE {
+  ?company wdt:P31 wd:Q4830453 .
+  ?company wdt:P17 wd:Q884 .  # 한국만
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "ko" }
+} LIMIT 100
+'''
+\`\`\`
+**기억할 점**: Wikidata SPARQL은 항상 \`LIMIT 100~1000\` 사용
       `,
       keyPoints: ['📄 CSV를 pandas로 처리', '🌐 REST API로 데이터 수집', '🔍 Wikidata SPARQL 쿼리'],
       practiceGoal: '다양한 소스에서 데이터를 수집할 수 있다',
@@ -297,6 +350,72 @@ print(f"병합된 클러스터: {merged_count}")
 loaded = builder.load_to_neo4j()
 print(f"Neo4j에 로드: {loaded}개 회사")
 \`\`\`
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [임계값] 너무 높거나 낮은 유사도 임계값
+**증상**: 매칭 누락 또는 잘못된 매칭
+\`\`\`python
+# ❌ 잘못된 예시 - 0.95로 설정
+matches = features[features['name'] > 0.95]  # "삼성전자" vs "삼성" 누락
+
+# ❌ 잘못된 예시 - 0.5로 설정
+matches = features[features['name'] > 0.5]   # "삼성" vs "삼천리" 잘못 매칭
+\`\`\`
+**왜 잘못되었나**: 데이터 특성에 맞는 임계값 필요
+\`\`\`python
+# ✅ 올바른 예시 - 데이터 분석 후 결정
+# 1. 먼저 분포 확인
+print(features['name'].describe())
+
+# 2. 수동 샘플 검증
+sample_pairs = features[features['name'] > 0.7].head(20)
+# 눈으로 확인 후 임계값 조정
+
+# 3. 보통 0.8-0.85가 적절
+matches = features[features['name'] > 0.82]
+\`\`\`
+**기억할 점**: 임계값은 데이터 샘플 검증 후 결정
+
+### 2. [속성 병합] 충돌 시 무조건 덮어쓰기
+**증상**: 신뢰도 높은 값이 낮은 값으로 덮어써짐
+\`\`\`python
+# ❌ 잘못된 예시 - 마지막 소스로 덮어쓰기
+merged = {**record1, **record2}  # record2가 우선
+# record1이 더 정확한 값이어도 손실
+\`\`\`
+**왜 잘못되었나**: 소스별 신뢰도가 다름
+\`\`\`python
+# ✅ 올바른 예시 - 소스 신뢰도 기반 선택
+SOURCE_PRIORITY = {'internal_db': 1, 'api': 2, 'wikidata': 3}
+sorted_records = sorted(records, key=lambda r: SOURCE_PRIORITY.get(r['_source'], 99))
+best_record = sorted_records[0]
+
+# 또는 non-null 우선
+employees = records['employees'].dropna().iloc[0] if len(records['employees'].dropna()) > 0 else None
+\`\`\`
+**기억할 점**: 소스별 우선순위 정의, null 처리 로직 필수
+
+### 3. [클러스터링] 이행적 연결 문제
+**증상**: A-B 매칭, B-C 매칭인데 A와 C가 완전 다른 회사
+\`\`\`python
+# 문제 상황
+# A("삼성전자") - B("삼성") - C("삼성물산")
+# A-B 매칭 OK, B-C 매칭 OK
+# 결과: A-C도 같은 클러스터 → 잘못된 병합!
+\`\`\`
+**해결책**: 클러스터 내 모든 쌍 검증
+\`\`\`python
+# ✅ 올바른 예시 - 클러스터 검증
+def validate_cluster(cluster_records):
+    names = cluster_records['name'].tolist()
+    for i, name1 in enumerate(names):
+        for name2 in names[i+1:]:
+            if jaro_winkler(name1, name2) < 0.7:
+                return False  # 클러스터 분리 필요
+    return True
+\`\`\`
+**기억할 점**: 클러스터 병합 전 내부 검증 필수
       `,
       keyPoints: ['🏗️ KGBuilder 클래스로 파이프라인 캡슐화', '🔍 recordlinkage로 중복 제거', '⬆️ MERGE로 Neo4j 업서트'],
       practiceGoal: '다중 소스 데이터를 통합하여 KG로 로드할 수 있다',

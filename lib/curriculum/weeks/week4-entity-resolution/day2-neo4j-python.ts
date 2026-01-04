@@ -184,6 +184,57 @@ data = [
 with driver.session() as session:
     session.execute_write(batch_create, data)
 \`\`\`
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [리소스 누수] 세션/드라이버 미종료
+**증상**: 연결 풀 고갈, 메모리 누수, "ConnectionPoolExhausted" 에러
+\`\`\`python
+# ❌ 잘못된 예시 - 세션 수동 관리 후 종료 누락
+session = driver.session()
+result = session.run("MATCH (n) RETURN n")
+# session.close() 빠짐!
+\`\`\`
+**왜 잘못되었나**: 세션이 열린 채로 남아 연결 풀이 고갈됨
+\`\`\`python
+# ✅ 올바른 예시 - context manager 사용
+with driver.session() as session:
+    result = session.run("MATCH (n) RETURN n")
+# 자동으로 close됨
+\`\`\`
+**기억할 점**: \`with\` 문은 예외가 발생해도 자동 종료 보장
+
+### 2. [트랜잭션] execute_read에서 쓰기 작업
+**증상**: 클러스터 환경에서 에러, 단일 인스턴스에서는 동작하지만 프로덕션에서 실패
+\`\`\`python
+# ❌ 잘못된 예시 - read 함수에서 CREATE
+def bad_function(tx):
+    tx.run("CREATE (n:Person {name: 'Kim'})")  # 쓰기!
+session.execute_read(bad_function)  # 💥 replica로 라우팅되어 실패
+\`\`\`
+**왜 잘못되었나**: execute_read는 replica 노드로 라우팅, replica는 읽기 전용
+\`\`\`python
+# ✅ 올바른 예시 - 쓰기는 execute_write
+def create_person(tx):
+    tx.run("CREATE (n:Person {name: 'Kim'})")
+session.execute_write(create_person)  # leader로 라우팅
+\`\`\`
+**기억할 점**: \`execute_read\` = MATCH만, \`execute_write\` = CREATE/MERGE/SET/DELETE
+
+### 3. [SQL Injection] 문자열 포매팅 사용
+**증상**: 보안 취약점, 쿼리 오류
+\`\`\`python
+# ❌ 잘못된 예시 - f-string 사용
+name = "Kim'; MATCH (n) DETACH DELETE n; //"  # 악의적 입력
+session.run(f"MATCH (p:Person {{name: '{name}'}}) RETURN p")  # 💥 전체 DB 삭제!
+\`\`\`
+**왜 잘못되었나**: 사용자 입력이 Cypher 코드로 실행됨
+\`\`\`python
+# ✅ 올바른 예시 - 파라미터 바인딩
+session.run("MATCH (p:Person {name: $name}) RETURN p", name=name)
+# name 값이 문자열로만 처리됨, 코드로 실행 안됨
+\`\`\`
+**기억할 점**: 외부 입력은 항상 \`$param\` 파라미터로 전달
       `,
       keyPoints: ['✍️ execute_read/execute_write로 트랜잭션 함수 실행', '⚡ UNWIND로 배치 처리', '📋 결과를 딕셔너리로 변환'],
       practiceGoal: 'Neo4j에서 CRUD 작업을 Python으로 구현할 수 있다',
@@ -273,6 +324,59 @@ for record in result:
 # DataFrame으로 변환
 df = graph.run("MATCH (p:Person) RETURN p.name, p.age").to_data_frame()
 \`\`\`
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [동기화] push() 없이 변경 기대
+**증상**: 객체 수정했는데 DB에 반영 안됨
+\`\`\`python
+# ❌ 잘못된 예시 - push 누락
+kim = Person.match(graph, "김철수").first()
+kim.age = 31  # 메모리에서만 변경
+# graph.push(kim) 빠짐!
+\`\`\`
+**왜 잘못되었나**: py2neo OGM은 자동 저장이 아님, 명시적 push 필요
+\`\`\`python
+# ✅ 올바른 예시 - 변경 후 push
+kim = Person.match(graph, "김철수").first()
+kim.age = 31
+graph.push(kim)  # DB에 반영
+\`\`\`
+**기억할 점**: 변경 후 반드시 \`graph.push(객체)\` 호출
+
+### 2. [primarykey] 중복 엔티티 생성
+**증상**: 같은 이름의 Person이 여러 개 생성됨
+\`\`\`python
+# ❌ 잘못된 예시 - 기존 존재 확인 안함
+new_person = Person()
+new_person.name = "김철수"  # 이미 존재할 수 있음
+graph.push(new_person)  # 중복 생성!
+\`\`\`
+**왜 잘못되었나**: push는 CREATE, 기존 확인하려면 match 먼저
+\`\`\`python
+# ✅ 올바른 예시 - match 후 없으면 생성
+kim = Person.match(graph, "김철수").first()
+if kim is None:
+    kim = Person()
+    kim.name = "김철수"
+kim.age = 30
+graph.push(kim)
+\`\`\`
+**기억할 점**: \`__primarykey__\`는 Python에서만 참조, Neo4j에서 자동 제약 아님
+
+### 3. [공식 드라이버] py2neo vs neo4j 드라이버 혼동
+**증상**: API가 다름, 코드 호환 안됨
+\`\`\`python
+# py2neo 스타일
+graph = Graph("bolt://...", auth=(...))
+graph.run("MATCH ...")
+
+# neo4j 드라이버 스타일
+driver = GraphDatabase.driver("bolt://...", auth=(...))
+with driver.session() as session:
+    session.run("MATCH ...")
+\`\`\`
+**기억할 점**: 프로덕션에서는 공식 \`neo4j\` 드라이버 권장, py2neo는 프로토타이핑용
       `,
       keyPoints: ['🎭 py2neo는 고수준 OGM 제공', '🏛️ GraphObject로 클래스 정의', '📊 to_data_frame()으로 pandas 연동'],
       practiceGoal: 'py2neo OGM으로 객체 지향적으로 그래프를 다룰 수 있다',
@@ -344,6 +448,66 @@ RETURN c.industry AS industry,
 df = query_to_dataframe(driver, stats_query)
 print(df.groupby('industry').mean())
 \`\`\`
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [메모리] 대용량 결과 전체 로드
+**증상**: 메모리 부족, 느린 응답, OOM 에러
+\`\`\`python
+# ❌ 잘못된 예시 - 100만 건 전체 로드
+df = query_to_dataframe(driver, "MATCH (n) RETURN n")  # 💥 메모리 폭발
+\`\`\`
+**왜 잘못되었나**: 모든 결과를 한 번에 메모리에 올림
+\`\`\`python
+# ✅ 올바른 예시 - 페이지네이션 또는 집계
+df = query_to_dataframe(driver, "MATCH (n) RETURN n LIMIT 10000")
+
+# 또는 집계 쿼리 사용
+df = query_to_dataframe(driver, """
+    MATCH (n:Person)
+    RETURN n.age AS age, count(*) AS count
+    ORDER BY age
+""")
+\`\`\`
+**기억할 점**: 항상 \`LIMIT\` 사용하거나 집계해서 반환
+
+### 2. [타입 변환] Neo4j 타입 → Python 타입 불일치
+**증상**: DataFrame에 이상한 값, Node 객체가 그대로 들어옴
+\`\`\`python
+# ❌ 잘못된 예시 - 노드 객체 반환
+df = query_to_dataframe(driver, "MATCH (p:Person) RETURN p")
+# df['p']가 Node 객체로 채워짐
+\`\`\`
+**왜 잘못되었나**: \`RETURN p\`는 Node 객체, DataFrame에서 다루기 어려움
+\`\`\`python
+# ✅ 올바른 예시 - 속성 명시적 반환
+df = query_to_dataframe(driver, """
+    MATCH (p:Person)
+    RETURN p.name AS name, p.age AS age  -- 속성만 반환
+""")
+\`\`\`
+**기억할 점**: \`RETURN n.속성 AS 별칭\` 형태로 스칼라 값만 반환
+
+### 3. [데이터 정합성] DataFrame → Neo4j 로드 시 중복
+**증상**: 같은 노드가 여러 번 생성됨
+\`\`\`python
+# ❌ 잘못된 예시 - CREATE 사용
+df = pd.read_csv("companies.csv")  # 중복 데이터 있을 수 있음
+dataframe_to_neo4j(driver, df, "Company")  # 중복 생성!
+\`\`\`
+**왜 잘못되었나**: CREATE는 항상 새 노드 생성
+\`\`\`python
+# ✅ 올바른 예시 - MERGE 사용
+def dataframe_to_neo4j_safe(driver, df, label, key):
+    query = f"""
+    UNWIND $rows AS row
+    MERGE (n:{label} {{{key}: row.{key}}})
+    SET n = row
+    """
+    with driver.session() as session:
+        session.run(query, rows=df.to_dict('records'))
+\`\`\`
+**기억할 점**: 업서트는 \`MERGE\`, 새로 생성만 \`CREATE\`
       `,
       keyPoints: ['📊 쿼리 결과를 DataFrame으로 변환', '⬆️ DataFrame을 UNWIND로 배치 로드', '📈 pandas 분석 기능 활용'],
       practiceGoal: 'pandas와 Neo4j를 연동하여 데이터 분석을 수행할 수 있다',
