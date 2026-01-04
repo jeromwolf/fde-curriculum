@@ -645,6 +645,11 @@ CREATE (c)-[:LIVES_IN {since: date('2020-01-01')}]->(city)
         instructions: `
 ## 🎯 왜 Object Type 설계를 배우는가?
 
+### Day 1과의 연결
+> **Day 1**에서 Cypher 고급 쿼리를 배웠습니다.
+> 하지만 아무리 좋은 쿼리도 **잘못된 스키마**에서는 비효율적입니다.
+> 오늘은 **쿼리를 쉽게 만드는 스키마 설계**를 배웁니다.
+
 ### 문제 상황
 그래프 데이터베이스 설계 시 흔히 발생하는 혼란:
 - 🤔 "이것을 속성으로 해야 할까, 관계로 해야 할까?"
@@ -661,6 +666,70 @@ CREATE (c)-[:LIVES_IN {since: date('2020-01-01')}]->(city)
 > 그래프 데이터를 넣기 전 Object Type(스키마)을 명확히 정의합니다.
 >
 > Object Type = 비즈니스 엔티티의 청사진
+
+---
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [모델링] 관계를 속성으로 잘못 표현
+
+**증상**: 쿼리가 복잡해지고, 데이터 일관성 유지 어려움
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 관계를 속성으로
+CREATE (order:Order {
+  customerId: 'C001',
+  productIds: ['P001', 'P002', 'P003']  // 배열로 저장
+})
+// 문제: 상품별 수량, 할인 등 추가 정보 저장 불가
+\`\`\`
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 명시적 관계
+CREATE (order:Order {orderId: 'O001'})
+CREATE (order)-[:CONTAINS {quantity: 2, discount: 10}]->(product)
+// 장점: 관계에 속성 추가 가능, 쿼리 간단
+\`\`\`
+
+> **결정 기준**: "이 연결에 추가 정보가 필요한가?" → Yes면 관계로!
+
+---
+
+### 2. [명명] 일관성 없는 라벨/속성 이름
+
+**증상**: 팀 간 혼란, 쿼리 오류
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 일관성 없음
+CREATE (c:customer {user_id: '001'})  // 소문자 라벨, snake_case
+CREATE (p:PRODUCT {ProductID: '001'})  // 대문자 라벨, PascalCase
+CREATE (c)-[:bought]->(p)              // 소문자 관계
+\`\`\`
+
+\`\`\`cypher
+// ✅ 올바른 예시 - Palantir 스타일
+CREATE (c:Customer {customerId: '001'})  // PascalCase 라벨, camelCase 속성
+CREATE (p:Product {productId: '001'})
+CREATE (c)-[:PURCHASED]->(p)              // SCREAMING_SNAKE_CASE 관계
+\`\`\`
+
+---
+
+### 3. [설계] 과도한 중첩 관계
+
+**증상**: 쿼리 복잡도 기하급수적 증가
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 불필요한 중간 노드
+(Customer)-[:PLACED]->(Order)-[:HAS]->(OrderItem)-[:REFERS_TO]->(Product)
+// 4홉 경로, 쿼리 복잡
+
+// ✅ 필요 시 단순화 고려
+(Customer)-[:ORDERED {quantity, date}]->(Product)
+// 2홉 경로, 단순 요구사항에 적합
+\`\`\`
+
+> **결정 기준**: 중간 노드에 독립적 속성이 필요한가? 아니면 관계 속성으로 충분한가?
 
 ---
 
@@ -718,8 +787,19 @@ CREATE (c)-[:LIVES_IN {since: date('2020-01-01')}]->(city)
 3. 평점 4점 이상의 상품과 리뷰어 목록
         `,
         starterCode: `// ========================================
-// 📌 Step 1: Object Type 정의 (주석으로 작성)
+// 과제 1: Object Type 정의
 // ========================================
+
+// [WHY] Object Type 정의가 먼저인 이유:
+// - 코드 작성 전 "설계 문서" 역할
+// - 팀원 간 합의, 리뷰 가능
+// - Palantir Foundry의 핵심 철학
+
+// [SELECTION GUIDE] 속성 vs 관계 결정:
+// - 단순 값 (문자열, 숫자, 날짜) → 속성
+// - 다른 엔티티와의 연결 → 관계
+// - 연결에 추가 정보가 필요 → 관계 + 관계 속성
+// - 1:N 연결 → 관계 (배열 속성 X)
 
 /*
 Object Type: Customer
@@ -730,63 +810,117 @@ Properties:
   - customerId (string, required, unique): 고객 고유 ID
   - name (string, required): 고객 이름
   - email (string, required, unique): 이메일
-  - ... (추가 속성 정의)
+  - [TODO] 추가 속성 정의 (phone, membershipTier, createdAt 등)
 
 Links:
-  - PLACED -> Order (one-to-many)
-  - ... (추가 관계 정의)
+  - PLACED -> Order (one-to-many): 주문 내역
+  - [TODO] 추가 관계 정의 (REVIEWED, WISHLISTED 등)
 */
 
-// 나머지 Object Type 정의...
-// Product, Category, Order, Review
+// [TODO] Product Object Type 정의
+// - productId (PK), name, price, description, stockCount, isAvailable
+// - Links: BELONGS_TO -> Category
+
+// [TODO] Category Object Type 정의
+// - categoryId (PK), name, description
+
+// [TODO] Order Object Type 정의
+// - orderId (PK), orderDate, status, totalAmount
+// - Links: CONTAINS -> Product (관계 속성: quantity, unitPrice)
+
+// [TODO] Review Object Type 정의
+// - reviewId (PK), rating, comment, reviewDate
+// - Links: WRITTEN_BY -> Customer, ABOUT -> Product
 
 
 // ========================================
-// 📌 Step 2: 제약조건 생성
+// 과제 2-1: 제약조건 생성
 // ========================================
 
-// CREATE CONSTRAINT customer_id FOR (c:Customer) REQUIRE c.customerId IS UNIQUE;
-// ... 추가 제약조건
+// [WHY] 제약조건이 필요한 이유:
+// - Primary Key 중복 방지
+// - 데이터 무결성 보장
+// - 성능: 자동으로 인덱스 생성됨
+
+// [SELECTION GUIDE] 어떤 속성에 UNIQUE?
+// - Primary Key (필수)
+// - 자연 키 (email, 주민번호 등)
+// - 비즈니스 고유 식별자
+
+// [TODO] Customer 제약조건
+CREATE CONSTRAINT customer_id IF NOT EXISTS
+FOR (c:Customer) REQUIRE c.customerId IS UNIQUE;
+
+// [TODO] Product, Category, Order, Review 제약조건 추가
+
 
 // ========================================
-// 📌 Step 3: 인덱스 생성
+// 과제 2-2: 인덱스 생성
 // ========================================
 
-// CREATE INDEX product_name FOR (p:Product) ON (p.name);
-// ... 추가 인덱스
+// [WHY] 인덱스가 필요한 이유:
+// - WHERE 절 검색 성능 향상
+// - ORDER BY 정렬 성능 향상
+
+// [SELECTION GUIDE] 어떤 속성에 인덱스?
+// - 자주 검색하는 속성 (name, email)
+// - 범위 쿼리 대상 (createdAt, price)
+// - 정렬 기준 속성
+
+// [TODO] 인덱스 생성
+// CREATE INDEX product_name IF NOT EXISTS FOR (p:Product) ON (p.name);
+// CREATE INDEX customer_email IF NOT EXISTS FOR (c:Customer) ON (c.email);
+
 
 // ========================================
-// 📌 Step 4: 샘플 데이터 생성
+// 과제 2-3: 샘플 데이터 생성
 // ========================================
 
-// 카테고리
-// CREATE (electronics:Category {...})
-// CREATE (clothing:Category {...})
+// [WHY] 샘플 데이터가 필요한 이유:
+// - 스키마 검증
+// - 쿼리 테스트
+// - 시각화 확인
 
-// 상품
+// [SELECTION GUIDE] 데이터 설계 팁:
+// - 다양한 케이스 커버 (Gold/Silver/Bronze 고객)
+// - 엣지 케이스 포함 (주문 0건 고객, 리뷰 없는 상품)
+// - 실제 비즈니스 시나리오 반영
+
+// [TODO] 카테고리 생성
+// CREATE (electronics:Category {categoryId: 'CAT001', name: 'Electronics', ...})
+
+// [TODO] 상품 생성 (카테고리와 연결)
 // CREATE (laptop:Product {...})-[:BELONGS_TO]->(electronics)
-// ...
 
-// 고객
-// CREATE (alice:Customer {...})
-// ...
+// [TODO] 고객 생성 (다양한 티어)
+// CREATE (alice:Customer {membershipTier: 'Gold', ...})
 
-// 주문 및 리뷰
-// ...
+// [TODO] 주문 생성 (고객-주문-상품 연결)
+// CREATE (alice)-[:PLACED]->(order1)-[:CONTAINS {quantity: 1}]->(laptop)
+
+// [TODO] 리뷰 생성 (고객-리뷰-상품 연결)
 
 
 // ========================================
 // 과제 3: 스키마 검증 쿼리
 // ========================================
 
-// 쿼리 1: 카테고리별 상품과 평균 평점
-// MATCH ...
+// [WHY] 검증 쿼리가 필요한 이유:
+// - 설계 의도대로 데이터가 연결되었는지 확인
+// - 쿼리 패턴이 자연스러운지 검증
 
-// 쿼리 2: 고객별 주문 이력과 총 구매액
-// MATCH ...
+// [TODO] 쿼리 1: 카테고리별 상품과 평균 평점
+// MATCH (c:Category)<-[:BELONGS_TO]-(p:Product)<-[:ABOUT]-(r:Review)
+// RETURN c.name, collect(p.name), avg(r.rating)
 
-// 쿼리 3: 평점 4점 이상 상품과 리뷰어
-// MATCH ...
+// [TODO] 쿼리 2: 고객별 주문 이력과 총 구매액
+// MATCH (c:Customer)-[:PLACED]->(o:Order)-[contains:CONTAINS]->(p:Product)
+// RETURN c.name, count(o), sum(contains.quantity * contains.unitPrice)
+
+// [TODO] 쿼리 3: 평점 4점 이상 상품과 리뷰어
+// MATCH (r:Review)-[:ABOUT]->(p:Product), (r)<-[:WROTE]-(c:Customer)
+// WHERE r.rating >= 4
+// RETURN p.name, collect(c.name), avg(r.rating)
 `,
         solutionCode: `// ========================================
 // 과제 1: Object Type 정의

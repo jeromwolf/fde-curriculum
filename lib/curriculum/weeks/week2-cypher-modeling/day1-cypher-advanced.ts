@@ -394,6 +394,11 @@ RETURN path, weight as totalDistance
         instructions: `
 ## 🎯 왜 경로 쿼리를 배우는가?
 
+### Week 1과의 연결
+> **Week 1**에서 기본 MATCH, CREATE, MERGE를 배웠습니다.
+> 하지만 "친구의 친구"를 찾으려면 \`-[:KNOWS]->()-[:KNOWS]->\` 처럼
+> 관계를 일일이 나열해야 했습니다. 이제 **변수 길이 경로**로 이를 간소화합니다.
+
 ### 문제 상황
 소셜 네트워크나 조직도에서 자주 발생하는 질문들:
 - 👥 "나와 이 사람은 몇 촌일까?"
@@ -409,6 +414,70 @@ RETURN path, weight as totalDistance
 >
 > 변수 길이 경로 = 1~3시간 내 갈 수 있는 모든 장소 찾기
 > shortestPath = 가장 빠른 길 찾기
+
+---
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [성능] 상한 없는 변수 길이 경로
+
+**증상**: 쿼리가 타임아웃되거나 메모리 부족
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 상한 없음
+MATCH (a)-[:KNOWS*]->(b)
+RETURN a, b
+\`\`\`
+
+**왜 잘못되었나**: 그래프 전체를 탐색할 수 있어 기하급수적 복잡도
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 상한 지정
+MATCH (a)-[:KNOWS*1..5]->(b)
+RETURN a, b
+LIMIT 100
+\`\`\`
+
+> **기억하세요**: 변수 길이 경로는 항상 상한을 지정하세요. \`*..5\` 형식이 안전합니다.
+
+---
+
+### 2. [로직] 자기 자신 포함 문제
+
+**증상**: 결과에 시작 노드가 포함됨
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 자기 자신 미제외
+MATCH (alice:Person {name: 'Alice'})-[:KNOWS*1..3]->(friend)
+RETURN friend.name
+\`\`\`
+
+**왜 잘못되었나**: 순환 경로가 있으면 Alice 자신도 결과에 포함될 수 있음
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 자기 자신 제외
+MATCH (alice:Person {name: 'Alice'})-[:KNOWS*1..3]->(friend)
+WHERE alice <> friend
+RETURN friend.name
+\`\`\`
+
+---
+
+### 3. [중복] DISTINCT 미사용
+
+**증상**: 같은 사람이 여러 번 나타남
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 여러 경로로 같은 사람 도달
+MATCH (a)-[:KNOWS*1..3]->(b)
+RETURN b.name
+\`\`\`
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 중복 제거
+MATCH (a)-[:KNOWS*1..3]->(b)
+RETURN DISTINCT b.name
+\`\`\`
 
 ---
 
@@ -486,19 +555,36 @@ Alice와 Eve의 공통 친구(1촌)를 찾고:
 // 먼저 위의 샘플 데이터를 생성해주세요!
 
 // ========================================
-// 📌 Step 1: N촌 관계 찾기
+// 과제 1: N촌 관계 찾기
 // ========================================
 
-// 1촌 (직접 연결) - 예시
+// [WHY] 왜 변수 길이 경로를 사용하는가:
+// - 고정 경로 (a)->()->(b)는 정확히 2촌만 매칭
+// - 변수 경로 *1..3은 1~3촌을 한 번에 탐색
+// - 각 촌수별로 분리하면 결과를 명확히 구분 가능
+
+// [SELECTION GUIDE] 선택 기준:
+// - *2 vs *1..2: *2는 "정확히 2촌", *1..2는 "1촌 또는 2촌"
+// - 1촌 제외할 때: WHERE NOT (a)-[:KNOWS]->(b) 패턴 사용
+// - 자기 자신 제외: WHERE a <> b 필수!
+
+// 1촌 (직접 연결) - 예시 (완성됨)
 MATCH (alice:Person {name: 'Alice'})-[:KNOWS]->(friend1)
 RETURN '1촌' as degree, collect(friend1.name) as friends
 
-// 📌 Step 2: 2촌 찾기
-// 힌트: *2 사용, 1촌 제외 조건 추가
-// MATCH ...
+// [TODO] 2촌 찾기 구현:
+// Step 1: *2로 정확히 2촌 경로 매칭
+// Step 2: 1촌 친구 제외 (이미 직접 연결된 사람)
+// Step 3: 자기 자신 제외
+// Step 4: DISTINCT로 중복 제거
+// MATCH (alice:Person {name: 'Alice'})-[:KNOWS*2]->(friend2)
+// WHERE NOT ... AND alice <> friend2
+// RETURN ...
 
-// 📌 Step 3: 3촌 찾기
-// 힌트: *3 사용, 1촌/2촌 제외 조건 추가
+// [TODO] 3촌 찾기 구현:
+// Step 1: *3으로 정확히 3촌 경로 매칭
+// Step 2: 1촌, 2촌 모두 제외
+// Step 3: 자기 자신 제외
 // MATCH ...
 
 // ----------------------------------------
@@ -507,13 +593,30 @@ RETURN '1촌' as degree, collect(friend1.name) as friends
 // 과제 2: 최단 경로 분석
 // ========================================
 
-// Alice → Frank 최단 경로 (단일)
-// MATCH path = shortestPath(...)
-// ...
+// [WHY] shortestPath vs allShortestPaths:
+// - shortestPath: 가장 빠른 하나의 경로만 (성능 우선)
+// - allShortestPaths: 같은 길이의 모든 경로 (분석 목적)
+// - 실무에서는 보통 shortestPath로 빠른 결과 확인 후,
+//   필요시 allShortestPaths로 대안 분석
 
-// Alice → Frank 모든 최단 경로
+// [SELECTION GUIDE] 파라미터:
+// - *: 무제한 (위험! 사용 금지)
+// - *..10: 최대 10홉까지만 (안전)
+// - 방향: -> 단방향, - 양방향 (사회적 관계는 보통 양방향)
+
+// [TODO] Alice → Frank 최단 경로 (단일)
+// Step 1: shortestPath 함수 사용
+// Step 2: 양방향 관계로 탐색 (친구 관계는 양방향)
+// Step 3: nodes(path)로 경로 노드 추출
+// MATCH path = shortestPath(
+//   (alice:Person {name: 'Alice'})-[:KNOWS*]-(frank:Person {name: 'Frank'})
+// )
+// RETURN ...
+
+// [TODO] Alice → Frank 모든 최단 경로
+// allShortestPaths 사용
 // MATCH path = allShortestPaths(...)
-// ...
+// RETURN ...
 
 // ----------------------------------------
 
@@ -521,10 +624,22 @@ RETURN '1촌' as degree, collect(friend1.name) as friends
 // 과제 3: 공통 친구 분석
 // ========================================
 
-// Alice와 Eve의 공통 친구
-// 힌트: 양방향 관계 탐색 -[:KNOWS]-
-// MATCH ...
-// ...
+// [WHY] 공통 친구 분석이 중요한 이유:
+// - LinkedIn "알 수도 있는 사람" 추천의 핵심
+// - 공통 친구가 많을수록 연결 가능성 높음
+
+// [SELECTION GUIDE] 방향 선택:
+// - ->: 단방향 (내가 친구 추가한 경우만)
+// - -: 양방향 (서로 친구인 경우)
+// - 소셜 네트워크에서는 보통 양방향 사용
+
+// [TODO] Alice와 Eve의 공통 친구
+// Step 1: Alice와 mutual 연결 (양방향)
+// Step 2: mutual과 Eve 연결 (양방향)
+// Step 3: since 속성으로 언제부터 친구인지 확인
+// MATCH (alice:Person {name: 'Alice'})-[r1:KNOWS]-(mutual)-[r2:KNOWS]-(eve:Person {name: 'Eve'})
+// WHERE alice <> eve
+// RETURN ...
 
 // ----------------------------------------
 
@@ -532,10 +647,25 @@ RETURN '1촌' as degree, collect(friend1.name) as friends
 // 과제 4: 연결 강도 분석
 // ========================================
 
-// 2촌 이내 연결 수
-// 힌트: *1..2, count(DISTINCT ...), GROUP BY
-// MATCH ...
-// ...
+// [WHY] 연결 강도 분석:
+// - 네트워크에서 "영향력 있는 사람" 식별
+// - 직접 연결(1촌) + 간접 연결(2촌)의 총합
+// - 마케팅, 인플루언서 식별에 활용
+
+// [SELECTION GUIDE]:
+// - *1..2: 1촌과 2촌 동시 탐색
+// - count(DISTINCT connected): 중복 제거된 연결 수
+// - 자기 자신 제외 필수
+
+// [TODO] 2촌 이내 연결 수 계산
+// Step 1: 각 person에서 1~2촌 관계 매칭
+// Step 2: 자기 자신 제외
+// Step 3: DISTINCT로 중복 제거 후 카운트
+// Step 4: 연결 수 내림차순 정렬
+// MATCH (person:Person)-[:KNOWS*1..2]-(connected:Person)
+// WHERE person <> connected
+// WITH ...
+// RETURN ...
 
 // ----------------------------------------
 
@@ -543,33 +673,62 @@ RETURN '1촌' as degree, collect(friend1.name) as friends
 // 보너스: 네트워크 허브
 // ========================================
 
-// 가장 많은 1촌 연결을 가진 사람 TOP 3
-// MATCH ...
-// ...
+// [WHY] 허브 식별:
+// - 가장 많은 연결을 가진 노드 = 네트워크의 허브
+// - 정보 전파, 바이럴 마케팅의 핵심 타겟
+
+// [TODO] 가장 많은 1촌 연결을 가진 사람 TOP 3
+// Step 1: 각 person의 친구 관계 매칭
+// Step 2: collect()로 친구 목록 수집
+// Step 3: count()로 연결 수 계산
+// Step 4: ORDER BY DESC + LIMIT 3
+// MATCH (person:Person)-[:KNOWS]-(friend:Person)
+// WITH person, collect(friend.name) as friendList, count(friend) as connectionCount
+// RETURN ...
 `,
         solutionCode: `// ========================================
 // 과제 1: N촌 관계 찾기
 // ========================================
 
-// 1촌 (직접 연결된 친구)
+// [WHY] 촌수별 분리 이유:
+// 1촌, 2촌, 3촌을 한 번에 구하면 결과가 섞여서 구분이 어려움
+// 각 촌수별로 쿼리를 나누면 명확한 결과 확인 가능
+
+// [STEP 1] 1촌 (직접 연결된 친구)
+// 가장 단순한 케이스: 한 홉 관계만 매칭
 MATCH (alice:Person {name: 'Alice'})-[:KNOWS]->(friend1)
 RETURN '1촌' as degree, collect(friend1.name) as friends
-// 결과: [Bob, Diana]
 
-// 2촌 (Alice의 친구의 친구, 1촌 제외)
+// [RESULT] 결과: [Bob, Diana]
+// Alice가 직접 KNOWS 관계로 연결된 두 사람
+
+// ----------------------------------------
+
+// [STEP 2] 2촌 (친구의 친구, 1촌 제외)
+// [WHY *2 선택]: 정확히 2홉 경로만 탐색
+// [WHY NOT (alice)-[:KNOWS]->(friend2)]: 이미 1촌인 사람 제외
+// [WHY alice <> friend2]: 순환 경로로 자기 자신 도달 방지
 MATCH (alice:Person {name: 'Alice'})-[:KNOWS*2]->(friend2)
-WHERE NOT (alice)-[:KNOWS]->(friend2)
-  AND alice <> friend2
+WHERE NOT (alice)-[:KNOWS]->(friend2)  // 1촌 제외
+  AND alice <> friend2                  // 자기 자신 제외
 RETURN '2촌' as degree, collect(DISTINCT friend2.name) as friends
-// 결과: [Charlie, Eve]
 
-// 3촌 (1촌, 2촌 제외)
+// [RESULT] 결과: [Charlie, Eve]
+// [EDGE CASE] 중복 발생 가능: Alice→Bob→Charlie, Alice→Diana→Charlie
+// collect(DISTINCT ...)로 중복 제거
+
+// ----------------------------------------
+
+// [STEP 3] 3촌 (1촌, 2촌 모두 제외)
+// [WHY 두 개의 NOT 조건]: 1촌과 2촌 모두 필터링해야 순수 3촌만 남음
 MATCH (alice:Person {name: 'Alice'})-[:KNOWS*3]->(friend3)
-WHERE NOT (alice)-[:KNOWS]->(friend3)
-  AND NOT (alice)-[:KNOWS*2]->(friend3)
-  AND alice <> friend3
+WHERE NOT (alice)-[:KNOWS]->(friend3)        // 1촌 제외
+  AND NOT (alice)-[:KNOWS*2]->(friend3)      // 2촌 제외
+  AND alice <> friend3                        // 자기 자신 제외
 RETURN '3촌' as degree, collect(DISTINCT friend3.name) as friends
-// 결과: [Frank]
+
+// [RESULT] 결과: [Frank]
+// [ALTERNATIVE] 성능이 중요하면 *1..3으로 한 번에 찾고 length(path)로 분류
 
 // ----------------------------------------
 
@@ -577,23 +736,36 @@ RETURN '3촌' as degree, collect(DISTINCT friend3.name) as friends
 // 과제 2: 최단 경로 분석
 // ========================================
 
-// Alice → Frank 최단 경로 (단일)
+// [WHY shortestPath 사용]: 두 노드 간 가장 효율적인 경로를 찾음
+// [WHY 양방향 -]: 친구 관계는 상호적이므로 방향 무시
+// [ALTERNATIVE] 단방향 ->: 팔로우처럼 비대칭 관계에 사용
+
+// [STEP 1] Alice → Frank 최단 경로 (단일)
 MATCH path = shortestPath(
   (alice:Person {name: 'Alice'})-[:KNOWS*]-(frank:Person {name: 'Frank'})
 )
+// [WHY nodes(path)]: 경로의 모든 노드를 리스트로 추출
+// [WHY 리스트 컴프리헨션]: 노드 객체에서 name 속성만 추출
 RETURN
   [node IN nodes(path) | node.name] as route,
   length(path) as hops
-// 결과: ['Alice', 'Bob', 'Charlie', 'Frank'] 또는 다른 경로, 3홉
 
-// Alice → Frank 모든 최단 경로
+// [RESULT] 결과: ['Alice', 'Bob', 'Charlie', 'Frank'], 3홉
+// [EDGE CASE] 경로가 없으면 빈 결과 반환 (NULL 아님)
+
+// ----------------------------------------
+
+// [STEP 2] Alice → Frank 모든 최단 경로
+// [WHY allShortestPaths]: 같은 거리의 대안 경로 모두 필요할 때
+// [ALTERNATIVE] 비용 고려 시 APOC의 dijkstra 사용
 MATCH path = allShortestPaths(
   (alice:Person {name: 'Alice'})-[:KNOWS*]-(frank:Person {name: 'Frank'})
 )
 RETURN
   [node IN nodes(path) | node.name] as route,
   length(path) as hops
-// 결과: 여러 경로가 나올 수 있음 (같은 길이)
+
+// [RESULT] 여러 경로 반환 가능 (모두 같은 홉 수)
 
 // ----------------------------------------
 
@@ -601,14 +773,20 @@ RETURN
 // 과제 3: 공통 친구 분석
 // ========================================
 
-// Alice와 Eve의 공통 친구
+// [WHY 공통 친구 분석]: LinkedIn "알 수도 있는 사람" 추천의 핵심
+// 공통 친구가 많을수록 새로운 연결 추천에 적합
+
+// [WHY 양방향 -[:KNOWS]-]: 친구 관계는 상호적
+// [PARAM r1, r2]: 각 관계의 since 속성에 접근하기 위해 변수 할당
 MATCH (alice:Person {name: 'Alice'})-[r1:KNOWS]-(mutual)-[r2:KNOWS]-(eve:Person {name: 'Eve'})
-WHERE alice <> eve
+WHERE alice <> eve  // Alice와 Eve가 같은 노드가 아닌지 확인
 RETURN DISTINCT
   mutual.name as commonFriend,
   r1.since as aliceFriendSince,
   r2.since as eveFriendSince
-// 결과: Bob (2020, 2022), Diana (2021, 2021)
+
+// [RESULT] 결과: Bob (2020, 2022), Diana (2021, 2021)
+// [EDGE CASE] 공통 친구가 없으면 빈 결과
 
 // ----------------------------------------
 
@@ -616,13 +794,20 @@ RETURN DISTINCT
 // 과제 4: 연결 강도 분석
 // ========================================
 
-// 2촌 이내 연결 수
+// [WHY 연결 강도]: 네트워크에서 영향력 있는 노드 식별
+// [WHY *1..2]: 직접 연결(1촌)과 간접 연결(2촌) 동시 탐색
+// [ALTERNATIVE] 각각 따로 세어서 가중치 부여 가능 (1촌x2 + 2촌x1)
+
 MATCH (person:Person)-[:KNOWS*1..2]-(connected:Person)
-WHERE person <> connected
+WHERE person <> connected  // 자기 자신 제외
+// [WHY WITH + count(DISTINCT)]:
+// 같은 connected에 여러 경로로 도달 가능 → 중복 제거 필수
 WITH person, count(DISTINCT connected) as connections
 RETURN person.name, connections
 ORDER BY connections DESC
-// 결과: Bob 5, Alice 4, Diana 4, ...
+
+// [RESULT] 결과: Bob 5, Alice 4, Diana 4, ...
+// [INSIGHT] Bob이 가장 많은 연결 = 네트워크의 허브
 
 // ----------------------------------------
 
@@ -630,8 +815,14 @@ ORDER BY connections DESC
 // 보너스: 네트워크 허브
 // ========================================
 
-// 가장 많은 1촌 연결을 가진 사람 TOP 3
+// [WHY 허브 식별]: 정보 전파, 바이럴 마케팅의 핵심 타겟
+// 허브를 통해 메시지를 전달하면 빠르게 퍼짐
+
+// [STEP 1] 각 person의 친구 관계 매칭
 MATCH (person:Person)-[:KNOWS]-(friend:Person)
+// [WHY collect + count 함께 사용]:
+// collect: 친구 목록 (누구인지)
+// count: 연결 수 (몇 명인지)
 WITH person, collect(friend.name) as friendList, count(friend) as connectionCount
 RETURN
   person.name as hub,
@@ -639,7 +830,9 @@ RETURN
   friendList
 ORDER BY connectionCount DESC
 LIMIT 3
-// 결과: Bob (4), Alice (3), Diana (3) 등
+
+// [RESULT] 결과: Bob (4), Alice (3), Diana (3) 등
+// [EDGE CASE] 동점일 경우 이름 순으로 정렬하려면 ORDER BY connectionCount DESC, person.name
 `,
         hints: [
           '💡 2촌을 찾을 때 1촌을 제외하려면 WHERE NOT (a)-[:KNOWS]->(b) 사용',
@@ -1006,6 +1199,11 @@ RETURN category,
         instructions: `
 ## 🎯 왜 집계 쿼리를 배우는가?
 
+### Week 1, Task 4와의 연결
+> **경로 쿼리**에서 \`collect()\`와 \`count()\`를 사용해봤습니다.
+> 이제 더 복잡한 **다단계 집계**와 **파이프라인 쿼리**를 배웁니다.
+> SQL의 GROUP BY + HAVING을 Cypher로 표현하는 방법입니다.
+
 ### 문제 상황
 비즈니스 분석에서 자주 필요한 작업들:
 - 📊 "카테고리별 총 매출은?"
@@ -1021,6 +1219,75 @@ RETURN category,
 >
 > 원재료(MATCH) → 1차 가공(WITH + 집계) → 2차 가공(WITH + 필터) → 완제품(RETURN)
 > 각 단계에서 중간 결과를 다음 단계로 전달
+
+---
+
+## ⚠️ Common Pitfalls (자주 하는 실수)
+
+### 1. [스코프] WITH 후 변수 접근 불가
+
+**증상**: \`Variable 'product' not defined\` 에러
+
+\`\`\`cypher
+// ❌ 잘못된 예시
+MATCH (c:Customer)-[:PURCHASED]->(p:Product)
+WITH c, count(p) as total
+RETURN c.name, p.price  // p는 이미 스코프에서 사라짐!
+\`\`\`
+
+**왜 잘못되었나**: WITH는 스코프를 제한함. WITH에 포함하지 않은 변수는 사라짐.
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 필요한 값을 WITH에 포함
+MATCH (c:Customer)-[:PURCHASED]->(p:Product)
+WITH c, count(p) as total, collect(p.price) as prices
+RETURN c.name, total, prices
+\`\`\`
+
+> **기억하세요**: WITH 이후 사용할 변수는 반드시 WITH에 포함시키세요.
+
+---
+
+### 2. [집계] 집계 함수 없이 그룹화 시도
+
+**증상**: 예상과 다른 결과 또는 에러
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 그룹화 없이 집계
+MATCH (c:Customer)-[:PURCHASED]->(p:Product)
+RETURN c.name, sum(p.price)  // 어떻게 그룹화?
+\`\`\`
+
+**왜 잘못되었나**: Cypher는 암시적 GROUP BY. 집계되지 않은 속성이 그룹 키가 됨.
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 명시적 WITH로 그룹화 의도 명확히
+MATCH (c:Customer)-[:PURCHASED]->(p:Product)
+WITH c, sum(p.price) as totalSpent  // c가 그룹 키
+RETURN c.name, totalSpent
+\`\`\`
+
+---
+
+### 3. [순서] ORDER BY 위치 오류
+
+**증상**: 정렬이 안 되거나 잘못된 정렬
+
+\`\`\`cypher
+// ❌ 잘못된 예시 - 집계 전 ORDER BY
+MATCH (c:Customer)-[:PURCHASED]->(p:Product)
+ORDER BY p.price DESC  // 집계 전에 정렬해도 의미 없음
+WITH c, sum(p.price) as total
+RETURN c.name, total
+\`\`\`
+
+\`\`\`cypher
+// ✅ 올바른 예시 - 집계 후 ORDER BY
+MATCH (c:Customer)-[:PURCHASED]->(p:Product)
+WITH c, sum(p.price) as total
+ORDER BY total DESC  // 집계 결과로 정렬
+RETURN c.name, total
+\`\`\`
 
 ---
 
@@ -1117,47 +1384,143 @@ CREATE (eve)-[:PURCHASED {date: date('2024-02-25'), quantity: 1}]->(phone)
 // ========================================
 // 과제 1: 고객별 총 구매액
 // ========================================
-// MATCH (c:Customer)-[r:PURCHASED]->(p:Product)
-// WITH ...
-// RETURN customer, totalSpent, orderCount
-// ORDER BY totalSpent DESC
+
+// [WHY] 왜 이 과제가 중요한가:
+// - 고객 가치 분석의 기본 (VIP 고객 식별)
+// - 마케팅 타겟팅, 보상 프로그램 설계에 필수
+
+// [SELECTION GUIDE] 선택 기준:
+// - sum() vs count(): sum은 금액 합계, count는 건수
+// - quantity * price: 관계 속성(quantity)과 노드 속성(price) 조합
+// - WITH가 필요한 이유: 집계 후 다른 처리(정렬, 필터)를 위해
+
+// [TODO] 구현 순서:
+// Step 1: MATCH로 고객-구매-상품 관계 매칭
+// Step 2: WITH에서 sum(r.quantity * p.price)로 총액 계산
+// Step 3: count(r)로 주문 건수 계산
+// Step 4: ORDER BY로 높은 순 정렬
+MATCH (c:Customer)-[r:PURCHASED]->(p:Product)
+WITH c.name as customer,
+     c.tier as tier,
+     // TODO: sum으로 총 구매액 계산
+     // TODO: count로 주문 건수 계산
+RETURN customer, tier, totalSpent, orderCount
+ORDER BY totalSpent DESC
 
 
 // ========================================
 // 과제 2: 카테고리별 매출 분석
 // ========================================
+
+// [WHY] 왜 이 과제가 중요한가:
+// - 상품 카테고리별 성과 분석
+// - 재고 관리, 마케팅 예산 배분에 활용
+
+// [SELECTION GUIDE] 다단계 집계가 필요한 이유:
+// 1단계: 카테고리별 매출 집계
+// 2단계: topProduct를 찾기 위해 UNWIND → ORDER BY → collect()[0]
+// - 한 번에 안 되는 이유: collect 후 정렬해야 top을 찾음
+
+// [TODO] 구현 순서:
+// Step 1: MATCH로 구매 관계 매칭
+// Step 2: 첫 번째 WITH에서 category별 기본 집계
+// Step 3: UNWIND로 products 펼쳐서 매출순 정렬
+// Step 4: 두 번째 WITH에서 collect()[0]으로 top 추출
 // MATCH ...
-// WITH ...
-// RETURN category, totalRevenue, orderCount, avgOrderValue, topProduct
+// WITH category, sum(...) as totalRevenue, ...
+// UNWIND products as prod
+// ORDER BY prod.revenue DESC
+// WITH category, ..., collect(prod.name)[0] as topProduct
+// RETURN ...
 
 
 // ========================================
 // 과제 3: 멤버십 티어별 통계
 // ========================================
+
+// [WHY] 왜 이 과제가 중요한가:
+// - 멤버십 프로그램 효과 분석
+// - 티어별 혜택 설계, 업그레이드 유도 전략
+
+// [SELECTION GUIDE] 2단계 집계:
+// 1단계: 고객별 구매액 집계 (c 단위)
+// 2단계: 티어별 통계 집계 (tier 단위)
+// - 왜 2단계?: 고객별 구매액을 먼저 계산해야 평균/최고 고객 구할 수 있음
+
+// [TODO] 구현 순서:
+// Step 1: 고객별 구매액 먼저 계산 (1단계 집계)
+// Step 2: 티어별로 다시 집계 (2단계 집계)
+// Step 3: topCustomer 찾기 (UNWIND + collect()[0] 패턴)
 // MATCH ...
-// WITH ...
-// RETURN tier, customerCount, totalRevenue, avgSpent, topCustomer
+// WITH c.tier as tier, c, sum(...) as customerSpent  // 1단계
+// WITH tier, count(DISTINCT c) as customerCount, ...  // 2단계
+// ...
 
 
 // ========================================
 // 과제 4: 고객 구매 프로필
 // ========================================
+
+// [WHY] 왜 이 과제가 중요한가:
+// - 고객 360도 뷰 생성
+// - 개인화 추천, 마케팅 메시지 작성에 활용
+
+// [SELECTION GUIDE] 여러 집계 함수 조합:
+// - collect(p.name): 구매 상품 목록
+// - sum(...): 총 구매액
+// - max(p.price): 가장 비싼 상품 가격 (이름을 찾으려면 추가 MATCH 필요)
+// - collect(DISTINCT p.category): 중복 제거된 카테고리 목록
+
+// [TODO] 구현 순서:
+// Step 1: 기본 집계 (collect, sum, max)
+// Step 2: 가장 비싼 상품 이름 찾기 (추가 MATCH)
 // MATCH ...
-// WITH ...
-// RETURN customer, products, totalSpent, mostExpensive, categories
+// WITH c, collect(...) as products, sum(...) as totalSpent, max(p.price) as maxPrice, ...
+// MATCH (c)-[:PURCHASED]->(expensive:Product)
+// WHERE expensive.price = maxPrice
+// RETURN ...
 
 
 // ========================================
 // 보너스: 월별 매출 트렌드
 // ========================================
+
+// [WHY] 왜 이 과제가 중요한가:
+// - 시계열 분석의 기초
+// - 계절성, 성장 트렌드 파악
+
+// [SELECTION GUIDE] 날짜 처리 방법:
+// - r.date.year, r.date.month: Neo4j date 속성에서 연/월 추출
+// - 전월 대비: collect → range + 인덱싱으로 이전 값 참조
+// - 고급 패턴: CASE WHEN으로 증감 표시
+
+// [TODO] 구현 순서:
+// Step 1: 월별 매출 집계
+// Step 2: collect로 월별 데이터 리스트화
+// Step 3: range + UNWIND로 인덱스 기반 순회
+// Step 4: 이전 월 매출과 비교
 // MATCH ...
-// WITH ...
-// RETURN year, month, revenue, change
+// WITH r.date.year as year, r.date.month as month, sum(...) as revenue
+// ORDER BY year, month
+// WITH collect({year: year, month: month, revenue: revenue}) as monthly
+// UNWIND range(0, size(monthly)-1) as idx
+// ...
 `,
         solutionCode: `// ========================================
 // 과제 1: 고객별 총 구매액
 // ========================================
+
+// [WHY] 이 쿼리가 필요한 이유:
+// 고객 가치(Customer Lifetime Value) 분석의 첫 단계
+// VIP 고객 식별, 보상 프로그램 설계에 활용
+
+// [STEP 1] 고객-구매-상품 관계 매칭
 MATCH (c:Customer)-[r:PURCHASED]->(p:Product)
+
+// [STEP 2] 고객별 집계
+// [WHY sum(r.quantity * p.price)]:
+// quantity는 관계(r) 속성, price는 노드(p) 속성
+// 3개 × 10,000원 = 30,000원 으로 총 구매액 계산
 WITH c.name as customer,
      c.tier as tier,
      sum(r.quantity * p.price) as totalSpent,
@@ -1165,52 +1528,81 @@ WITH c.name as customer,
 RETURN customer, tier, totalSpent, orderCount
 ORDER BY totalSpent DESC
 
-// 결과:
-// Charlie, Gold, 4,135,000원, 3건
+// [RESULT] 결과:
+// Charlie, Gold, 4,135,000원, 3건 (VIP 1위)
 // Alice, Gold, 3,770,000원, 3건
 // Eve, Silver, 1,350,000원, 2건
-// ...
+// [INSIGHT] Gold 티어 고객이 상위권 차지 → 멤버십 프로그램 효과 확인
+
+// ----------------------------------------
 
 // ========================================
 // 과제 2: 카테고리별 매출 분석
 // ========================================
+
+// [WHY] 카테고리별 분석이 필요한 이유:
+// 상품 포트폴리오 최적화, 마케팅 예산 배분
+
+// [STEP 1] 첫 번째 WITH: 기본 집계
 MATCH (c:Customer)-[r:PURCHASED]->(p:Product)
 WITH p.category as category,
      p,
      r,
      r.quantity * p.price as orderAmount
+
+// [STEP 2] 두 번째 WITH: 카테고리별 집계
+// [WHY collect 사용]: topProduct를 찾기 위해 상품별 매출 보존
 WITH category,
      sum(orderAmount) as totalRevenue,
      count(r) as orderCount,
      avg(orderAmount) as avgOrderValue,
      collect({name: p.name, revenue: orderAmount}) as products
+
+// [STEP 3] UNWIND + ORDER BY: 매출순 정렬
+// [WHY 이 패턴]: collect 후 최대값을 찾으려면 펼쳐서 정렬해야 함
 UNWIND products as prod
 WITH category, totalRevenue, orderCount, avgOrderValue, prod
 ORDER BY prod.revenue DESC
+
+// [STEP 4] 세 번째 WITH: topProduct 추출
+// [WHY collect()[0]]: 정렬된 상태에서 첫 번째 = 최고 매출 상품
 WITH category, totalRevenue, orderCount, avgOrderValue,
      collect(prod.name)[0] as topProduct
 RETURN category, totalRevenue, orderCount,
        round(avgOrderValue) as avgOrderValue, topProduct
 ORDER BY totalRevenue DESC
 
-// 결과:
+// [RESULT] 결과:
 // Electronics, 8,200,000원, 5건, 1,640,000원, MacBook Pro
 // Clothing, 400,000원, 5건, 80,000원, Winter Jacket
 // Books, 240,000원, 3건, 80,000원, Design Patterns
+// [INSIGHT] Electronics가 압도적 매출 → 해당 카테고리 마케팅 강화
+
+// ----------------------------------------
 
 // ========================================
 // 과제 3: 멤버십 티어별 통계
 // ========================================
+
+// [WHY] 티어별 분석이 필요한 이유:
+// 멤버십 프로그램 ROI 분석, 티어별 혜택 최적화
+
+// [STEP 1] 1단계 집계: 고객별 구매액
+// [WHY 2단계 집계]: 고객별 구매액을 먼저 계산해야 티어별 평균/최고 고객 구할 수 있음
 MATCH (c:Customer)-[r:PURCHASED]->(p:Product)
 WITH c.tier as tier,
      c,
      sum(r.quantity * p.price) as customerSpent
+
+// [STEP 2] 2단계 집계: 티어별 통계
+// [WHY count(DISTINCT c)]: 같은 고객이 여러 번 나올 수 있으므로 중복 제거
 WITH tier,
      count(DISTINCT c) as customerCount,
      sum(customerSpent) as totalRevenue,
      avg(customerSpent) as avgSpent,
      collect({name: c.name, spent: customerSpent}) as customers
-// 최고 구매 고객 찾기
+
+// [STEP 3] topCustomer 찾기 (UNWIND + 정렬 + collect()[0] 패턴)
 UNWIND customers as cust
 WITH tier, customerCount, totalRevenue, avgSpent, cust
 ORDER BY cust.spent DESC
@@ -1220,20 +1612,34 @@ RETURN tier, customerCount, totalRevenue,
        round(avgSpent) as avgSpent, topCustomer
 ORDER BY totalRevenue DESC
 
-// 결과:
+// [RESULT] 결과:
 // Gold, 2명, 7,905,000원, 3,952,500원, Charlie
 // Silver, 2명, 1,505,000원, 752,500원, Eve
 // Bronze, 1명, 190,000원, 190,000원, Diana
+// [INSIGHT] Gold 평균 구매액이 Bronze의 20배 → 멤버십 업그레이드 유도 전략 수립
+
+// ----------------------------------------
 
 // ========================================
 // 과제 4: 고객 구매 프로필
 // ========================================
+
+// [WHY] 고객 프로필이 필요한 이유:
+// 개인화 마케팅, 상품 추천, 고객 세그멘테이션
+
+// [STEP 1] 다양한 집계 함수 조합
+// [WHY collect vs collect(DISTINCT)]:
+// products: 같은 상품 여러 번 구매 시 모두 표시
+// categories: 중복 제거된 카테고리만 표시
 MATCH (c:Customer)-[r:PURCHASED]->(p:Product)
 WITH c,
      collect(p.name) as products,
      sum(r.quantity * p.price) as totalSpent,
      max(p.price) as maxItemPrice,
      collect(DISTINCT p.category) as categories
+
+// [STEP 2] 가장 비싼 상품 이름 찾기
+// [WHY 추가 MATCH]: max(p.price)는 가격만 반환, 상품 이름은 별도 조회 필요
 MATCH (c)-[r:PURCHASED]->(expensive:Product)
 WHERE expensive.price = maxItemPrice
 RETURN
@@ -1245,18 +1651,38 @@ RETURN
   categories
 ORDER BY totalSpent DESC
 
+// [RESULT] 각 고객의 360도 뷰 생성
+// [EDGE CASE] 같은 가격의 상품이 여러 개면 모두 반환됨
+
+// ----------------------------------------
+
 // ========================================
 // 보너스: 월별 매출 트렌드
 // ========================================
+
+// [WHY] 시계열 분석이 필요한 이유:
+// 계절성 파악, 성장 트렌드 분석, 예측 모델 기초 데이터
+
+// [STEP 1] 월별 매출 집계
+// [WHY r.date.year, r.date.month]: Neo4j date 타입에서 연/월 추출
 MATCH (c:Customer)-[r:PURCHASED]->(p:Product)
 WITH r.date.year as year,
      r.date.month as month,
      sum(r.quantity * p.price) as revenue
 ORDER BY year, month
+
+// [STEP 2] 리스트로 변환 (인덱스 접근을 위해)
+// [WHY collect]: 순차 데이터를 리스트로 만들어 이전 값 참조 가능하게
 WITH collect({year: year, month: month, revenue: revenue}) as monthly
+
+// [STEP 3] 인덱스 기반 순회
+// [WHY range + UNWIND]: 현재 인덱스(idx)와 이전 인덱스(idx-1) 접근
 UNWIND range(0, size(monthly)-1) as idx
 WITH monthly[idx] as current,
      CASE WHEN idx > 0 THEN monthly[idx-1].revenue ELSE null END as prevRevenue
+
+// [STEP 4] 전월 대비 계산
+// [WHY CASE WHEN]: 첫 번째 월은 이전 데이터 없음 → 'N/A' 표시
 RETURN
   current.year as year,
   current.month as month,
@@ -1267,9 +1693,10 @@ RETURN
     ELSE toString(current.revenue - prevRevenue)
   END as vsLastMonth
 
-// 결과:
-// 2024, 1, 6,305,000원, N/A
-// 2024, 2, 3,535,000원, -2,770,000
+// [RESULT] 결과:
+// 2024, 1, 6,305,000원, N/A (첫 달)
+// 2024, 2, 3,535,000원, -2,770,000 (44% 감소)
+// [INSIGHT] 2월 매출 급감 → 원인 분석 필요 (계절성? 마케팅 중단?)
 `,
         hints: [
           '💡 quantity * price로 총 금액 계산 - 관계 속성과 노드 속성 조합',
