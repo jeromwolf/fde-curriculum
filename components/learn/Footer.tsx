@@ -31,7 +31,7 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-          <span>© 2025 FDE Academy. All rights reserved.</span>
+          <span>© 2026 FDE Academy. All rights reserved.</span>
           <span className="font-mono text-xs text-gray-600">
             v{version} ({gitCommit}){buildTime && ` • ${buildTime}`}
           </span>

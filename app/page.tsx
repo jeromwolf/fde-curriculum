@@ -421,7 +421,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="pt-8 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-gray-500 text-sm">
-            <span>&copy; 2025 FDE Academy. All rights reserved.</span>
+            <span>&copy; 2026 FDE Academy. All rights reserved.</span>
             <span className="font-mono text-xs text-gray-600">
               v{process.env.NEXT_PUBLIC_APP_VERSION || '0.0.0'} ({process.env.NEXT_PUBLIC_GIT_COMMIT || 'unknown'})
               {process.env.NEXT_PUBLIC_BUILD_TIME && (
