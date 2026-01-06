@@ -280,13 +280,9 @@ export default function TaskPage() {
               >
                 {/* YouTube 썸네일 */}
                 <img
-                  src={`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`}
+                  src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
                   alt={task.title}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // maxresdefault가 없으면 hqdefault로 대체
-                    (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
-                  }}
                 />
                 {/* 재생 버튼 오버레이 */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition">
@@ -355,12 +351,9 @@ export default function TaskPage() {
                   className="block aspect-video bg-gray-900 rounded-xl overflow-hidden relative group max-w-2xl"
                 >
                   <img
-                    src={`https://img.youtube.com/vi/${readingVideoId}/maxresdefault.jpg`}
+                    src={`https://img.youtube.com/vi/${readingVideoId}/hqdefault.jpg`}
                     alt={task.title}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${readingVideoId}/hqdefault.jpg`
-                    }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition">
                     <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition shadow-lg">

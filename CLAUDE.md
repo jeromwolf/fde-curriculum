@@ -1,5 +1,83 @@
 # FDE Academy - 개발 로그
 
+## 2026-01-07: Week 5 Day 7-8 추가 (LangGraph Agent, Domain Agents)
+
+### 🎯 목표
+vibecodingcamp7.com 벤치마킹 결과, LangGraph 심화 및 도메인 특화 Agent 콘텐츠 추가
+
+### ✅ 완료된 작업
+
+#### 1. Day 7: LangGraph Agent 심화 (300분/5시간)
+
+| Task ID | 제목 | 시간 |
+|---------|------|------|
+| `w5d7-langgraph-intro` | LangGraph 개념과 아키텍처 | 40분 |
+| `w5d7-langgraph-basic` | LangGraph 기본 Agent 구현 | 50분 |
+| `w5d7-langgraph-advanced` | LangGraph 고급 패턴 | 50분 |
+| `w5d7-langgraph-research` | LangGraph 리서치 Agent 구현 | 60분 |
+| `w5d7-langgraph-quiz` | LangGraph 이해도 점검 | 30분 |
+| `w5d7-langgraph-challenge` | LangGraph 실전 과제 | 70분 |
+
+**주요 내용**:
+- StateGraph, Node, Edge 개념
+- ReAct Agent 구현
+- 병렬 실행, Human-in-the-Loop, Multi-agent
+- Reflection 패턴 리서치 Agent
+
+#### 2. Day 8: 도메인 특화 Agent & 실전 도구 (360분/6시간)
+
+| Task ID | 제목 | 시간 |
+|---------|------|------|
+| `w5d8-anythingllm` | anythingLLM: 올인원 로컬 AI 플랫폼 | 30분 |
+| `w5d8-pubchem-agent` | PubChem 화학물질 검색 Agent | 60분 |
+| `w5d8-legal-agent` | 법률 판례 검색 Agent | 50분 |
+| `w5d8-finance-agent` | 금융 분석 Agent | 50분 |
+| `w5d8-mcp-practical` | MCP 실전 예제 | 40분 |
+| `w5d8-domain-quiz` | 도메인 Agent 이해도 점검 | 30분 |
+| `w5d8-domain-challenge` | 도메인 특화 Agent 종합 과제 | 100분 |
+
+**주요 내용**:
+- anythingLLM Docker 배포
+- PubChem API 연동
+- LangChain Tool 패턴
+- MCP (Model Context Protocol) Resources, Tools, Prompts
+
+#### 3. YouTube 썸네일 수정
+
+- `maxresdefault.jpg` → `hqdefault.jpg` 변경
+- 일부 영상에서 maxresdefault가 404 반환하는 문제 해결
+
+#### 4. YouTube URL 추가
+
+| Task ID | YouTube URL |
+|---------|-------------|
+| `w5d2-chroma-production` | https://youtu.be/8kriJ2Awoas |
+
+### 📁 수정/추가된 파일
+
+- `lib/curriculum/weeks/week5-rag-basics/day7-langgraph-agent.ts` (NEW)
+- `lib/curriculum/weeks/week5-rag-basics/day8-domain-agents.ts` (NEW)
+- `lib/curriculum/weeks/week5-rag-basics/index.ts` (UPDATED)
+- `app/learn/task/[taskId]/page.tsx` (UPDATED - 썸네일 수정)
+- `lib/curriculum/weeks/week5-rag-basics/day2-embeddings-vectordb.ts` (UPDATED)
+
+### 📊 Week 5 최종 구성
+
+| Day | 주제 | 시간 |
+|-----|------|------|
+| 1 | RAG 아키텍처 개요 | 4h |
+| 2 | 임베딩 & 벡터 DB | 4h |
+| 3 | 청킹 전략 & 검색 최적화 | 4h |
+| 4 | LangChain RAG 파이프라인 | 4h |
+| 5 | 프로덕션 RAG 시스템 | 5h |
+| 6 | 로컬 LLM과 RAG 통합 (sLLM) | 5h |
+| **7** | **LangGraph Agent 심화** | **5h** |
+| **8** | **도메인 특화 Agent & 실전 도구** | **6h** |
+
+**총 학습 시간**: 37시간
+
+---
+
 ## 2026-01-06: Week 5 Day 2 콘텐츠 대폭 보강
 
 ### 🎯 목표

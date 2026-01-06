@@ -827,6 +827,7 @@ LIMIT 5;
     // Task 4: Chroma 프로덕션 패턴 (50분)
     // ========================================
     createCodeTask('w5d2-chroma-production', 'Chroma 프로덕션 패턴 실습', 50, {
+      videoUrl: 'https://youtu.be/8kriJ2Awoas',
       introduction: `
 ## 학습 목표
 

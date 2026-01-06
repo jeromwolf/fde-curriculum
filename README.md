@@ -101,6 +101,14 @@ npm run dev
 npm run build
 ```
 
+## v2.6 주요 변경 사항 (2026-01-07)
+
+- **Week 5 Day 7-8 추가** (LangGraph Agent, Domain Agents)
+  - Day 7: LangGraph 심화 (StateGraph, ReAct, Multi-agent) - 5시간
+  - Day 8: 도메인 Agent (anythingLLM, PubChem, 법률, 금융, MCP) - 6시간
+- **Week 5 총 학습시간**: 26시간 → 37시간 (8 Days)
+- **YouTube 썸네일 수정**: maxresdefault → hqdefault (404 문제 해결)
+
 ## v2.5 주요 변경 사항 (2026-01-06)
 
 - **Week 5 Day 2 콘텐츠 대폭 보강**
