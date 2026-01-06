@@ -1,5 +1,66 @@
 # FDE Academy - 개발 로그
 
+## 2026-01-06: Week 5 Day 2 콘텐츠 대폭 보강
+
+### 🎯 목표
+Week 5 (RAG 기초) Day 2 (Embeddings & Vector DB) 실습 콘텐츠 품질 향상
+
+### ✅ 완료된 작업
+
+#### 1. YouTube URL 추가
+
+| Task ID | 제목 | YouTube URL |
+|---------|------|-------------|
+| `w5d2-embeddings-history` | 임베딩의 역사와 수학적 원리 | https://www.youtube.com/watch?v=pBmj-HgUO1Y |
+| `w5d2-vectordb-deep` | 벡터 데이터베이스 심층 이해 | https://youtu.be/ShzjGfzTC1E |
+
+#### 2. Chroma 프로덕션 코드 콘텐츠 보강 (`w5d2-chroma-production`)
+
+**추가된 내용**:
+| 항목 | 설명 |
+|------|------|
+| 학습 목표 | 4가지 핵심 학습 목표 |
+| Chroma 아키텍처 다이어그램 | Client → Collection → Documents/Embeddings/Metadata 구조 |
+| 클라이언트 모드 비교표 | EphemeralClient vs PersistentClient vs HttpClient |
+| HNSW 파라미터 가이드표 | M, ef_construction, ef_search 설명 |
+| 클래스 구조도 | ChromaVectorStore 전체 메서드 시각화 |
+| 상세 docstring | 모든 메서드에 🎯 역할, 💡 설명, Args, Returns 추가 |
+| LangChain 연동 아키텍처 | Chroma + LangChain 통합 다이어그램 |
+| 검색 방식 비교표 | similarity vs mmr vs similarity_score_threshold |
+| 서버 모드 선택 가이드 | 용도별 권장 모드 |
+
+#### 3. Pinecone 프로덕션 코드 콘텐츠 보강 (`w5d2-pinecone-production`)
+
+**추가된 내용**:
+| 항목 | 설명 |
+|------|------|
+| 학습 목표 | 4가지 핵심 학습 목표 |
+| Pinecone 아키텍처 다이어그램 | Project → Index → Namespace → Vector 구조 |
+| Serverless vs Pod 비교표 | 배포 방식별 특징 및 코드 예제 |
+| 클래스 구조도 | PineconeVectorStore 전체 메서드 시각화 |
+| 상세 docstring | 모든 메서드에 🎯 역할, 💡 설명, Args, Returns 추가 |
+| 네임스페이스 활용 가이드 | 멀티테넌트 구현 다이어그램 |
+| LangChain 연동 가이드 | 2가지 연결 방식 비교표 |
+
+### 📁 수정된 파일
+
+- `lib/curriculum/weeks/week5-rag-basics/day2-embeddings-vectordb.ts`
+  - `w5d2-embeddings-history`: videoUrl 추가
+  - `w5d2-vectordb-deep`: videoUrl 추가
+  - `w5d2-chroma-production`: 학습 목표, 아키텍처, 상세 코드 주석
+  - `w5d2-pinecone-production`: 학습 목표, 아키텍처, 상세 코드 주석
+
+### 💡 개선 효과
+
+**Before**: 소스 코드만 있고 설명이 부족
+**After**:
+- 학습자가 코드의 목적과 구조를 명확히 이해
+- ASCII 다이어그램으로 아키텍처 시각화
+- 비교표로 옵션 선택 가이드 제공
+- 한국어 주석으로 학습 접근성 향상
+
+---
+
 ## 2025-12-31: 리더보드 & 게이미피케이션 시스템 구현
 
 ### 🎯 목표

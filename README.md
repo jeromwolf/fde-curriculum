@@ -101,6 +101,16 @@ npm run dev
 npm run build
 ```
 
+## v2.5 주요 변경 사항 (2026-01-06)
+
+- **Week 5 Day 2 콘텐츠 대폭 보강**
+  - `w5d2-chroma-production`: 학습 목표, 아키텍처 다이어그램, HNSW 파라미터표, LangChain 연동
+  - `w5d2-pinecone-production`: 학습 목표, Serverless vs Pod 비교, 네임스페이스 가이드
+- **YouTube 영상 2개 추가**
+  - 임베딩의 역사와 수학적 원리
+  - 벡터 데이터베이스 심층 이해
+- **코드 품질 개선**: 모든 메서드에 상세 docstring (🎯 역할, 💡 설명)
+
 ## v2.3 주요 변경 사항 (2025-12-24)
 
 - **퀴즈 정답 체크 기능**: 즉시 피드백, 다시 풀기

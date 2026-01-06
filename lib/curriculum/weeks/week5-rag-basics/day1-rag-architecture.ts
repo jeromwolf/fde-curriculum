@@ -19,6 +19,7 @@ export const day1RagArchitecture: Day = {
     // Task 1: RAG의 역사와 발전
     // ============================================
     createVideoTask('w5d1-rag-intro', 'RAG의 탄생과 진화', 35, {
+      videoUrl: 'https://www.youtube.com/watch?v=RGttus5EyYo',
       introduction: `
 ## RAG의 탄생 배경
 
@@ -366,175 +367,250 @@ Fine-tuned 모델이 RAG로 검색된 법령/판례를
     // Task 3: 프로덕션 RAG 아키텍처 패턴
     // ============================================
     createReadingTask('w5d1-production-patterns', '프로덕션 RAG 아키텍처 설계', 45, {
+      videoUrl: 'https://youtu.be/sTs7hSHEzhc',
       introduction: `
 ## 프로덕션 RAG의 현실
 
-개발 환경의 RAG와 프로덕션 RAG는 다릅니다.
+> 💡 **핵심 메시지**: 개발 환경에서 잘 돌아가는 RAG가 프로덕션에서 실패하는 이유를 이해하고, 이를 해결하는 설계 패턴을 배웁니다.
+
+### 왜 프로덕션은 다를까?
+
+개발할 때는 문서 몇 개로 테스트하고, 혼자 사용하죠. 하지만 실제 서비스는 완전히 다른 세상입니다.
 
 \`\`\`
-개발 환경:
-- 문서 100개
-- 동시 사용자 1명
-- 지연시간 무관
-- 비용 무관
+📦 개발 환경              🏭 프로덕션 환경
+──────────────────────────────────────────
+문서 100개          →    문서 100만개+
+동시 사용자 1명     →    동시 사용자 1000명+
+지연시간 무관       →    응답 2초 이내 필수
+비용 무관           →    월 $10K 이내
 
-프로덕션:
-- 문서 100만개+
-- 동시 사용자 1000명+
-- 응답 2초 이내
-- 월 $10K 이내
+"개발에서 1초 걸리던 검색이 프로덕션에서 10초 걸릴 수 있습니다"
 \`\`\`
 
 ---
 
 ## 프로덕션 RAG 아키텍처
 
-### 전체 구조
+### 전체 구조 - 5개 레이어
 
-| Layer | Component | Description |
-|-------|-----------|-------------|
-| **1. Entry** | Load Balancer | 트래픽 분산 |
-| **2. Gateway** | API Gateway | Rate Limiting, Auth, Caching |
-| **3. Core** | RAG Orchestrator | Query Router → Retrieval → Rerank → Generate |
-| **4. Data** | Vector DB (Pinecone, Redis) | 벡터 검색 |
-| **4. Data** | LLM API | OpenAI / Anthropic / Self-hosted |
-| **5. Storage** | Document Store | S3 / PostgreSQL |
+프로덕션 RAG는 마치 **대형 물류센터**와 같습니다:
+- **Entry Layer**: 입구 경비원 (트래픽 분산)
+- **Gateway Layer**: 접수 데스크 (인증, 제한)
+- **Core Layer**: 작업자들 (실제 RAG 로직)
+- **Data Layer**: 창고 (벡터 DB, LLM)
+- **Storage Layer**: 원본 보관소 (S3, DB)
 
-**데이터 흐름:**
-1. **Client** → Load Balancer → API Gateway
-2. **API Gateway** → RAG Orchestrator (쿼리 분석)
-3. **Retrieval Service** → Vector DB (유사 문서 검색)
-4. **Rerank Service** → 검색 결과 재정렬
-5. **Generate Service** → LLM API (답변 생성)
-6. **Response** → Client
+| Layer | Component | 역할 | 비유 |
+|-------|-----------|------|------|
+| 1. Entry | Load Balancer | 트래픽 분산 | 여러 입구로 손님 분산 |
+| 2. Gateway | API Gateway | Rate Limiting, 인증, 캐싱 | 접수 데스크에서 신원 확인 |
+| 3. Core | RAG Orchestrator | 쿼리 분석 → 검색 → 재정렬 → 생성 | 작업 지시자 |
+| 4. Data | Vector DB + LLM | 검색 엔진 + AI 모델 | 창고 + 전문가 |
+| 5. Storage | Document Store | 원본 문서 저장 | 원본 보관소 |
+
+**실제 데이터 흐름 (사용자 질문 → 답변):**
+\`\`\`
+1. 사용자 → Load Balancer → API Gateway (인증 체크)
+2. API Gateway → RAG Orchestrator (쿼리 분석)
+3. Retrieval Service → Vector DB (유사 문서 검색)
+4. Rerank Service → 검색 결과 재정렬 (관련성 높은 것 위로)
+5. Generate Service → LLM API (답변 생성)
+6. Response → 사용자
+\`\`\`
 
 ---
 
 ## 핵심 설계 원칙
 
-### 1. 검색과 생성의 분리
+### 원칙 1: 검색과 생성의 분리 🔀
+
+> 💡 **왜 분리해야 할까요?**
+>
+> 레스토랑을 생각해보세요. 주방장이 직접 재료도 사오고, 요리도 하고, 서빙까지 한다면?
+> 손님이 많아지면 바로 터집니다.
+>
+> **역할 분리**가 핵심입니다: 재료 담당 / 요리 담당 / 서빙 담당
+
+아래 두 코드를 비교해보세요:
 
 \`\`\`python
-# Bad: 모놀리식
+# ❌ Bad: 모놀리식 (모든 것을 하나에서 처리)
+# 문제점: 검색만 바꾸고 싶어도 전체를 배포해야 함
 def answer(query):
     docs = vectorstore.search(query)  # 검색
     response = llm.generate(docs, query)  # 생성
     return response
 
-# Good: 마이크로서비스
+# ✅ Good: 마이크로서비스 (역할별 분리)
+# 장점: 검색 서비스만 독립적으로 수정/확장 가능
 class RetrievalService:
+    """검색만 담당 - 벡터 DB에서 관련 문서 찾기"""
     def search(self, query: str, filters: dict) -> List[Document]:
-        # 검색 로직만 담당
         pass
 
 class GenerationService:
+    """생성만 담당 - LLM으로 답변 만들기"""
     def generate(self, context: str, query: str) -> str:
-        # 생성 로직만 담당
         pass
 
 class RAGOrchestrator:
+    """지휘자 역할 - 전체 흐름 조율"""
     def answer(self, query: str):
-        docs = self.retrieval.search(query)
-        reranked = self.reranker.rerank(docs, query)
-        response = self.generation.generate(reranked, query)
+        docs = self.retrieval.search(query)        # 1. 검색
+        reranked = self.reranker.rerank(docs, query)  # 2. 재정렬
+        response = self.generation.generate(reranked, query)  # 3. 생성
         return response
 \`\`\`
 
-**이점:**
-- 독립적 스케일링 (검색 트래픽 ≠ 생성 트래픽)
-- 독립적 업데이트 (검색 로직만 변경 가능)
-- 장애 격리 (생성 서비스 죽어도 검색 가능)
+**분리의 이점 3가지:**
+| 이점 | 설명 | 예시 |
+|------|------|------|
+| 독립적 스케일링 | 검색 트래픽 ≠ 생성 트래픽 | 검색 서버만 10대로 늘리기 |
+| 독립적 업데이트 | 검색 로직만 변경 가능 | 벡터 DB 바꿔도 생성 서비스 무관 |
+| 장애 격리 | 하나 죽어도 나머지 동작 | 생성 서비스 장애 시 검색은 정상 |
 
 ---
 
-### 2. 캐싱 전략
+### 원칙 2: 캐싱 전략 💾
+
+> 💡 **왜 캐싱이 중요할까요?**
+>
+> 같은 질문이 100번 들어오면 100번 다 LLM API를 호출할 건가요?
+> OpenAI API 비용이 어마어마해집니다!
+>
+> **캐싱 = 한 번 계산한 결과를 저장해뒀다가 재사용**
+
+### 다층 캐싱 구조 (L1 → L2 → L3)
+
+캐시도 **계층 구조**로 만듭니다. 마치 CPU 캐시처럼요:
+- **L1 (인메모리)**: 가장 빠름, 용량 작음, 10초 유지
+- **L2 (Redis)**: 빠름, 중간 용량, 5분 유지
+- **L3 (DB)**: 느림, 대용량, 1일 유지
 
 \`\`\`python
-# 다층 캐싱 구조
+# 다층 캐싱 구조 예제
+# "자주 묻는 질문은 메모리에, 가끔 묻는 질문은 Redis에, 드문 질문은 DB에"
 
 class MultiLayerCache:
     def __init__(self):
-        self.l1_cache = {}  # 인메모리 (10초)
-        self.l2_cache = Redis()  # Redis (5분)
-        self.l3_cache = PostgreSQL()  # DB (1일)
+        self.l1_cache = {}        # 인메모리 (10초) - 가장 빠름!
+        self.l2_cache = Redis()   # Redis (5분) - 네트워크 1회
+        self.l3_cache = PostgreSQL()  # DB (1일) - 디스크 접근
 
     def get(self, query: str):
-        # L1 체크
+        # 1단계: L1 체크 (메모리에 있으면 즉시 반환)
         if query in self.l1_cache:
-            return self.l1_cache[query]
+            return self.l1_cache[query]  # ⚡ 0.001ms
 
-        # L2 체크
+        # 2단계: L2 체크 (Redis에서 찾기)
         cached = self.l2_cache.get(self.hash(query))
         if cached:
-            self.l1_cache[query] = cached
-            return cached
+            self.l1_cache[query] = cached  # L1에도 저장
+            return cached  # ⚡ ~1ms
 
-        # L3 체크 (정확한 쿼리만)
+        # 3단계: L3 체크 (DB에서 찾기)
         cached = self.l3_cache.get_exact(query)
         if cached:
             self.l2_cache.set(self.hash(query), cached)
             self.l1_cache[query] = cached
-            return cached
+            return cached  # ⚡ ~10ms
 
-        return None
-
-# 캐싱 대상
-# 1. 임베딩 결과 (쿼리 임베딩)
-# 2. 검색 결과 (동일 쿼리)
-# 3. 최종 답변 (동일 쿼리)
+        return None  # 캐시 미스 → 새로 계산 필요
 \`\`\`
 
-**비용 절감 효과:**
+**무엇을 캐싱할까요?**
+| 캐싱 대상 | 효과 | 예시 |
+|----------|------|------|
+| 쿼리 임베딩 | 임베딩 API 비용 절감 | "RAG란?" 임베딩 재사용 |
+| 검색 결과 | 벡터 검색 시간 절감 | 동일 쿼리 → 동일 문서 |
+| 최종 답변 | LLM API 비용 대폭 절감 | FAQ는 캐시에서 즉시 반환 |
+
+**💰 비용 절감 효과 (캐시 히트율 50% 가정):**
 \`\`\`
-캐시 히트율 50% 가정:
-- LLM API 호출 50% 감소
-- 검색 비용 50% 감소
-- 응답 시간 90% 감소 (캐시 히트 시)
+Before (캐싱 없음)     After (캐싱 적용)
+─────────────────────────────────────
+LLM API 비용 100%  →  50% (절반으로!)
+검색 비용 100%     →  50%
+평균 응답 시간 2초  →  0.2초 (캐시 히트 시)
 \`\`\`
 
 ---
 
-### 3. 비동기 처리
+### 원칙 3: 비동기 처리 ⚡
+
+> 💡 **왜 비동기가 필요할까요?**
+>
+> 라면 끓일 때 물 끓을 때까지 가만히 기다리나요?
+> 물 올려놓고 → 재료 손질하고 → 그릇 준비하잖아요.
+>
+> **비동기 = 기다리는 동안 다른 일 하기**
+
+### 병렬 처리로 응답 시간 단축
 
 \`\`\`python
 import asyncio
 
 async def answer_query(query: str):
-    # 병렬 실행 가능한 작업들
-    embedding_task = asyncio.create_task(
-        embed_query(query)
-    )
+    # 🚀 Step 1: 임베딩 시작 (비동기로)
+    embedding_task = asyncio.create_task(embed_query(query))
 
     # 임베딩 완료 대기
     query_embedding = await embedding_task
 
-    # 여러 소스에서 병렬 검색
+    # 🚀 Step 2: 여러 소스에서 "동시에" 검색 (이게 핵심!)
     search_tasks = [
-        asyncio.create_task(search_vectordb(query_embedding)),
-        asyncio.create_task(search_keyword_index(query)),
-        asyncio.create_task(search_knowledge_graph(query)),
+        asyncio.create_task(search_vectordb(query_embedding)),   # 벡터 DB
+        asyncio.create_task(search_keyword_index(query)),        # 키워드 검색
+        asyncio.create_task(search_knowledge_graph(query)),      # 지식 그래프
     ]
 
+    # 세 검색이 동시에 실행되고, 모두 끝날 때까지 대기
     results = await asyncio.gather(*search_tasks)
 
-    # 결과 병합 및 Rerank
+    # 🚀 Step 3: 결과 병합 및 재정렬
     merged = merge_results(results)
     reranked = await rerank(merged, query)
 
-    # 스트리밍 생성
+    # 🚀 Step 4: 스트리밍 생성 (한 글자씩 실시간 출력)
     async for chunk in generate_stream(reranked, query):
-        yield chunk
+        yield chunk  # ChatGPT처럼 글자가 쭉쭉 나옴
 
-# 응답 시간 비교
-# 동기: 임베딩(0.3s) + 검색(0.5s) + 생성(2s) = 2.8s
-# 비동기: 임베딩(0.3s) + 검색(0.5s) + 생성(2s) = 2.8s
-#         (but 검색이 병렬이면) = 0.3 + 0.2 + 2 = 2.5s
-# 스트리밍: 첫 토큰 0.8s 후 실시간 출력
+# ⏱️ 응답 시간 비교
+# ───────────────────────────────────────────────
+# 동기 (순차 실행):
+#   임베딩(0.3s) → 검색A(0.5s) → 검색B(0.4s) → 검색C(0.3s) → 생성(2s)
+#   = 3.5초 😱
+#
+# 비동기 (병렬 실행):
+#   임베딩(0.3s) → [검색A,B,C 동시](0.5s) → 생성(2s)
+#   = 2.8초 ✅ (0.7초 단축!)
+#
+# 스트리밍 추가:
+#   첫 토큰 0.8초 후 → 실시간 출력 (체감 훨씬 빠름!)
 \`\`\`
 
 ---
 
-### 4. 모니터링 & 관찰성
+### 원칙 4: 모니터링 & 관찰성 📊
+
+> 💡 **왜 모니터링이 필수일까요?**
+>
+> "측정하지 않으면 개선할 수 없다" - 피터 드러커
+>
+> RAG 시스템은 여러 단계가 있어서 어디서 병목이 생기는지,
+> 어디서 품질이 떨어지는지 모니터링 없이는 알 수 없습니다.
+
+### 무엇을 측정해야 할까요?
+
+**4가지 핵심 축:**
+
+| 축 | 측정 항목 | 왜 중요한가 |
+|----|----------|------------|
+| ⏱️ 지연시간 | P50, P95, P99 응답 시간 | 사용자 체감 속도 |
+| 🎯 품질 | 유사도 점수, 사용자 피드백 | 답변이 정확한가 |
+| 💰 비용 | 토큰 사용량, API 호출 수 | 예산 관리 |
+| 🖥️ 시스템 | 메모리, 에러율 | 안정성 |
 
 \`\`\`python
 from dataclasses import dataclass
@@ -543,110 +619,145 @@ import logging
 
 @dataclass
 class RAGMetrics:
+    """RAG 시스템의 모든 메트릭을 담는 클래스"""
     query_id: str
     timestamp: datetime
 
-    # 검색 메트릭
-    retrieval_latency_ms: float
-    num_docs_retrieved: int
-    top_similarity_score: float
+    # ⏱️ 지연시간 메트릭
+    retrieval_latency_ms: float    # 검색에 걸린 시간
+    num_docs_retrieved: int        # 검색된 문서 수
+    top_similarity_score: float    # 가장 높은 유사도
 
-    # 생성 메트릭
-    generation_latency_ms: float
-    input_tokens: int
-    output_tokens: int
+    # 🎯 생성 메트릭
+    generation_latency_ms: float   # LLM 생성에 걸린 시간
+    input_tokens: int              # 입력 토큰 수
+    output_tokens: int             # 출력 토큰 수
 
-    # 품질 메트릭
-    user_feedback: Optional[int]  # 1-5
-    was_helpful: Optional[bool]
+    # 👍 품질 메트릭 (사용자 피드백)
+    user_feedback: Optional[int]   # 1-5점
+    was_helpful: Optional[bool]    # 도움됐는가?
 
 class RAGObserver:
+    """RAG 시스템 모니터링 클래스"""
     def __init__(self):
         self.logger = logging.getLogger("rag")
-        self.metrics_client = PrometheusClient()
+        self.metrics_client = PrometheusClient()  # Grafana와 연동
 
     def log_query(self, metrics: RAGMetrics):
-        # 로깅
-        self.logger.info(f"Query {metrics.query_id}: "
-                        f"retrieval={metrics.retrieval_latency_ms}ms, "
-                        f"generation={metrics.generation_latency_ms}ms")
-
-        # 메트릭 수집
-        self.metrics_client.histogram(
-            "rag_retrieval_latency",
-            metrics.retrieval_latency_ms
-        )
-        self.metrics_client.histogram(
-            "rag_generation_latency",
-            metrics.generation_latency_ms
+        # 📝 로깅 (디버깅용)
+        self.logger.info(
+            f"Query {metrics.query_id}: "
+            f"검색={metrics.retrieval_latency_ms}ms, "
+            f"생성={metrics.generation_latency_ms}ms"
         )
 
-        # 알림 조건 체크
+        # 📈 메트릭 수집 (대시보드용)
+        self.metrics_client.histogram("rag_retrieval_latency", metrics.retrieval_latency_ms)
+        self.metrics_client.histogram("rag_generation_latency", metrics.generation_latency_ms)
+
+        # 🚨 알림 조건 체크
         if metrics.retrieval_latency_ms > 1000:
-            self.alert("Slow retrieval detected")
+            self.alert("🐢 검색이 1초 이상 걸림!")
 
         if metrics.top_similarity_score < 0.5:
-            self.alert("Low retrieval quality")
+            self.alert("⚠️ 검색 품질 낮음 - 관련 문서 못 찾았을 수 있음")
 \`\`\`
 
-**핵심 모니터링 지표:**
+**핵심 모니터링 지표 체크리스트:**
 \`\`\`
-1. 지연시간
-   - P50, P95, P99 응답 시간
-   - 검색 vs 생성 시간 분해
+📊 운영팀이 매일 봐야 할 대시보드
 
-2. 품질
-   - 평균 유사도 점수
-   - 사용자 피드백 점수
-   - 환각 감지율
+1. ⏱️ 지연시간 (응답 느려지면 사용자 이탈)
+   ├─ P50 응답 시간: 1초 이내 목표
+   ├─ P95 응답 시간: 3초 이내 목표
+   └─ 검색 vs 생성 시간 비율 (어디가 병목인지)
 
-3. 비용
-   - 토큰 사용량 추이
-   - 임베딩 API 호출 수
-   - 캐시 히트율
+2. 🎯 품질 (답변이 이상하면 신뢰 하락)
+   ├─ 평균 유사도 점수: 0.7 이상 유지
+   ├─ 사용자 피드백 점수: 4.0/5.0 이상
+   └─ "도움 안 됨" 비율: 10% 이하
 
-4. 시스템
-   - 벡터 DB 메모리 사용량
-   - 인덱스 크기 증가율
-   - 에러율
+3. 💰 비용 (예산 초과 방지)
+   ├─ 일별 토큰 사용량 추이
+   ├─ 임베딩 API 호출 수
+   └─ 캐시 히트율: 50% 이상 목표
+
+4. 🖥️ 시스템 (장애 예방)
+   ├─ 벡터 DB 메모리: 80% 이하
+   ├─ 에러율: 1% 이하
+   └─ 인덱스 크기 증가율
 \`\`\`
 
 ---
 
-## 규모별 아키텍처 권장
+## 규모별 아키텍처 권장 📐
 
-### 소규모 (문서 <10K, 사용자 <100)
+> 💡 **핵심 원칙: 작게 시작하고, 필요할 때 확장하세요!**
+>
+> 처음부터 대규모 아키텍처를 구축하면 비용만 낭비됩니다.
+> 아래 가이드를 참고해서 현재 규모에 맞는 스택을 선택하세요.
 
-\`\`\`
-스택:
-- Chroma (로컬 벡터 DB)
-- OpenAI API
-- 단일 서버
+### 🏠 소규모 (문서 <10K, 사용자 <100)
 
-비용: ~$50/월
-\`\`\`
-
-### 중규모 (문서 <100K, 사용자 <1K)
+**적합한 경우**: MVP, PoC, 사내 도구, 개인 프로젝트
 
 \`\`\`
-스택:
-- Pinecone / Weaviate (관리형 벡터 DB)
-- OpenAI API + 캐싱
-- Kubernetes 2-3 노드
+📦 권장 스택
+─────────────────────────────────────
+벡터 DB    : Chroma (로컬, 무료)
+LLM        : OpenAI API (gpt-4o-mini)
+인프라      : 단일 서버 (t3.medium)
+캐싱       : 인메모리 (dict)
 
-비용: ~$500/월
+💰 예상 비용: ~$50/월
+⏱️ 구축 시간: 1-2일
 \`\`\`
 
-### 대규모 (문서 >1M, 사용자 >10K)
+### 🏢 중규모 (문서 <100K, 사용자 <1K)
+
+**적합한 경우**: B2B SaaS, 기업 내부 서비스, 스타트업 프로덕션
 
 \`\`\`
-스택:
-- Milvus / Qdrant (셀프 호스팅)
-- 오픈소스 LLM (vLLM) + OpenAI 폴백
-- Kubernetes 클러스터 + Auto-scaling
+📦 권장 스택
+─────────────────────────────────────
+벡터 DB    : Pinecone / Weaviate (관리형)
+LLM        : OpenAI API + 응답 캐싱
+인프라      : Kubernetes 2-3 노드
+캐싱       : Redis (캐시 히트율 50%+ 목표)
+모니터링    : Grafana + Prometheus
 
-비용: $5,000+/월
+💰 예상 비용: ~$500/월
+⏱️ 구축 시간: 1-2주
 \`\`\`
+
+### 🏭 대규모 (문서 >1M, 사용자 >10K)
+
+**적합한 경우**: B2C 서비스, 대기업, 글로벌 서비스
+
+\`\`\`
+📦 권장 스택
+─────────────────────────────────────
+벡터 DB    : Milvus / Qdrant (셀프 호스팅)
+LLM        : vLLM (오픈소스) + OpenAI 폴백
+인프라      : Kubernetes 클러스터 + Auto-scaling
+캐싱       : Redis Cluster + CDN
+모니터링    : Full observability stack
+
+💰 예상 비용: $5,000+/월
+⏱️ 구축 시간: 1-3개월
+\`\`\`
+
+### 📊 규모별 비교 요약
+
+| 구분 | 소규모 | 중규모 | 대규모 |
+|------|--------|--------|--------|
+| 문서 수 | <10K | <100K | >1M |
+| 동시 사용자 | <100 | <1K | >10K |
+| 벡터 DB | Chroma | Pinecone | Milvus |
+| 월 비용 | ~$50 | ~$500 | $5,000+ |
+| 구축 난이도 | ⭐ | ⭐⭐ | ⭐⭐⭐ |
+
+**🎯 핵심 조언**: 대부분의 프로젝트는 **중규모**로 충분합니다!
       `,
       keyPoints: [
         '검색/생성 서비스 분리로 독립적 스케일링과 장애 격리',
@@ -661,6 +772,7 @@ class RAGObserver:
     // Task 4: RAG 파이프라인 직접 구현
     // ============================================
     createCodeTask('w5d1-rag-implementation', '프로덕션급 RAG 파이프라인 구현', 60, {
+      videoUrl: 'https://youtu.be/tAHJhLlfkpE',
       introduction: `
 ## 왜 배우는가?
 
@@ -783,9 +895,21 @@ class RAGPipeline:
 
 ---
 
-## 전체 코드 (상세)
+## 전체 코드 (상세) - 파일별 구현
 
-### 1. 설정 (config.py)
+> 💡 **이 섹션의 목표**
+>
+> 위의 핵심 코드를 **실제 프로젝트 구조**로 분리해서 구현합니다.
+> 각 파일이 **하나의 책임**만 갖도록 설계했습니다. (단일 책임 원칙)
+
+### 1. 설정 관리 (config.py)
+
+> 🎯 **이 파일의 역할**: 모든 설정을 한 곳에서 관리
+>
+> **왜 필요할까요?**
+> - API 키, 모델명 등을 코드 여기저기 하드코딩하면 나중에 바꾸기 어려움
+> - \`.env\` 파일로 환경별 설정 분리 (개발/스테이징/프로덕션)
+> - \`pydantic-settings\`로 타입 안전성 + 자동 검증
 
 \`\`\`python
 from pydantic_settings import BaseSettings
@@ -821,7 +945,18 @@ def get_settings():
 
 ---
 
-## 2. 임베딩 서비스 (embeddings.py)
+### 2. 임베딩 서비스 (embeddings.py)
+
+> 🎯 **이 파일의 역할**: 텍스트 → 벡터 변환
+>
+> **임베딩이란?**
+> - 텍스트를 숫자 배열(벡터)로 변환하는 것
+> - 예: "고양이" → [0.12, -0.34, 0.56, ...]
+> - 비슷한 의미 = 비슷한 벡터 (유사도 검색의 핵심!)
+>
+> **이 서비스의 핵심 기능:**
+> 1. **캐싱**: 같은 텍스트는 다시 API 호출 안 함 → 비용 절감
+> 2. **배치 처리**: 여러 문서를 한 번에 임베딩 → 속도 향상
 
 \`\`\`python
 from openai import OpenAI
@@ -890,7 +1025,19 @@ class EmbeddingService:
 
 ---
 
-## 3. 검색 서비스 (retrieval.py)
+### 3. 검색 서비스 (retrieval.py)
+
+> 🎯 **이 파일의 역할**: 질문과 관련된 문서 찾기
+>
+> **검색 서비스가 하는 일:**
+> 1. 질문을 벡터로 변환 (임베딩 서비스 사용)
+> 2. 벡터 DB에서 가장 비슷한 문서 찾기
+> 3. 유사도 점수와 함께 반환
+>
+> **핵심 개념:**
+> - \`top_k\`: 상위 몇 개 문서를 가져올지 (기본 5개)
+> - \`similarity_threshold\`: 최소 유사도 기준 (0.7 = 70% 이상만)
+> - \`hybrid_search\`: 벡터 검색 + 키워드 검색 조합 (더 정확함)
 
 \`\`\`python
 from typing import List, Dict, Any, Optional
@@ -1011,7 +1158,19 @@ class RetrievalService:
 
 ---
 
-## 4. 생성 서비스 (generation.py)
+### 4. 생성 서비스 (generation.py)
+
+> 🎯 **이 파일의 역할**: 검색된 문서를 바탕으로 답변 생성
+>
+> **생성 서비스가 하는 일:**
+> 1. 검색된 문서들을 컨텍스트로 포매팅
+> 2. 시스템 프롬프트 + 컨텍스트 + 질문을 LLM에 전달
+> 3. LLM의 답변 반환 (스트리밍 지원)
+>
+> **핵심 포인트:**
+> - \`system_prompt\`: LLM의 행동 규칙 정의 (환각 방지!)
+> - \`_format_context\`: 문서를 LLM이 이해하기 좋게 정리
+> - \`generate_stream\`: ChatGPT처럼 한 글자씩 실시간 출력
 
 \`\`\`python
 from openai import OpenAI
@@ -1101,7 +1260,20 @@ class GenerationService:
 
 ---
 
-## 5. RAG 오케스트레이터 (rag_pipeline.py)
+### 5. RAG 오케스트레이터 (rag_pipeline.py)
+
+> 🎯 **이 파일의 역할**: 모든 서비스를 조율하는 지휘자
+>
+> **오케스트레이터가 하는 일:**
+> 1. 검색 서비스 호출 → 관련 문서 가져오기
+> 2. 생성 서비스 호출 → 답변 만들기
+> 3. 메트릭 수집 → 성능 측정
+> 4. 결과 포매팅 → 깔끔한 응답 반환
+>
+> **왜 분리할까요?**
+> - 각 서비스를 독립적으로 테스트 가능
+> - 나중에 검색 서비스만 바꾸기 쉬움 (예: Chroma → Pinecone)
+> - 에러 처리를 한 곳에서 관리
 
 \`\`\`python
 from typing import List, Dict, Any, Optional, Generator
@@ -1248,60 +1420,177 @@ if __name__ == "__main__":
     print()
 \`\`\`
 
+---
+
+### 6. 사용 예시 (main.py) 해설
+
+> 🎯 **이 섹션의 목표**: 위에서 만든 모든 서비스를 조합해서 실제로 실행해보기
+>
+> **실행 흐름 한눈에 보기:**
+> \`\`\`
+> 1. RAGPipeline() 초기화
+>      └→ 내부에서 RetrievalService, GenerationService 생성
+>
+> 2. index_documents() 호출
+>      └→ 문서 → 임베딩 → Chroma DB 저장
+>
+> 3. query("RAG가 뭐야?") 호출
+>      └→ 검색 → 생성 → RAGResponse 반환
+>          ├─ answer: "RAG는 Retrieval-Augmented..."
+>          ├─ sources: [문서1, 문서2, ...]
+>          └─ metrics: {retrieval_time: 50ms, ...}
+>
+> 4. query_stream() 호출
+>      └→ ChatGPT처럼 한 글자씩 실시간 출력
+> \`\`\`
+>
+> **💡 팁**: 실제 프로덕션에서는 문서 인덱싱은 별도 스크립트로 분리하고,
+> 쿼리 부분만 API 서버(FastAPI 등)로 만듭니다.
+
+---
+
+## 📋 전체 흐름 요약
+
+> 💡 **이 RAG 시스템을 한 문장으로 설명하면?**
+>
+> "질문이 들어오면 → 관련 문서를 찾고 → 그 문서를 바탕으로 답변을 생성한다"
+
+\`\`\`
+┌─────────────────────────────────────────────────────────────────┐
+│                        RAG 파이프라인                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  [사용자 질문] "RAG가 뭐야?"                                      │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌──────────────────────────────────────────┐                  │
+│  │ 1. EmbeddingService.embed_query()        │                  │
+│  │    - 질문을 벡터로 변환                    │                  │
+│  │    - 캐시 확인 후 없으면 OpenAI API 호출    │                  │
+│  └──────────────────────────────────────────┘                  │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌──────────────────────────────────────────┐                  │
+│  │ 2. RetrievalService.search()             │                  │
+│  │    - Chroma DB에서 유사 문서 검색          │                  │
+│  │    - 유사도 임계값(0.7) 이상만 반환         │                  │
+│  └──────────────────────────────────────────┘                  │
+│       │                                                         │
+│       ▼                                                         │
+│  ┌──────────────────────────────────────────┐                  │
+│  │ 3. GenerationService.generate()          │                  │
+│  │    - 검색된 문서를 컨텍스트로 포매팅        │                  │
+│  │    - System Prompt + Context + 질문       │                  │
+│  │    - LLM이 답변 생성                       │                  │
+│  └──────────────────────────────────────────┘                  │
+│       │                                                         │
+│       ▼                                                         │
+│  [RAGResponse]                                                  │
+│    ├─ answer: "RAG는 Retrieval-Augmented Generation..."        │
+│    ├─ sources: [{content, metadata, score}, ...]               │
+│    └─ metrics: {retrieval_time_ms, generation_time_ms, ...}    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+\`\`\`
+
 ## ⚠️ Common Pitfalls (자주 하는 실수)
 
-### 1. [임베딩 불일치] 문서와 쿼리에 다른 모델 사용
+> 💡 **이 섹션의 목표**
+>
+> RAG를 처음 구현할 때 많이 하는 실수 3가지와 해결 방법을 알아봅니다.
+> "아, 이거 나도 했었는데!" 하는 실수들이에요 😅
+
+---
+
+### 1. 🔴 [임베딩 불일치] 문서와 쿼리에 다른 모델 사용
+
+> **비유**: 한국어 사전으로 번역한 글을 영어 사전으로 찾으려는 것과 같아요.
+> 당연히 안 찾아지죠!
+
 **증상**: 검색 결과가 이상하거나 관련 없는 문서만 반환
 \`\`\`python
 # ❌ 잘못된 예시 - 모델 불일치
-doc_embedding = embed_with_ada002(doc)      # text-embedding-ada-002
-query_embedding = embed_with_3_small(query)  # text-embedding-3-small 💥
+doc_embedding = embed_with_ada002(doc)      # text-embedding-ada-002 (구형)
+query_embedding = embed_with_3_small(query)  # text-embedding-3-small (신형) 💥
+
+# 이렇게 되면:
+# - "고양이" 문서 벡터: [0.1, 0.2, 0.3, ...]  (ada-002 기준)
+# - "고양이" 쿼리 벡터: [0.5, -0.1, 0.8, ...] (3-small 기준)
+# - 같은 단어인데 벡터가 완전 다름 → 유사도 = 거의 0 😱
 \`\`\`
 **왜 잘못되었나**: 다른 모델은 다른 벡터 공간 → 유사도 계산 무의미
 \`\`\`python
 # ✅ 올바른 예시 - 동일 모델 사용
-embedding_model = "text-embedding-3-small"
-doc_embedding = embed(doc, model=embedding_model)
-query_embedding = embed(query, model=embedding_model)
+embedding_model = "text-embedding-3-small"  # 하나만 정하고
+doc_embedding = embed(doc, model=embedding_model)    # 문서도 이걸로
+query_embedding = embed(query, model=embedding_model) # 쿼리도 이걸로
 \`\`\`
-**기억할 점**: 문서 인덱싱과 쿼리에 항상 동일한 임베딩 모델 사용
+**🎯 기억할 점**: 문서 인덱싱과 쿼리에 **항상 동일한** 임베딩 모델 사용!
 
-### 2. [컨텍스트 오버플로우] 검색 결과 너무 많이 넣기
+---
+
+### 2. 🔴 [컨텍스트 오버플로우] 검색 결과 너무 많이 넣기
+
+> **비유**: 시험 볼 때 교과서 전체를 커닝페이퍼로 가져가면?
+> 오히려 뭐가 어딨는지 못 찾아서 더 못 풀어요!
+
 **증상**: 토큰 제한 에러, 비용 폭발, 답변 품질 저하
 \`\`\`python
 # ❌ 잘못된 예시 - 모든 검색 결과 포함
-documents = retrieval.search(query, top_k=20)  # 20개 문서
-context = "\\n".join([d.content for d in documents])  # 💥 100K+ 토큰
+documents = retrieval.search(query, top_k=20)  # 20개 문서 다 가져와서
+context = "\\n".join([d.content for d in documents])  # 전부 붙임 💥
+
+# 결과:
+# - 컨텍스트: 100,000+ 토큰 (비용 폭발!)
+# - LLM: "토큰 제한 초과" 에러 또는
+# - LLM: 너무 많은 정보에 혼란 → 답변 품질 저하
 \`\`\`
 **왜 잘못되었나**: LLM 컨텍스트 윈도우 초과, 불필요한 비용
 \`\`\`python
 # ✅ 올바른 예시 - top_k 제한 + 토큰 카운팅
-MAX_CONTEXT_TOKENS = 4000
-documents = retrieval.search(query, top_k=5)
+MAX_CONTEXT_TOKENS = 4000  # 컨텍스트는 전체 윈도우의 50% 이하로!
+
+documents = retrieval.search(query, top_k=5)  # 상위 5개만
 context = ""
 for doc in documents:
     if count_tokens(context + doc.content) < MAX_CONTEXT_TOKENS:
         context += doc.content + "\\n---\\n"
+    else:
+        break  # 토큰 한도 도달하면 멈춤
 \`\`\`
-**기억할 점**: top_k는 3-7개, 컨텍스트는 전체 윈도우의 50% 이하
+**🎯 기억할 점**: top_k는 **3-7개**, 컨텍스트는 전체 윈도우의 **50% 이하**
 
-### 3. [캐시 무효화] 문서 업데이트 후 캐시 안 지움
+---
+
+### 3. 🔴 [캐시 무효화] 문서 업데이트 후 캐시 안 지움
+
+> **비유**: 새 책을 도서관에 넣었는데 카탈로그를 안 업데이트하면?
+> 검색해도 안 나오죠!
+
 **증상**: 새 문서를 추가했는데 검색 결과에 안 나옴
 \`\`\`python
 # ❌ 잘못된 예시 - 캐시 무효화 누락
 def add_document(doc):
-    embed_and_store(doc)  # 새 문서 저장
-    # 캐시는 그대로 → 이전 검색 결과가 반환됨
+    embed_and_store(doc)  # 새 문서 저장 ✅
+    # 캐시는 그대로 → 이전 검색 결과가 계속 반환됨 💥
+
+# 사용자: "새로 추가한 문서 관련 질문인데 왜 안 나와요?"
+# 개발자: "분명히 추가했는데... 왜지?" (😱 캐시 때문!)
 \`\`\`
 **왜 잘못되었나**: 캐시된 검색 결과가 새 문서를 반영하지 않음
 \`\`\`python
 # ✅ 올바른 예시 - 문서 변경 시 캐시 무효화
 def add_document(doc):
     embed_and_store(doc)
-    cache.clear()  # 또는 관련 캐시만 삭제
-    # 또는 TTL 기반 자동 만료
+    cache.clear()  # 방법 1: 전체 캐시 삭제 (간단)
+
+    # 방법 2: 관련 캐시만 삭제 (더 효율적)
+    # cache.delete_by_pattern("search:*")
+
+    # 방법 3: TTL 기반 자동 만료 (설정만 잘 하면 편함)
+    # cache.set(key, value, ttl=300)  # 5분 후 자동 만료
 \`\`\`
-**기억할 점**: 문서 추가/수정/삭제 시 반드시 관련 캐시 무효화
+**🎯 기억할 점**: 문서 추가/수정/삭제 시 **반드시** 관련 캐시 무효화!
       `,
       keyPoints: [
         '🏗️ 설정, 임베딩, 검색, 생성을 분리된 서비스로 구현',

@@ -327,6 +327,14 @@ export default function TaskPage() {
         )
 
       case 'reading':
+        // YouTube URL에서 video ID 추출 (reading용)
+        const getReadingYouTubeId = (url?: string) => {
+          if (!url) return null
+          const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/)
+          return match ? match[1] : null
+        }
+        const readingVideoId = getReadingYouTubeId(content?.videoUrl)
+
         return (
           <div className="space-y-6">
             {renderObjectives()}
@@ -336,6 +344,40 @@ export default function TaskPage() {
                 예상 소요 시간: {task.duration}분
               </p>
             </div>
+            {/* 참고 영상 (있는 경우) */}
+            {content?.videoUrl && readingVideoId && (
+              <div className="mb-6">
+                <h4 className="font-bold text-gray-700 mb-3">🎬 참고 영상</h4>
+                <a
+                  href={content.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block aspect-video bg-gray-900 rounded-xl overflow-hidden relative group max-w-2xl"
+                >
+                  <img
+                    src={`https://img.youtube.com/vi/${readingVideoId}/maxresdefault.jpg`}
+                    alt={task.title}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${readingVideoId}/hqdefault.jpg`
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition">
+                    <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition shadow-lg">
+                      <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-3 right-3 px-2 py-1 bg-red-600 text-white rounded text-xs font-medium flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    YouTube
+                  </div>
+                </a>
+              </div>
+            )}
             {/* 마크다운 콘텐츠 */}
             {content?.markdown ? (
               <div className="prose prose-sm max-w-none">
@@ -355,9 +397,29 @@ export default function TaskPage() {
         )
 
       case 'code':
+        const getCodeYouTubeId = (url?: string) => {
+          if (!url) return null
+          const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?]+)/)
+          return match ? match[1] : null
+        }
+        const codeVideoId = getCodeYouTubeId(content?.videoUrl)
         return (
           <div className="space-y-6">
             {renderObjectives()}
+            {/* YouTube 비디오 (있으면 표시) */}
+            {codeVideoId && (
+              <div className="aspect-video rounded-xl overflow-hidden shadow-lg">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  src={`https://www.youtube.com/embed/${codeVideoId}`}
+                  title="YouTube video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
             <div className="bg-green-50 p-4 rounded-xl border border-green-200">
               <h3 className="text-green-800 font-bold mb-2">💻 코드 실습</h3>
               <p className="text-green-700 text-sm">

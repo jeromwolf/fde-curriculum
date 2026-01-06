@@ -34,6 +34,7 @@ interface Week5TaskContent {
   codeExample?: string
   questions?: Week5QuizQuestion[]
   hints?: string[]
+  videoUrl?: string
 }
 
 // Task 생성 헬퍼 함수들
@@ -49,6 +50,7 @@ export function createVideoTask(
     title,
     duration,
     content: {
+      videoUrl: content.videoUrl,
       transcript: content.introduction,
       keyPoints: content.keyPoints,
       objectives: content.practiceGoal ? [content.practiceGoal] : [],
@@ -68,6 +70,7 @@ export function createReadingTask(
     title,
     duration,
     content: {
+      videoUrl: content.videoUrl,
       markdown: content.introduction,
       keyPoints: content.keyPoints,
       objectives: content.practiceGoal ? [content.practiceGoal] : [],
@@ -87,6 +90,7 @@ export function createCodeTask(
     title,
     duration,
     content: {
+      videoUrl: content.videoUrl,
       instructions: content.introduction,
       starterCode: content.codeExample,
       keyPoints: content.keyPoints,
