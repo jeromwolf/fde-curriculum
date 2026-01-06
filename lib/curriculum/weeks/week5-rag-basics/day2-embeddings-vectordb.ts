@@ -827,7 +827,6 @@ LIMIT 5;
     // Task 4: Chroma 프로덕션 패턴 (50분)
     // ========================================
     createCodeTask('w5d2-chroma-production', 'Chroma 프로덕션 패턴 실습', 50, {
-      videoUrl: 'https://youtu.be/8kriJ2Awoas',
       introduction: `
 ## 학습 목표
 
@@ -2484,27 +2483,83 @@ Day 2에서 학습한 임베딩과 벡터 데이터베이스 개념을 확인합
 
 ## 테스트 데이터셋
 
+### 대규모 벤치마크 데이터셋 (권장)
+
+**200개 문서, 50개 쿼리**의 한국어 RAG 벤치마크 데이터셋을 사용하세요.
+
+📥 **다운로드**: [korean-rag-benchmark.json](/datasets/korean-rag-benchmark.json)
+
 \`\`\`python
-# 한국어 RAG 테스트용 샘플 데이터
+import json
+import requests
+
+# 데이터셋 로드
+def load_benchmark_dataset():
+    """
+    한국어 RAG 벤치마크 데이터셋 로드
+    - 200개 문서 (AI/ML, 프로그래밍, DB, 클라우드, 보안)
+    - 50개 쿼리 (정답 문서 ID 포함)
+    """
+    # 로컬 파일 사용
+    with open('korean-rag-benchmark.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    return data['documents'], data['queries']
+
+# 사용 예시
+documents, queries = load_benchmark_dataset()
+print(f"문서 수: {len(documents)}")  # 200
+print(f"쿼리 수: {len(queries)}")    # 50
+
+# 정확도 계산
+def calculate_accuracy(retrieved_ids: list, relevant_ids: list, k: int = 5):
+    """Top-K 정확도 계산"""
+    hits = len(set(retrieved_ids[:k]) & set(relevant_ids))
+    return hits / min(k, len(relevant_ids))
+\`\`\`
+
+### 데이터셋 구조
+
+\`\`\`json
+{
+  "documents": [
+    {"id": "ai_001", "category": "AI/ML", "text": "인공지능(AI)은..."},
+    {"id": "prog_001", "category": "프로그래밍", "text": "Python은..."}
+  ],
+  "queries": [
+    {"id": "q_001", "text": "RAG 기술이란?", "relevant_docs": ["ai_005", "ai_023"], "category": "AI/ML"}
+  ]
+}
+\`\`\`
+
+### 카테고리별 분포
+
+| 카테고리 | 문서 수 | 쿼리 수 |
+|---------|--------|--------|
+| AI/ML | 40 | 15 |
+| 프로그래밍 | 40 | 10 |
+| 데이터베이스 | 40 | 10 |
+| 클라우드 | 40 | 8 |
+| 보안 | 40 | 7 |
+
+---
+
+### 소규모 샘플 (빠른 테스트용)
+
+\`\`\`python
+# 빠른 테스트용 미니 데이터셋
 SAMPLE_DOCUMENTS = [
     "인공지능(AI)은 기계가 인간의 지능을 모방하는 기술입니다.",
     "머신러닝은 데이터에서 패턴을 학습하는 AI의 하위 분야입니다.",
     "딥러닝은 인공 신경망을 사용한 머신러닝 기법입니다.",
     "자연어처리(NLP)는 컴퓨터가 인간 언어를 이해하는 분야입니다.",
     "RAG는 검색 증강 생성으로 LLM의 환각을 줄여줍니다.",
-    "벡터 데이터베이스는 고차원 벡터를 효율적으로 검색합니다.",
-    "임베딩은 텍스트를 수치 벡터로 변환하는 기술입니다.",
-    "Transformer는 어텐션 메커니즘 기반의 딥러닝 아키텍처입니다.",
-    "GPT는 생성형 사전학습 Transformer 모델입니다.",
-    "BERT는 양방향 인코더 기반 언어 모델입니다."
 ]
 
 SAMPLE_QUERIES = [
-    ("AI 기술이란?", 0),  # 정답 인덱스
-    ("머신러닝과 딥러닝의 관계는?", 1),
-    ("언어 모델의 종류는?", 8),
-    ("검색 기반 AI 기술은?", 4),
-    ("벡터 검색이란?", 5)
+    ("AI 기술이란?", [0]),
+    ("머신러닝과 딥러닝의 관계는?", [1, 2]),
+    ("검색 기반 AI 기술은?", [4]),
 ]
 \`\`\`
       `,
