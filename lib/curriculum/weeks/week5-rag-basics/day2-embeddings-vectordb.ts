@@ -2616,10 +2616,425 @@ def run_benchmark(retriever, documents, queries):
         '결과 분석 및 최종 권장 사항 보고서 작성',
       ],
       hints: [
-        `**프로젝트 구조**: embedding-benchmark/ 폴더에 config.py, embeddings.py, vectorstores.py, benchmark.py, report.py, main.py 구성`,
-        `**임베딩 모델 래퍼**: OpenAI와 로컬 모델(SentenceTransformer)을 통합 인터페이스로 래핑하여 embed(texts) 함수로 일관된 API 제공`,
-        `**벤치마크 측정 항목**: 임베딩 생성 시간, 검색 시간, Top-1/Top-5 정확도, 비용 추정`,
-        `**권장 조합**: 프로토타입은 text-embedding-3-small + Chroma, 프로덕션은 Pinecone 사용`,
+        `## 1. 프로젝트 구조
+
+\`\`\`
+embedding-benchmark/
+├── config.py          # 설정 (API 키, 모델 목록)
+├── embeddings.py      # 임베딩 모델 래퍼
+├── vectorstores.py    # 벡터 DB 래퍼
+├── benchmark.py       # 벤치마크 실행 로직
+├── report.py          # 결과 리포트 생성
+├── main.py            # 메인 실행 파일
+└── requirements.txt   # 의존성
+\`\`\`
+
+**config.py**
+\`\`\`python
+import os
+from dataclasses import dataclass
+
+@dataclass
+class Config:
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
+    PINECONE_API_KEY: str = os.getenv("PINECONE_API_KEY")
+
+    # 테스트할 임베딩 모델 목록
+    EMBEDDING_MODELS = [
+        {"name": "openai-small", "type": "openai", "model": "text-embedding-3-small", "dim": 1536, "cost_per_1k": 0.00002},
+        {"name": "openai-large", "type": "openai", "model": "text-embedding-3-large", "dim": 3072, "cost_per_1k": 0.00013},
+        {"name": "multilingual-e5", "type": "sentence-transformer", "model": "intfloat/multilingual-e5-large", "dim": 1024, "cost_per_1k": 0},
+        {"name": "ko-sroberta", "type": "sentence-transformer", "model": "jhgan/ko-sroberta-multitask", "dim": 768, "cost_per_1k": 0},
+    ]
+
+    # 벡터 DB 설정
+    CHROMA_PERSIST_DIR = "./chroma_db"
+    PINECONE_INDEX_NAME = "rag-benchmark"
+\`\`\``,
+
+        `## 2. 임베딩 모델 래퍼 (embeddings.py)
+
+\`\`\`python
+from abc import ABC, abstractmethod
+from typing import List
+import time
+import openai
+from sentence_transformers import SentenceTransformer
+
+class BaseEmbedding(ABC):
+    """임베딩 모델 추상 클래스"""
+
+    @abstractmethod
+    def embed(self, texts: List[str]) -> List[List[float]]:
+        pass
+
+    @abstractmethod
+    def get_dimension(self) -> int:
+        pass
+
+class OpenAIEmbedding(BaseEmbedding):
+    """OpenAI 임베딩 래퍼"""
+
+    def __init__(self, model: str = "text-embedding-3-small"):
+        self.model = model
+        self.client = openai.OpenAI()
+        self._dimensions = {"text-embedding-3-small": 1536, "text-embedding-3-large": 3072}
+
+    def embed(self, texts: List[str]) -> List[List[float]]:
+        response = self.client.embeddings.create(input=texts, model=self.model)
+        return [item.embedding for item in response.data]
+
+    def get_dimension(self) -> int:
+        return self._dimensions.get(self.model, 1536)
+
+class SentenceTransformerEmbedding(BaseEmbedding):
+    """SentenceTransformer 임베딩 래퍼 (로컬 모델)"""
+
+    def __init__(self, model: str = "intfloat/multilingual-e5-large"):
+        self.model = SentenceTransformer(model)
+        self._dim = self.model.get_sentence_embedding_dimension()
+
+    def embed(self, texts: List[str]) -> List[List[float]]:
+        embeddings = self.model.encode(texts, convert_to_numpy=True)
+        return embeddings.tolist()
+
+    def get_dimension(self) -> int:
+        return self._dim
+
+def create_embedding_model(config: dict) -> BaseEmbedding:
+    """팩토리 함수: 설정에 따라 적절한 임베딩 모델 생성"""
+    if config["type"] == "openai":
+        return OpenAIEmbedding(model=config["model"])
+    elif config["type"] == "sentence-transformer":
+        return SentenceTransformerEmbedding(model=config["model"])
+    else:
+        raise ValueError(f"Unknown embedding type: {config['type']}")
+\`\`\``,
+
+        `## 3. 벡터 DB 래퍼 (vectorstores.py)
+
+\`\`\`python
+from abc import ABC, abstractmethod
+from typing import List, Dict, Any
+import chromadb
+from pinecone import Pinecone, ServerlessSpec
+
+class BaseVectorStore(ABC):
+    """벡터 스토어 추상 클래스"""
+
+    @abstractmethod
+    def add_documents(self, ids: List[str], embeddings: List[List[float]], metadatas: List[Dict]):
+        pass
+
+    @abstractmethod
+    def search(self, query_embedding: List[float], k: int = 5) -> List[Dict]:
+        pass
+
+    @abstractmethod
+    def clear(self):
+        pass
+
+class ChromaVectorStore(BaseVectorStore):
+    """Chroma 벡터 스토어"""
+
+    def __init__(self, collection_name: str = "benchmark", persist_dir: str = "./chroma_db"):
+        self.client = chromadb.PersistentClient(path=persist_dir)
+        self.collection = self.client.get_or_create_collection(
+            name=collection_name,
+            metadata={"hnsw:space": "cosine"}
+        )
+
+    def add_documents(self, ids: List[str], embeddings: List[List[float]], metadatas: List[Dict]):
+        self.collection.add(ids=ids, embeddings=embeddings, metadatas=metadatas)
+
+    def search(self, query_embedding: List[float], k: int = 5) -> List[Dict]:
+        results = self.collection.query(query_embeddings=[query_embedding], n_results=k)
+        return [{"id": id, "score": 1 - dist} for id, dist in zip(results["ids"][0], results["distances"][0])]
+
+    def clear(self):
+        self.client.delete_collection(self.collection.name)
+        self.collection = self.client.create_collection(name=self.collection.name)
+
+class PineconeVectorStore(BaseVectorStore):
+    """Pinecone 벡터 스토어"""
+
+    def __init__(self, index_name: str, dimension: int, api_key: str):
+        self.pc = Pinecone(api_key=api_key)
+
+        # 인덱스가 없으면 생성
+        if index_name not in [idx.name for idx in self.pc.list_indexes()]:
+            self.pc.create_index(
+                name=index_name,
+                dimension=dimension,
+                metric="cosine",
+                spec=ServerlessSpec(cloud="aws", region="us-east-1")
+            )
+        self.index = self.pc.Index(index_name)
+
+    def add_documents(self, ids: List[str], embeddings: List[List[float]], metadatas: List[Dict]):
+        vectors = [{"id": id, "values": emb, "metadata": meta}
+                   for id, emb, meta in zip(ids, embeddings, metadatas)]
+        self.index.upsert(vectors=vectors, batch_size=100)
+
+    def search(self, query_embedding: List[float], k: int = 5) -> List[Dict]:
+        results = self.index.query(vector=query_embedding, top_k=k, include_metadata=True)
+        return [{"id": match.id, "score": match.score} for match in results.matches]
+
+    def clear(self):
+        self.index.delete(delete_all=True)
+\`\`\``,
+
+        `## 4. 벤치마크 실행 (benchmark.py)
+
+\`\`\`python
+import time
+from typing import List, Dict
+from dataclasses import dataclass
+
+@dataclass
+class BenchmarkResult:
+    model_name: str
+    vectorstore_name: str
+    embedding_time_ms: float      # 임베딩 생성 시간
+    indexing_time_ms: float       # 인덱싱 시간
+    search_time_ms: float         # 평균 검색 시간
+    precision_at_1: float         # Top-1 정확도
+    precision_at_5: float         # Top-5 정확도
+    hit_rate_at_5: float          # Hit Rate @ 5
+    estimated_cost: float         # 추정 비용 ($)
+
+def run_benchmark(
+    embedding_model,
+    vectorstore,
+    documents: List[Dict],
+    queries: List[Dict],
+    model_config: dict
+) -> BenchmarkResult:
+    """벤치마크 실행"""
+
+    # 1. 임베딩 생성 시간 측정
+    texts = [doc["text"] for doc in documents]
+    start = time.time()
+    embeddings = embedding_model.embed(texts)
+    embedding_time = (time.time() - start) * 1000
+
+    # 2. 인덱싱 시간 측정
+    start = time.time()
+    vectorstore.add_documents(
+        ids=[doc["id"] for doc in documents],
+        embeddings=embeddings,
+        metadatas=[{"title": doc.get("title", "")} for doc in documents]
+    )
+    indexing_time = (time.time() - start) * 1000
+
+    # 3. 검색 및 정확도 측정
+    search_times = []
+    hits_at_1 = 0
+    hits_at_5 = 0
+    hit_count = 0
+
+    for query in queries:
+        # 쿼리 임베딩
+        query_emb = embedding_model.embed([query["text"]])[0]
+
+        # 검색 시간 측정
+        start = time.time()
+        results = vectorstore.search(query_emb, k=5)
+        search_times.append((time.time() - start) * 1000)
+
+        # 정확도 계산
+        retrieved_ids = [r["id"] for r in results]
+        relevant_ids = set(query["relevant_docs"])
+
+        if retrieved_ids[0] in relevant_ids:
+            hits_at_1 += 1
+        if set(retrieved_ids[:5]) & relevant_ids:
+            hit_count += 1
+        hits_at_5 += len(set(retrieved_ids[:5]) & relevant_ids)
+
+    # 4. 비용 추정
+    total_tokens = sum(len(text.split()) * 1.3 for text in texts)  # 대략적 토큰 수
+    estimated_cost = (total_tokens / 1000) * model_config.get("cost_per_1k", 0)
+
+    return BenchmarkResult(
+        model_name=model_config["name"],
+        vectorstore_name=vectorstore.__class__.__name__,
+        embedding_time_ms=embedding_time,
+        indexing_time_ms=indexing_time,
+        search_time_ms=sum(search_times) / len(search_times),
+        precision_at_1=hits_at_1 / len(queries),
+        precision_at_5=hits_at_5 / (len(queries) * 5),
+        hit_rate_at_5=hit_count / len(queries),
+        estimated_cost=estimated_cost
+    )
+\`\`\``,
+
+        `## 5. 리포트 생성 (report.py)
+
+\`\`\`python
+from typing import List
+from benchmark import BenchmarkResult
+import json
+
+def generate_report(results: List[BenchmarkResult]) -> str:
+    """벤치마크 결과 리포트 생성"""
+
+    report = []
+    report.append("# RAG 벤치마크 결과 리포트\\n")
+
+    # 결과 테이블
+    report.append("## 성능 비교표\\n")
+    report.append("| 모델 | 벡터DB | 임베딩(ms) | 검색(ms) | P@1 | P@5 | Hit@5 | 비용($) |")
+    report.append("|------|--------|-----------|---------|-----|-----|-------|---------|")
+
+    for r in results:
+        report.append(
+            f"| {r.model_name} | {r.vectorstore_name} | "
+            f"{r.embedding_time_ms:.1f} | {r.search_time_ms:.2f} | "
+            f"{r.precision_at_1:.3f} | {r.precision_at_5:.3f} | "
+            f"{r.hit_rate_at_5:.3f} | {r.estimated_cost:.4f} |"
+        )
+
+    # 권장 사항
+    report.append("\\n## 권장 사항\\n")
+
+    # 정확도 기준 베스트
+    best_accuracy = max(results, key=lambda x: x.hit_rate_at_5)
+    report.append(f"- **정확도 베스트**: {best_accuracy.model_name} + {best_accuracy.vectorstore_name}")
+
+    # 속도 기준 베스트
+    best_speed = min(results, key=lambda x: x.search_time_ms)
+    report.append(f"- **속도 베스트**: {best_speed.model_name} + {best_speed.vectorstore_name}")
+
+    # 비용 기준 베스트 (무료 제외)
+    paid_results = [r for r in results if r.estimated_cost > 0]
+    if paid_results:
+        best_cost = min(paid_results, key=lambda x: x.estimated_cost)
+        report.append(f"- **비용효율 베스트**: {best_cost.model_name}")
+
+    # 무료 옵션
+    free_results = [r for r in results if r.estimated_cost == 0]
+    if free_results:
+        best_free = max(free_results, key=lambda x: x.hit_rate_at_5)
+        report.append(f"- **무료 베스트**: {best_free.model_name}")
+
+    return "\\n".join(report)
+
+def save_results_json(results: List[BenchmarkResult], filename: str):
+    """결과를 JSON으로 저장"""
+    data = [vars(r) for r in results]
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+\`\`\``,
+
+        `## 6. 메인 실행 (main.py)
+
+\`\`\`python
+import requests
+from config import Config
+from embeddings import create_embedding_model
+from vectorstores import ChromaVectorStore, PineconeVectorStore
+from benchmark import run_benchmark
+from report import generate_report, save_results_json
+
+def load_benchmark_data(size: str = "medium"):
+    """GitHub에서 벤치마크 데이터 로드"""
+    base_url = "https://raw.githubusercontent.com/jeromwolf/fde-curriculum/main/public/datasets"
+    file_map = {
+        "small": "korean-rag-benchmark.json",
+        "medium": "korean-rag-benchmark-medium.json",
+        "large": "korean-rag-benchmark-large.json"
+    }
+    response = requests.get(f"{base_url}/{file_map[size]}")
+    data = response.json()
+    return data["documents"], data["queries"]
+
+def main():
+    config = Config()
+
+    # 데이터 로드
+    print("📥 벤치마크 데이터 로드 중...")
+    documents, queries = load_benchmark_data("medium")  # 1,000문서로 테스트
+    print(f"  - 문서: {len(documents)}개, 쿼리: {len(queries)}개")
+
+    results = []
+
+    # 각 임베딩 모델 + 벡터 DB 조합 테스트
+    for model_config in config.EMBEDDING_MODELS:
+        print(f"\\n🔄 테스트 중: {model_config['name']}")
+
+        # 임베딩 모델 생성
+        embedding_model = create_embedding_model(model_config)
+
+        # Chroma 테스트
+        print("  - Chroma 테스트...")
+        chroma = ChromaVectorStore(collection_name=f"bench_{model_config['name']}")
+        result = run_benchmark(embedding_model, chroma, documents, queries, model_config)
+        results.append(result)
+        chroma.clear()
+
+        # Pinecone 테스트 (API 키가 있을 때만)
+        if config.PINECONE_API_KEY:
+            print("  - Pinecone 테스트...")
+            pinecone = PineconeVectorStore(
+                index_name=f"bench-{model_config['name'].replace('_', '-')}",
+                dimension=model_config["dim"],
+                api_key=config.PINECONE_API_KEY
+            )
+            result = run_benchmark(embedding_model, pinecone, documents, queries, model_config)
+            results.append(result)
+            pinecone.clear()
+
+    # 리포트 생성
+    print("\\n📊 리포트 생성 중...")
+    report = generate_report(results)
+    print(report)
+
+    # 결과 저장
+    save_results_json(results, "benchmark_results.json")
+    with open("benchmark_report.md", "w", encoding="utf-8") as f:
+        f.write(report)
+
+    print("\\n✅ 완료! benchmark_report.md 파일을 확인하세요.")
+
+if __name__ == "__main__":
+    main()
+\`\`\``,
+
+        `## 7. 실행 가이드
+
+### 환경 설정
+\`\`\`bash
+# 가상환경 생성
+python -m venv venv
+source venv/bin/activate  # Windows: venv\\Scripts\\activate
+
+# 패키지 설치
+pip install openai chromadb pinecone-client sentence-transformers requests
+
+# 환경변수 설정
+export OPENAI_API_KEY="sk-..."
+export PINECONE_API_KEY="..."  # 선택사항
+\`\`\`
+
+### 실행
+\`\`\`bash
+python main.py
+\`\`\`
+
+### 예상 결과
+
+| 모델 | 벡터DB | 임베딩(ms) | 검색(ms) | P@1 | Hit@5 | 비용($) |
+|------|--------|-----------|---------|-----|-------|---------|
+| openai-small | Chroma | 8,500 | 2.5 | 0.78 | 0.92 | 0.026 |
+| openai-large | Chroma | 12,000 | 3.1 | 0.82 | 0.95 | 0.169 |
+| multilingual-e5 | Chroma | 45,000 | 2.8 | 0.75 | 0.88 | 0.000 |
+| ko-sroberta | Chroma | 35,000 | 2.2 | 0.71 | 0.85 | 0.000 |
+
+### 권장 조합
+- **프로토타입**: text-embedding-3-small + Chroma (빠른 개발, 저비용)
+- **프로덕션**: text-embedding-3-large + Pinecone (최고 정확도, 확장성)
+- **비용 제약**: multilingual-e5 + Chroma (무료, 로컬 실행)`,
       ],
     }),
   ],
