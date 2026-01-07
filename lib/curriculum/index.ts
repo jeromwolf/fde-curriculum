@@ -5,7 +5,7 @@ export * from './types'
 export * from './packages'
 
 // Week 데이터 import
-import { pythonAdvancedWeek } from './weeks/python-advanced'
+import { pythonAdvancedWeek } from './weeks/week1-python-advanced'
 import { graphIntroWeek } from './weeks/graph-intro'
 import { cypherModelingWeek } from './weeks/cypher-modeling'
 import { week3GraphAlgorithms } from './weeks/week3-graph-algorithms'
