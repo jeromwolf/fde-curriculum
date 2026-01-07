@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules/
+
+# Next.js
+.next/
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Test
+coverage/
+
+# Misc
+.vercel/
+README.md
+CLAUDE.md

@@ -2489,11 +2489,12 @@ Day 2에서 학습한 임베딩과 벡터 데이터베이스 개념을 확인합
 
 | 규모 | 문서 | 쿼리 | 용도 | 다운로드 |
 |------|------|------|------|----------|
-| 소규모 | 200 | 50 | 빠른 테스트 | [korean-rag-benchmark.json](/datasets/korean-rag-benchmark.json) |
-| **중규모** | 1,000 | 200 | 일반 벤치마크 | [korean-rag-benchmark-medium.json](/datasets/korean-rag-benchmark-medium.json) |
-| **대규모** | 5,000 | 500 | 본격 성능 평가 | [korean-rag-benchmark-large.json](/datasets/korean-rag-benchmark-large.json) |
+| 소규모 | 200 | 50 | 빠른 테스트 | [korean-rag-benchmark.json](https://raw.githubusercontent.com/jeromwolf/fde-curriculum/main/public/datasets/korean-rag-benchmark.json) |
+| **중규모** | 1,000 | 200 | 일반 벤치마크 | [korean-rag-benchmark-medium.json](https://raw.githubusercontent.com/jeromwolf/fde-curriculum/main/public/datasets/korean-rag-benchmark-medium.json) |
+| **대규모** | 5,000 | 500 | 본격 성능 평가 | [korean-rag-benchmark-large.json](https://raw.githubusercontent.com/jeromwolf/fde-curriculum/main/public/datasets/korean-rag-benchmark-large.json) |
 
 > 데이터 출처: [KorQuAD v1.0](https://korquad.github.io/) (CC BY-ND 2.0 KR)
+> GitHub: [fde-curriculum/public/datasets](https://github.com/jeromwolf/fde-curriculum/tree/main/public/datasets)
 
 ---
 
@@ -2501,10 +2502,14 @@ Day 2에서 학습한 임베딩과 벡터 데이터베이스 개념을 확인합
 
 \`\`\`python
 import json
+import requests
+
+# GitHub raw URL 베이스
+BASE_URL = "https://raw.githubusercontent.com/jeromwolf/fde-curriculum/main/public/datasets"
 
 def load_benchmark(size: str = "medium"):
     """
-    한국어 RAG 벤치마크 데이터셋 로드
+    한국어 RAG 벤치마크 데이터셋 로드 (GitHub에서 직접 다운로드)
 
     Args:
         size: "small" (200문서), "medium" (1,000문서), "large" (5,000문서)
@@ -2515,15 +2520,21 @@ def load_benchmark(size: str = "medium"):
         "large": "korean-rag-benchmark-large.json"
     }
 
-    with open(file_map[size], 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    url = f"{BASE_URL}/{file_map[size]}"
+    response = requests.get(url)
+    response.raise_for_status()
+    data = response.json()
 
     return data['documents'], data['queries']
 
 # 사용 예시
 documents, queries = load_benchmark("large")  # 5,000문서, 500쿼리
-print(f"문서 수: {len(documents)}")
-print(f"쿼리 수: {len(queries)}")
+print(f"문서 수: {len(documents)}")  # 5000
+print(f"쿼리 수: {len(queries)}")    # 500
+
+# 로컬 파일 사용 시
+# with open('korean-rag-benchmark-large.json', 'r', encoding='utf-8') as f:
+#     data = json.load(f)
 \`\`\`
 
 ---
