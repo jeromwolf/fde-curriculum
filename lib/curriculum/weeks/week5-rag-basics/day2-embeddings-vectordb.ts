@@ -2483,84 +2483,119 @@ Day 2에서 학습한 임베딩과 벡터 데이터베이스 개념을 확인합
 
 ## 테스트 데이터셋
 
-### 대규모 벤치마크 데이터셋 (권장)
+> **KorQuAD + Wikipedia 기반** 리얼 한국어 RAG 벤치마크 데이터셋
 
-**200개 문서, 50개 쿼리**의 한국어 RAG 벤치마크 데이터셋을 사용하세요.
+### 데이터셋 다운로드
 
-📥 **다운로드**: [korean-rag-benchmark.json](/datasets/korean-rag-benchmark.json)
+| 규모 | 문서 | 쿼리 | 용도 | 다운로드 |
+|------|------|------|------|----------|
+| 소규모 | 200 | 50 | 빠른 테스트 | [korean-rag-benchmark.json](/datasets/korean-rag-benchmark.json) |
+| **중규모** | 1,000 | 200 | 일반 벤치마크 | [korean-rag-benchmark-medium.json](/datasets/korean-rag-benchmark-medium.json) |
+| **대규모** | 5,000 | 500 | 본격 성능 평가 | [korean-rag-benchmark-large.json](/datasets/korean-rag-benchmark-large.json) |
+
+> 데이터 출처: [KorQuAD v1.0](https://korquad.github.io/) (CC BY-ND 2.0 KR)
+
+---
+
+### 데이터셋 로드 코드
 
 \`\`\`python
 import json
-import requests
 
-# 데이터셋 로드
-def load_benchmark_dataset():
+def load_benchmark(size: str = "medium"):
     """
     한국어 RAG 벤치마크 데이터셋 로드
-    - 200개 문서 (AI/ML, 프로그래밍, DB, 클라우드, 보안)
-    - 50개 쿼리 (정답 문서 ID 포함)
+
+    Args:
+        size: "small" (200문서), "medium" (1,000문서), "large" (5,000문서)
     """
-    # 로컬 파일 사용
-    with open('korean-rag-benchmark.json', 'r', encoding='utf-8') as f:
+    file_map = {
+        "small": "korean-rag-benchmark.json",
+        "medium": "korean-rag-benchmark-medium.json",
+        "large": "korean-rag-benchmark-large.json"
+    }
+
+    with open(file_map[size], 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     return data['documents'], data['queries']
 
 # 사용 예시
-documents, queries = load_benchmark_dataset()
-print(f"문서 수: {len(documents)}")  # 200
-print(f"쿼리 수: {len(queries)}")    # 50
-
-# 정확도 계산
-def calculate_accuracy(retrieved_ids: list, relevant_ids: list, k: int = 5):
-    """Top-K 정확도 계산"""
-    hits = len(set(retrieved_ids[:k]) & set(relevant_ids))
-    return hits / min(k, len(relevant_ids))
+documents, queries = load_benchmark("large")  # 5,000문서, 500쿼리
+print(f"문서 수: {len(documents)}")
+print(f"쿼리 수: {len(queries)}")
 \`\`\`
+
+---
 
 ### 데이터셋 구조
 
 \`\`\`json
 {
   "documents": [
-    {"id": "ai_001", "category": "AI/ML", "text": "인공지능(AI)은..."},
-    {"id": "prog_001", "category": "프로그래밍", "text": "Python은..."}
+    {
+      "id": "doc_0001",
+      "title": "파우스트_서곡",
+      "text": "1839년 바그너는 괴테의 파우스트을 처음 읽고...",
+      "source": "KorQuAD/Wikipedia"
+    }
   ],
   "queries": [
-    {"id": "q_001", "text": "RAG 기술이란?", "relevant_docs": ["ai_005", "ai_023"], "category": "AI/ML"}
+    {
+      "id": "q_001",
+      "text": "바그너는 괴테의 파우스트를 읽고 무엇을 쓰고자 했는가?",
+      "answer": "교향곡",
+      "relevant_docs": ["doc_0001"]
+    }
   ]
 }
 \`\`\`
 
-### 카테고리별 분포
-
-| 카테고리 | 문서 수 | 쿼리 수 |
-|---------|--------|--------|
-| AI/ML | 40 | 15 |
-| 프로그래밍 | 40 | 10 |
-| 데이터베이스 | 40 | 10 |
-| 클라우드 | 40 | 8 |
-| 보안 | 40 | 7 |
-
 ---
 
-### 소규모 샘플 (빠른 테스트용)
+### 벤치마크 평가 코드
 
 \`\`\`python
-# 빠른 테스트용 미니 데이터셋
-SAMPLE_DOCUMENTS = [
-    "인공지능(AI)은 기계가 인간의 지능을 모방하는 기술입니다.",
-    "머신러닝은 데이터에서 패턴을 학습하는 AI의 하위 분야입니다.",
-    "딥러닝은 인공 신경망을 사용한 머신러닝 기법입니다.",
-    "자연어처리(NLP)는 컴퓨터가 인간 언어를 이해하는 분야입니다.",
-    "RAG는 검색 증강 생성으로 LLM의 환각을 줄여줍니다.",
-]
+def evaluate_retrieval(retrieved_ids: list, relevant_ids: list, k: int = 5):
+    """
+    Top-K 정확도 및 재현율 계산
 
-SAMPLE_QUERIES = [
-    ("AI 기술이란?", [0]),
-    ("머신러닝과 딥러닝의 관계는?", [1, 2]),
-    ("검색 기반 AI 기술은?", [4]),
-]
+    Args:
+        retrieved_ids: 검색된 문서 ID 리스트 (순위순)
+        relevant_ids: 정답 문서 ID 리스트
+        k: 상위 K개 평가
+
+    Returns:
+        dict: precision@k, recall@k, hit@k
+    """
+    top_k = set(retrieved_ids[:k])
+    relevant = set(relevant_ids)
+    hits = len(top_k & relevant)
+
+    return {
+        "precision@k": hits / k,
+        "recall@k": hits / len(relevant) if relevant else 0,
+        "hit@k": 1 if hits > 0 else 0
+    }
+
+# 전체 벤치마크 실행
+def run_benchmark(retriever, documents, queries):
+    results = []
+    for query in queries:
+        retrieved = retriever.search(query['text'], k=5)
+        retrieved_ids = [doc['id'] for doc in retrieved]
+
+        metrics = evaluate_retrieval(retrieved_ids, query['relevant_docs'], k=5)
+        results.append(metrics)
+
+    # 평균 계산
+    avg_precision = sum(r['precision@k'] for r in results) / len(results)
+    avg_recall = sum(r['recall@k'] for r in results) / len(results)
+    avg_hit = sum(r['hit@k'] for r in results) / len(results)
+
+    print(f"Precision@5: {avg_precision:.4f}")
+    print(f"Recall@5: {avg_recall:.4f}")
+    print(f"Hit Rate@5: {avg_hit:.4f}")
 \`\`\`
       `,
       keyPoints: [
