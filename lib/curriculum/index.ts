@@ -6,6 +6,7 @@ export * from './packages'
 
 // Week 데이터 import
 import { pythonAdvancedWeek } from './weeks/week1-python-advanced'
+import { pandasDataWeek } from './weeks/week2-pandas-data'
 import { graphIntroWeek } from './weeks/graph-intro'
 import { cypherModelingWeek } from './weeks/cypher-modeling'
 import { week3GraphAlgorithms } from './weeks/week3-graph-algorithms'
@@ -20,6 +21,7 @@ import type { Week, Task, Day, Module, Course, TaskContent, QuizQuestion } from 
 // 전체 커리큘럼 (Week 배열)
 export const curriculum: Week[] = [
   pythonAdvancedWeek,
+  pandasDataWeek,
   graphIntroWeek,
   cypherModelingWeek,
   week3GraphAlgorithms,
