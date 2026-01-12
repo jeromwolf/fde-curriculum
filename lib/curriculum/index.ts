@@ -49,6 +49,15 @@ import { aiAgentsWeek } from './weeks/ai-agents'
 import { multiAgentWeek } from './weeks/multi-agent'
 import { llmopsWeek } from './weeks/llmops'
 import { genaiProjectWeek } from './weeks/genai-project'
+// Phase 6: 산업 프로젝트 & 캡스톤 (Week 1-8)
+import { industryDomainWeek } from './weeks/industry-domain'
+import { capstoneDefinitionWeek } from './weeks/capstone-definition'
+import { capstoneDataPipelineWeek } from './weeks/capstone-data-pipeline'
+import { capstoneKnowledgeGraphWeek } from './weeks/capstone-knowledge-graph'
+import { capstoneAiRagWeek } from './weeks/capstone-ai-rag'
+import { capstoneAgentWeek } from './weeks/capstone-agent'
+import { capstoneDeploymentWeek } from './weeks/capstone-deployment'
+import { capstoneFinalWeek } from './weeks/capstone-final'
 
 import type { Week, Task, Day, Module, Course, TaskContent, QuizQuestion } from './types'
 
@@ -99,6 +108,15 @@ export const curriculum: Week[] = [
   multiAgentWeek,
   llmopsWeek,
   genaiProjectWeek,
+  // Phase 6: 산업 프로젝트 & 캡스톤 (Week 1-8)
+  industryDomainWeek,
+  capstoneDefinitionWeek,
+  capstoneDataPipelineWeek,
+  capstoneKnowledgeGraphWeek,
+  capstoneAiRagWeek,
+  capstoneAgentWeek,
+  capstoneDeploymentWeek,
+  capstoneFinalWeek,
 ]
 
 // Week slug로 찾기
