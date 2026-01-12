@@ -45,7 +45,7 @@ export default function CurriculumPage() {
           month: 1,
           title: 'Python & SQL 심화',
           weeks: [
-            { week: 1, title: 'Python 심화 + Docker 기초', topics: ['제너레이터 & 이터레이터', '데코레이터 패턴', 'Type Hints & mypy', 'Docker 기초 (Dockerfile, Compose)'], practice: '로깅 시스템 + Python 앱 컨테이너화' },
+            { week: 1, title: 'Python 심화 + Docker 기초', slug: 'python-advanced', topics: ['제너레이터 & 이터레이터', '데코레이터 패턴', 'Type Hints & mypy', 'Docker 기초 (Dockerfile, Compose)'], practice: '로깅 시스템 + Python 앱 컨테이너화' },
             { week: 2, title: 'pandas & 데이터 처리', topics: ['대용량 데이터 처리 (chunk)', '고급 pandas (MultiIndex, pivot)', '성능 최적화 (vectorize)', 'Polars 소개'], practice: '1GB+ CSV 처리 파이프라인' },
             { week: 3, title: 'SQL 심화', topics: ['윈도우 함수 (ROW_NUMBER, LAG/LEAD)', 'CTE & 재귀 쿼리', '실행 계획 분석 & 튜닝', '트랜잭션 & 락'], practice: '복잡한 분석 쿼리 20개' },
             { week: 4, title: '데이터 모델링', topics: ['정규화 (1NF~3NF)', 'Star Schema vs Snowflake', 'SCD (Type 1/2/3)', '실무 설계 패턴'], practice: '이커머스 데이터 웨어하우스 설계' }
@@ -111,10 +111,10 @@ export default function CurriculumPage() {
           month: 5,
           title: 'Neo4j & Cypher 마스터',
           weeks: [
-            { week: 1, title: '그래프 이론 & Neo4j 입문', topics: ['Ontology vs KG vs Graph DB', 'Property Graph 모델 (Node, Relationship)', 'Neo4j 설치 & Aura / Memgraph', 'Cypher 기초 (CRUD, 패턴 매칭)'], practice: 'Neo4j 환경 구축 + 소셜 네트워크 그래프' },
-            { week: 2, title: 'Cypher 심화 & 데이터 모델링', topics: ['Cypher 심화 (WITH, APOC, 서브쿼리)', '그래프 데이터 모델링 원칙', '관계형 → 그래프 마이그레이션', '성능 최적화 (인덱스, PROFILE)'], practice: '이커머스 Knowledge Graph 구축' },
-            { week: 3, title: '그래프 알고리즘', topics: ['중심성 (PageRank, Betweenness, Degree)', '커뮤니티 탐지 (Louvain, Label Propagation)', '유사도 & 링크 예측 (Jaccard, KNN)', '경로 탐색 (Dijkstra, All Paths)'], practice: '소셜 네트워크 분석 (인플루언서 찾기)' },
-            { week: 4, title: 'Entity Resolution & Python', topics: ['Entity Resolution (중복 탐지, 병합)', 'Neo4j Python Driver & py2neo', 'NetworkX & PyVis 시각화', '다중 소스 KG 구축'], practice: '기업 Knowledge Graph + 시각화' }
+            { week: 1, title: '그래프 이론 & Neo4j 입문', slug: 'graph-intro', topics: ['Ontology vs KG vs Graph DB', 'Property Graph 모델 (Node, Relationship)', 'Neo4j 설치 & Aura / Memgraph', 'Cypher 기초 (CRUD, 패턴 매칭)'], practice: 'Neo4j 환경 구축 + 소셜 네트워크 그래프' },
+            { week: 2, title: 'Cypher 심화 & 데이터 모델링', slug: 'cypher-modeling', topics: ['Cypher 심화 (WITH, APOC, 서브쿼리)', '그래프 데이터 모델링 원칙', '관계형 → 그래프 마이그레이션', '성능 최적화 (인덱스, PROFILE)'], practice: '이커머스 Knowledge Graph 구축' },
+            { week: 3, title: '그래프 알고리즘', slug: 'graph-algorithms', topics: ['중심성 (PageRank, Betweenness, Degree)', '커뮤니티 탐지 (Louvain, Label Propagation)', '유사도 & 링크 예측 (Jaccard, KNN)', '경로 탐색 (Dijkstra, All Paths)'], practice: '소셜 네트워크 분석 (인플루언서 찾기)' },
+            { week: 4, title: 'Entity Resolution & Python', slug: 'entity-resolution', topics: ['Entity Resolution (중복 탐지, 병합)', 'Neo4j Python Driver & py2neo', 'NetworkX & PyVis 시각화', '다중 소스 KG 구축'], practice: '기업 Knowledge Graph + 시각화' }
           ],
           output: 'Cypher 치트시트, 도메인 KG'
         },
@@ -122,10 +122,10 @@ export default function CurriculumPage() {
           month: 6,
           title: 'GraphRAG & 프로젝트',
           weeks: [
-            { week: 1, title: 'RAG 기초', topics: ['RAG 아키텍처 개요', '임베딩 & 벡터 DB (Chroma, Pinecone)', '청킹 전략 & 검색 최적화', 'LangChain RAG 파이프라인'], practice: '문서 Q&A RAG 시스템' },
-            { week: 2, title: 'GraphRAG', topics: ['GraphRAG 개념 (왜 KG + RAG인가)', 'LangChain + Neo4j 구현', '하이브리드 검색 (벡터 + 그래프)', '멀티홉 추론 & 컨텍스트 확장'], practice: 'GraphRAG Q&A 챗봇 시스템' },
-            { week: 3, title: '자연어 → Cypher', topics: ['LLM 기반 Cypher 생성', '스키마 프롬프팅 기법', '쿼리 검증 & 에러 처리', '자연어 인터페이스 설계'], practice: 'Text2Cypher 인터페이스 구축' },
-            { week: 4, title: '도메인 KG 프로젝트', topics: ['프로젝트 설계 (300+ 노드, 2+ 소스)', 'E2E 파이프라인 (수집→ER→KG→RAG)', 'Streamlit 앱 배포', '발표 & 문서화'], practice: '포트폴리오 #3: 도메인 KG + GraphRAG' }
+            { week: 1, title: 'RAG 기초', slug: 'rag-basics', topics: ['RAG 아키텍처 개요', '임베딩 & 벡터 DB (Chroma, Pinecone)', '청킹 전략 & 검색 최적화', 'LangChain RAG 파이프라인'], practice: '문서 Q&A RAG 시스템' },
+            { week: 2, title: 'GraphRAG', slug: 'graph-rag', topics: ['GraphRAG 개념 (왜 KG + RAG인가)', 'LangChain + Neo4j 구현', '하이브리드 검색 (벡터 + 그래프)', '멀티홉 추론 & 컨텍스트 확장'], practice: 'GraphRAG Q&A 챗봇 시스템' },
+            { week: 3, title: '자연어 → Cypher', slug: 'text2cypher', topics: ['LLM 기반 Cypher 생성', '스키마 프롬프팅 기법', '쿼리 검증 & 에러 처리', '자연어 인터페이스 설계'], practice: 'Text2Cypher 인터페이스 구축' },
+            { week: 4, title: '도메인 KG 프로젝트', slug: 'kg-project', topics: ['프로젝트 설계 (300+ 노드, 2+ 소스)', 'E2E 파이프라인 (수집→ER→KG→RAG)', 'Streamlit 앱 배포', '발표 & 문서화'], practice: '포트폴리오 #3: 도메인 KG + GraphRAG' }
           ],
           output: '포트폴리오 #3: 도메인 Knowledge Graph + GraphRAG 시스템'
         }
@@ -141,25 +141,25 @@ export default function CurriculumPage() {
       months: [
         {
           month: 7,
-          title: 'AWS 핵심 서비스',
+          title: 'AWS & IaC',
           weeks: [
-            { week: 1, title: '컴퓨팅 & 네트워킹', topics: ['EC2 (인스턴스 유형, AMI, EBS)', 'VPC (Subnet, Route Table, NAT)', 'Load Balancing (ALB, NLB)', 'Auto Scaling'], practice: '고가용성 웹 아키텍처 구축' },
-            { week: 2, title: '스토리지 & 데이터베이스', topics: ['S3 (버킷 정책, Lifecycle)', 'RDS & Aurora (MySQL, PostgreSQL)', 'DynamoDB (파티션 키, GSI)', 'ElastiCache (Redis)'], practice: '데이터 티어 아키텍처' },
-            { week: 3, title: '서버리스 & 이벤트', topics: ['Lambda (핸들러, 레이어, 콜드 스타트)', 'API Gateway (REST, WebSocket)', 'Step Functions (상태 머신)', 'EventBridge'], practice: '서버리스 데이터 처리' },
-            { week: 4, title: 'IaC & 모니터링', topics: ['Terraform (HCL, State, 모듈)', 'CloudWatch (메트릭, 로그, 알람)', 'IAM (정책, 역할, 최소 권한)', 'AWS SAA 자격증 준비'], practice: 'Terraform 인프라 코드화' }
+            { week: 1, title: 'AWS 기초', slug: 'aws-fundamentals', topics: ['IAM (사용자, 그룹, 역할, 정책)', 'EC2 & VPC (서브넷, 보안 그룹)', 'S3 (스토리지 클래스, 수명 주기)', 'Lambda & 서버리스'], practice: '3-Tier 아키텍처 구축' },
+            { week: 2, title: 'Terraform 인프라 자동화', slug: 'terraform', topics: ['IaC 개념 & HCL 문법', '모듈 & 워크스페이스', '원격 상태 관리 (S3+DynamoDB)', 'GitOps 워크플로우'], practice: 'AWS 인프라 IaC 구축' },
+            { week: 3, title: 'Docker & Kubernetes', slug: 'docker-k8s', topics: ['Dockerfile & Multi-stage 빌드', 'K8s 아키텍처 (Pod, Deployment)', 'EKS & Helm 차트', 'HPA & 리소스 관리'], practice: 'K8s 클러스터 구축' },
+            { week: 4, title: 'CI/CD 파이프라인', slug: 'cicd', topics: ['GitHub Actions (테스트, 빌드)', 'Docker 이미지 빌드 자동화', 'ArgoCD & GitOps', '배포 전략 (Blue-Green, Canary)'], practice: 'E2E CI/CD 파이프라인' }
           ],
           output: 'AWS SAA 자격증'
         },
         {
           month: 8,
-          title: '컨테이너 & Kubernetes',
+          title: 'ML 인프라 & AI 서빙',
           weeks: [
-            { week: 1, title: 'Docker 심화', topics: ['Dockerfile (Multi-stage, 캐싱)', 'Docker Compose (멀티 컨테이너)', '이미지 최적화 & 레지스트리', '보안 (루트리스, 시크릿)'], practice: '마이크로서비스 컨테이너화' },
-            { week: 2, title: 'Kubernetes 기초', topics: ['아키텍처 (Control Plane, Node)', '워크로드 (Pod, Deployment, ReplicaSet)', '서비스 (ClusterIP, NodePort, LB)', 'ConfigMap & Secret'], practice: '로컬 K8s 클러스터' },
-            { week: 3, title: 'Kubernetes 심화', topics: ['스토리지 (PV, PVC, StorageClass)', 'Ingress & NetworkPolicy', 'Helm & Kustomize', 'HPA & 리소스 관리'], practice: 'Helm 차트 작성' },
-            { week: 4, title: '프로덕션 K8s & AI 인프라', topics: ['EKS/GKE 관리형 K8s', 'GitOps (ArgoCD)', 'LLM 서빙 (vLLM, TGI)', '벡터 DB 운영 (Pinecone, Weaviate)'], practice: '포트폴리오 #4: 클라우드 AI 인프라' }
+            { week: 1, title: 'SageMaker ML 인프라', slug: 'sagemaker', topics: ['SageMaker Studio & Notebooks', 'Training Jobs & HPO', 'Endpoints & 배포', 'Pipelines & MLOps'], practice: 'E2E ML 파이프라인' },
+            { week: 2, title: 'Vector DB 운영', slug: 'vector-db', topics: ['Pinecone & pgvector', 'ANN 알고리즘 (HNSW, IVF)', 'RAG 시스템 통합', '스케일링 & 성능 최적화'], practice: 'Production RAG 시스템' },
+            { week: 3, title: 'LLM 서빙', slug: 'llm-serving', topics: ['vLLM & TGI', 'AWS Bedrock', 'API Gateway & LiteLLM', 'Langfuse 모니터링'], practice: 'Production LLM 서빙' },
+            { week: 4, title: '인프라 프로젝트', slug: 'infra-project', topics: ['Terraform IaC 구축', 'EKS 마이크로서비스 배포', 'CI/CD 파이프라인', 'RAG + LLM 서빙 통합'], practice: '포트폴리오 #4: AI 인프라 플랫폼' }
           ],
-          output: '포트폴리오 #4: 클라우드 인프라'
+          output: '포트폴리오 #4: 클라우드 AI 인프라'
         }
       ]
     },
@@ -571,8 +571,10 @@ export default function CurriculumPage() {
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                             {month.weeks.map((week) => {
+                              const weekSlug = (week as { slug?: string }).slug
                               const globalWeek = (month.month - 1) * 4 + week.week
-                              const hasDetail = globalWeek === 1 // Week 1만 상세 페이지 있음
+                              const hasDetail = weekSlug !== undefined || globalWeek === 1
+                              const linkHref = weekSlug ? `/learn/week/${weekSlug}` : '/learn/week/python-advanced'
                               return (
                               <div key={week.week} className={`bg-white rounded-lg p-4 border shadow-sm transition-all ${hasDetail ? 'border-[#03EF62] hover:shadow-md' : 'border-gray-200'}`}>
                                 <div className="flex items-center justify-between">
@@ -588,7 +590,7 @@ export default function CurriculumPage() {
                                 <div className="text-xs font-medium text-blue-600 pt-2 border-t border-gray-100">💻 {week.practice}</div>
                                 {hasDetail && (
                                   <Link
-                                    href="/learn/week/python-advanced"
+                                    href={linkHref}
                                     className="mt-3 block w-full text-center px-4 py-2 bg-[#03EF62] text-gray-900 rounded-lg text-sm font-medium hover:bg-[#00D956] transition"
                                   >
                                     학습 시작
