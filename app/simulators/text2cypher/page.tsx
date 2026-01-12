@@ -17,22 +17,90 @@ const difficultyLabels = {
   hard: '어려움'
 }
 
+// 간단한 자연어 → Cypher 변환 시뮬레이션
+function generateSimpleCypher(query: string): { cypher: string; explanation: string } {
+  const q = query.toLowerCase()
+
+  // 키워드 기반 간단한 변환
+  if (q.includes('모든') || q.includes('전체')) {
+    const label = q.includes('사용자') ? 'User' : q.includes('상품') ? 'Product' : q.includes('주문') ? 'Order' : 'Node'
+    return {
+      cypher: `MATCH (n:${label})\nRETURN n`,
+      explanation: `"${query}"에서 전체 조회 의도를 파악하여 MATCH-RETURN 패턴을 생성했습니다.`
+    }
+  }
+
+  if (q.includes('친구') || q.includes('팔로우') || q.includes('연결')) {
+    return {
+      cypher: `MATCH (a:User)-[:FRIENDS_WITH|FOLLOWS]->(b:User)\nRETURN a, b`,
+      explanation: `관계 탐색 패턴을 사용하여 연결된 노드들을 찾습니다.`
+    }
+  }
+
+  if (q.includes('몇') || q.includes('수') || q.includes('개수') || q.includes('카운트')) {
+    const label = q.includes('사용자') ? 'User' : q.includes('상품') ? 'Product' : 'Node'
+    return {
+      cypher: `MATCH (n:${label})\nRETURN count(n) AS total`,
+      explanation: `count() 집계 함수를 사용하여 노드 수를 계산합니다.`
+    }
+  }
+
+  if (q.includes('최단') || q.includes('경로')) {
+    return {
+      cypher: `MATCH path = shortestPath(\n  (start:Node)-[*]-(end:Node)\n)\nRETURN path`,
+      explanation: `shortestPath() 함수로 두 노드 사이의 최단 경로를 찾습니다.`
+    }
+  }
+
+  if (q.includes('인기') || q.includes('많은') || q.includes('상위')) {
+    return {
+      cypher: `MATCH (n:Node)<-[r]-()\nRETURN n, count(r) AS popularity\nORDER BY popularity DESC\nLIMIT 10`,
+      explanation: `연결 수를 집계하고 정렬하여 인기 항목을 찾습니다.`
+    }
+  }
+
+  // 기본 패턴
+  return {
+    cypher: `// 질문: ${query}\nMATCH (n)\nWHERE n.name CONTAINS '키워드'\nRETURN n\nLIMIT 10`,
+    explanation: `기본 검색 패턴을 생성했습니다. 실제 LLM은 더 정교한 분석을 수행합니다.`
+  }
+}
+
 export default function Text2CypherPage() {
   const [selectedQuery, setSelectedQuery] = useState<QueryExample>(sampleQueries[0])
   const [customQuery, setCustomQuery] = useState('')
+  const [customCypher, setCustomCypher] = useState<{ cypher: string; explanation: string } | null>(null)
   const [isConverting, setIsConverting] = useState(false)
   const [showCypher, setShowCypher] = useState(false)
   const [filterDifficulty, setFilterDifficulty] = useState<string | null>(null)
+  const [mode, setMode] = useState<'sample' | 'custom'>('sample')
 
-  // 변환 시뮬레이션
+  // 샘플 쿼리 변환 시뮬레이션
   const handleConvert = async (query: QueryExample) => {
+    setMode('sample')
     setSelectedQuery(query)
+    setShowCypher(false)
+    setCustomCypher(null)
+    setIsConverting(true)
+
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    setIsConverting(false)
+    setShowCypher(true)
+  }
+
+  // 사용자 입력 쿼리 변환
+  const handleCustomConvert = async () => {
+    if (!customQuery.trim()) return
+
+    setMode('custom')
     setShowCypher(false)
     setIsConverting(true)
 
-    // 타이핑 효과 시뮬레이션
     await new Promise(resolve => setTimeout(resolve, 1500))
 
+    const result = generateSimpleCypher(customQuery)
+    setCustomCypher(result)
     setIsConverting(false)
     setShowCypher(true)
   }
@@ -139,6 +207,31 @@ export default function Text2CypherPage() {
                 ))}
               </div>
             </div>
+
+            {/* 직접 입력 */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">✏️ 직접 입력</h2>
+              <textarea
+                value={customQuery}
+                onChange={(e) => setCustomQuery(e.target.value)}
+                placeholder="자연어로 질문을 입력하세요...&#10;예: 모든 사용자를 보여줘&#10;예: 김철수의 친구들은?&#10;예: 가장 인기 있는 상품 5개"
+                className="w-full h-24 p-3 border rounded-lg text-sm resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <button
+                onClick={handleCustomConvert}
+                disabled={isConverting || !customQuery.trim()}
+                className={`w-full mt-3 py-2 rounded-lg font-medium transition-colors ${
+                  isConverting || !customQuery.trim()
+                    ? 'bg-gray-300 cursor-not-allowed'
+                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                }`}
+              >
+                {isConverting && mode === 'custom' ? '⏳ 변환 중...' : '🔄 Cypher로 변환'}
+              </button>
+              <p className="mt-2 text-xs text-gray-500">
+                💡 키워드: 모든/전체, 친구/팔로우, 몇/수/개수, 최단/경로, 인기/많은
+              </p>
+            </div>
           </div>
 
           {/* 오른쪽: 변환 결과 */}
@@ -146,26 +239,40 @@ export default function Text2CypherPage() {
             {/* 자연어 입력 */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-lg font-semibold mb-4">💬 자연어 질문</h2>
+              <div className="flex gap-2 mb-3">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  mode === 'sample' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  샘플 쿼리
+                </span>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  mode === 'custom' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  직접 입력
+                </span>
+              </div>
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
                 <p className="text-lg font-medium text-gray-800">
-                  "{selectedQuery.naturalLanguage}"
+                  "{mode === 'sample' ? selectedQuery.naturalLanguage : customQuery || '질문을 입력하세요...'}"
                 </p>
               </div>
 
-              {/* 스키마 정보 */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="text-xs text-gray-500">사용 스키마:</span>
-                {selectedQuery.schema.nodes.map((node) => (
-                  <span key={node} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
-                    :{node}
-                  </span>
-                ))}
-                {selectedQuery.schema.relationships.map((rel) => (
-                  <span key={rel} className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">
-                    [{rel}]
-                  </span>
-                ))}
-              </div>
+              {/* 스키마 정보 (샘플 모드에서만 표시) */}
+              {mode === 'sample' && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="text-xs text-gray-500">사용 스키마:</span>
+                  {selectedQuery.schema.nodes.map((node) => (
+                    <span key={node} className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">
+                      :{node}
+                    </span>
+                  ))}
+                  {selectedQuery.schema.relationships.map((rel) => (
+                    <span key={rel} className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">
+                      [{rel}]
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 변환 프로세스 */}
@@ -191,13 +298,15 @@ export default function Text2CypherPage() {
                   <h2 className="text-lg font-semibold mb-4">⚡ 생성된 Cypher 쿼리</h2>
                   <div className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">
                     <pre className="text-sm font-mono whitespace-pre-wrap">
-                      {selectedQuery.cypherQuery}
+                      {mode === 'sample' ? selectedQuery.cypherQuery : customCypher?.cypher}
                     </pre>
                   </div>
 
                   {/* 복사 버튼 */}
                   <button
-                    onClick={() => navigator.clipboard.writeText(selectedQuery.cypherQuery)}
+                    onClick={() => navigator.clipboard.writeText(
+                      mode === 'sample' ? selectedQuery.cypherQuery : (customCypher?.cypher || '')
+                    )}
                     className="mt-3 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
                   >
                     📋 쿼리 복사
@@ -207,8 +316,17 @@ export default function Text2CypherPage() {
                 {/* 설명 */}
                 <div className="bg-white rounded-xl shadow-sm p-6">
                   <h2 className="text-lg font-semibold mb-4">📖 쿼리 설명</h2>
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
-                    <p className="text-gray-700">{selectedQuery.explanation}</p>
+                  <div className={`border-l-4 p-4 rounded ${
+                    mode === 'sample' ? 'bg-yellow-50 border-yellow-400' : 'bg-purple-50 border-purple-400'
+                  }`}>
+                    <p className="text-gray-700">
+                      {mode === 'sample' ? selectedQuery.explanation : customCypher?.explanation}
+                    </p>
+                    {mode === 'custom' && (
+                      <p className="mt-2 text-xs text-purple-600">
+                        ⚠️ 이것은 키워드 기반 시뮬레이션입니다. 실제 LLM(GPT-4, Claude 등)은 더 정교한 분석을 수행합니다.
+                      </p>
+                    )}
                   </div>
                 </div>
               </>

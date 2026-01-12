@@ -1,9 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { sampleScenarios, type ScenarioKey } from '@/components/simulators/graphrag-pipeline/sampleScenarios'
-import type { PipelineStep, Entity } from '@/components/simulators/graphrag-pipeline/types'
+import type { PipelineStep, Entity, GraphContext } from '@/components/simulators/graphrag-pipeline/types'
+
+// vis-network는 SSR에서 동작하지 않음
+const MiniGraph = dynamic(
+  () => import('@/components/simulators/graphrag-pipeline/MiniGraph'),
+  { ssr: false, loading: () => <div className="h-[300px] bg-gray-100 animate-pulse rounded-lg" /> }
+)
 
 // 파이프라인 단계 정의
 const initialSteps: PipelineStep[] = [
@@ -23,6 +30,42 @@ const entityColors: Record<string, string> = {
   location: 'bg-red-100 text-red-800',
 }
 
+// 간단한 엔티티 추출 시뮬레이션
+function extractEntitiesSimple(query: string): Entity[] {
+  const entities: Entity[] = []
+  const q = query.toLowerCase()
+
+  // 키워드 기반 엔티티 추출
+  if (q.includes('삼성') || q.includes('samsung')) {
+    entities.push({ id: 'samsung', name: '삼성전자', type: 'organization' })
+  }
+  if (q.includes('애플') || q.includes('apple')) {
+    entities.push({ id: 'apple', name: 'Apple', type: 'organization' })
+  }
+  if (q.includes('테슬라') || q.includes('tesla')) {
+    entities.push({ id: 'tesla', name: 'Tesla', type: 'organization' })
+  }
+  if (q.includes('현대') || q.includes('hyundai')) {
+    entities.push({ id: 'hyundai', name: '현대자동차', type: 'organization' })
+  }
+  if (q.includes('ceo') || q.includes('대표')) {
+    entities.push({ id: 'ceo', name: 'CEO', type: 'person' })
+  }
+  if (q.includes('경쟁') || q.includes('compete')) {
+    entities.push({ id: 'competition', name: '경쟁관계', type: 'concept' })
+  }
+  if (q.includes('협력') || q.includes('partner')) {
+    entities.push({ id: 'partnership', name: '협력관계', type: 'concept' })
+  }
+
+  // 기본 엔티티 (추출 안 되면)
+  if (entities.length === 0) {
+    entities.push({ id: 'query', name: query.slice(0, 20), type: 'concept' })
+  }
+
+  return entities
+}
+
 export default function GraphRAGPipelinePage() {
   const [selectedScenario, setSelectedScenario] = useState<ScenarioKey>('company')
   const [steps, setSteps] = useState<PipelineStep[]>(initialSteps)
@@ -30,6 +73,10 @@ export default function GraphRAGPipelinePage() {
   const [isRunning, setIsRunning] = useState(false)
   const [extractedEntities, setExtractedEntities] = useState<Entity[]>([])
   const [generatedAnswer, setGeneratedAnswer] = useState<string>('')
+  const [showGraph, setShowGraph] = useState(false)
+  const [mode, setMode] = useState<'sample' | 'custom'>('sample')
+  const [customQuery, setCustomQuery] = useState('')
+  const [customAnswer, setCustomAnswer] = useState('')
 
   const scenario = sampleScenarios[selectedScenario]
 
@@ -40,6 +87,7 @@ export default function GraphRAGPipelinePage() {
     setCurrentStep(0)
     setExtractedEntities([])
     setGeneratedAnswer('')
+    setShowGraph(false)
 
     // Step 1: 질문 입력
     await simulateStep(0, scenario.query, '질문 수신 완료')
@@ -54,6 +102,7 @@ export default function GraphRAGPipelinePage() {
       `엔티티: ${scenario.expectedEntities.map(e => e.name).join(', ')}`,
       `${scenario.graphData.entities.length}개 노드, ${scenario.graphData.relationships.length}개 관계 탐색`
     )
+    setShowGraph(true)
 
     // Step 4: 컨텍스트 구성
     await simulateStep(
@@ -90,6 +139,56 @@ export default function GraphRAGPipelinePage() {
     setCurrentStep(-1)
     setExtractedEntities([])
     setGeneratedAnswer('')
+    setShowGraph(false)
+    setMode('sample')
+  }
+
+  // 사용자 입력 파이프라인 실행
+  const runCustomPipeline = async () => {
+    if (!customQuery.trim()) return
+
+    setMode('custom')
+    setIsRunning(true)
+    setSteps(initialSteps)
+    setCurrentStep(0)
+    setExtractedEntities([])
+    setGeneratedAnswer('')
+    setCustomAnswer('')
+    setShowGraph(false)
+
+    // Step 1: 질문 입력
+    await simulateStep(0, customQuery, '질문 수신 완료')
+
+    // Step 2: 엔티티 추출 (시뮬레이션)
+    const extractedEnts = extractEntitiesSimple(customQuery)
+    await simulateStep(1, customQuery, `${extractedEnts.length}개 엔티티 추출`)
+    setExtractedEntities(extractedEnts)
+
+    // Step 3: 그래프 탐색 (현재 시나리오의 그래프 데이터 사용)
+    await simulateStep(
+      2,
+      `엔티티: ${extractedEnts.map(e => e.name).join(', ')}`,
+      `${scenario.graphData.entities.length}개 노드, ${scenario.graphData.relationships.length}개 관계 탐색`
+    )
+    setShowGraph(true)
+
+    // Step 4: 컨텍스트 구성
+    await simulateStep(
+      3,
+      `그래프 데이터 + ${scenario.graphData.textChunks.length}개 텍스트 청크`,
+      '컨텍스트 구성 완료'
+    )
+
+    // Step 5: 답변 생성 (시뮬레이션)
+    await simulateStep(4, '컨텍스트 → LLM', '답변 생성 완료')
+    const answer = `질문 "${customQuery}"에 대한 분석 결과입니다.\n\n` +
+      `추출된 엔티티: ${extractedEnts.map(e => e.name).join(', ')}\n\n` +
+      `Knowledge Graph에서 ${scenario.graphData.relationships.length}개의 관계를 탐색했습니다.\n\n` +
+      `(이것은 시뮬레이션입니다. 실제 GraphRAG 시스템은 LLM을 사용하여 더 정교한 답변을 생성합니다.)`
+    setCustomAnswer(answer)
+    setGeneratedAnswer(answer)
+
+    setIsRunning(false)
   }
 
   return (
@@ -189,6 +288,32 @@ export default function GraphRAGPipelinePage() {
                 {isRunning ? '⏳ 실행 중...' : '🚀 파이프라인 실행'}
               </button>
             </div>
+
+            {/* 직접 입력 */}
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">✏️ 직접 질문하기</h2>
+              <textarea
+                value={customQuery}
+                onChange={(e) => setCustomQuery(e.target.value)}
+                placeholder="Knowledge Graph에 질문하세요...&#10;예: 삼성전자와 경쟁하는 기업은?&#10;예: 테슬라의 파트너사는?&#10;예: 현대자동차 CEO 정보"
+                className="w-full h-24 p-3 border rounded-lg text-sm resize-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                disabled={isRunning}
+              />
+              <button
+                onClick={runCustomPipeline}
+                disabled={isRunning || !customQuery.trim()}
+                className={`w-full mt-3 py-2 rounded-lg font-medium transition-colors ${
+                  isRunning || !customQuery.trim()
+                    ? 'bg-gray-300 cursor-not-allowed'
+                    : 'bg-purple-600 hover:bg-purple-700 text-white'
+                }`}
+              >
+                {isRunning && mode === 'custom' ? '⏳ 분석 중...' : '🔍 GraphRAG 분석'}
+              </button>
+              <p className="mt-2 text-xs text-gray-500">
+                💡 키워드: 삼성, 애플, 테슬라, 현대, CEO, 경쟁, 협력
+              </p>
+            </div>
           </div>
 
           {/* 오른쪽: 질문 & 결과 */}
@@ -196,8 +321,22 @@ export default function GraphRAGPipelinePage() {
             {/* 질문 */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <h2 className="text-lg font-semibold mb-4">❓ 질문</h2>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-lg">{scenario.query}</p>
+              <div className="flex gap-2 mb-3">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  mode === 'sample' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  샘플 시나리오
+                </span>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  mode === 'custom' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  직접 입력
+                </span>
+              </div>
+              <div className={`p-4 rounded-lg ${mode === 'custom' ? 'bg-purple-50' : 'bg-gray-50'}`}>
+                <p className="text-lg">
+                  {mode === 'sample' ? scenario.query : (customQuery || '질문을 입력하세요...')}
+                </p>
               </div>
             </div>
 
@@ -216,6 +355,14 @@ export default function GraphRAGPipelinePage() {
                     </span>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* 그래프 시각화 */}
+            {showGraph && (
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-lg font-semibold mb-4">🕸️ Knowledge Graph 시각화</h2>
+                <MiniGraph context={scenario.graphData} height="300px" />
               </div>
             )}
 
@@ -271,11 +418,20 @@ export default function GraphRAGPipelinePage() {
             {generatedAnswer && (
               <div className="bg-white rounded-xl shadow-sm p-6">
                 <h2 className="text-lg font-semibold mb-4">💬 생성된 답변</h2>
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">
+                <div className={`p-4 rounded-lg ${
+                  mode === 'custom'
+                    ? 'bg-gradient-to-r from-purple-50 to-pink-50'
+                    : 'bg-gradient-to-r from-indigo-50 to-purple-50'
+                }`}>
                   <div className="prose prose-sm max-w-none whitespace-pre-wrap">
                     {generatedAnswer}
                   </div>
                 </div>
+                {mode === 'custom' && (
+                  <p className="mt-3 text-xs text-purple-600">
+                    ⚠️ 이것은 키워드 기반 시뮬레이션입니다. 실제 GraphRAG 시스템은 LLM + Knowledge Graph를 사용하여 더 정교한 답변을 생성합니다.
+                  </p>
+                )}
               </div>
             )}
 
