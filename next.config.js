@@ -16,6 +16,18 @@ const nextConfig = {
     NEXT_PUBLIC_GIT_COMMIT: gitCommitHash,
     NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
   },
+  webpack: (config, { isServer }) => {
+    // pdfjs-dist의 canvas 모듈 무시 (브라우저에서 불필요)
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        canvas: false,
+        fs: false,
+        path: false,
+      }
+    }
+    return config
+  },
 }
 
 module.exports = nextConfig
