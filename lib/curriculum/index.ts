@@ -4,25 +4,25 @@
 export * from './types'
 export * from './packages'
 
-// Week 데이터 import
-import { pythonAdvancedWeek } from './weeks/week1-python-advanced'
-import { pandasDataWeek } from './weeks/week2-pandas-data'
-import { sqlAdvancedWeek } from './weeks/week3-sql-advanced'
-import { dataModelingWeek } from './weeks/week4-data-modeling'
-import { sparkWeek } from './weeks/week5-spark'
-import { sparkAdvancedWeek } from './weeks/week6-spark-advanced'
-import { airflowWeek } from './weeks/week7-airflow'
-import { e2ePipelineWeek } from './weeks/week8-e2e-pipeline'
-// Phase 2: 데이터 분석 & 컨설팅 (Week 9-16)
-import { problemDefinitionWeek } from './weeks/week9-problem-definition'
-import { dataPreprocessingWeek } from './weeks/week10-data-preprocessing'
-import { featureEngineeringWeek } from './weeks/week11-feature-engineering'
-import { featureSelectionWeek } from './weeks/week12-feature-selection'
-import { supervisedLearningWeek } from './weeks/week13-supervised-learning'
-import { clusteringWeek } from './weeks/week14-clustering'
-import { anomalyDetectionWeek } from './weeks/week15-anomaly-detection'
-import { timeSeriesWeek } from './weeks/week16-time-series'
-// Phase 3: Knowledge Graph (Week 17-24)
+// Phase 1: 데이터 엔지니어링 기초 (Week 1-8)
+import { pythonAdvancedWeek } from './weeks/python-advanced'
+import { pandasDataWeek } from './weeks/pandas-data'
+import { sqlAdvancedWeek } from './weeks/sql-advanced'
+import { dataModelingWeek } from './weeks/data-modeling'
+import { sparkWeek } from './weeks/spark'
+import { sparkAdvancedWeek } from './weeks/spark-advanced'
+import { airflowWeek } from './weeks/airflow'
+import { e2ePipelineWeek } from './weeks/e2e-pipeline'
+// Phase 2: 데이터 분석 & ML (Week 1-8)
+import { problemDefinitionWeek } from './weeks/problem-definition'
+import { dataPreprocessingWeek } from './weeks/data-preprocessing'
+import { featureEngineeringWeek } from './weeks/feature-engineering'
+import { featureSelectionWeek } from './weeks/feature-selection'
+import { supervisedLearningWeek } from './weeks/supervised-learning'
+import { clusteringWeek } from './weeks/clustering'
+import { anomalyDetectionWeek } from './weeks/anomaly-detection'
+import { timeSeriesWeek } from './weeks/time-series'
+// Phase 3: Knowledge Graph (Week 1-8)
 import { graphIntroWeek } from './weeks/graph-intro'
 import { cypherModelingWeek } from './weeks/cypher-modeling'
 import { week3GraphAlgorithms } from './weeks/week3-graph-algorithms'
@@ -54,7 +54,7 @@ export const curriculum: Week[] = [
   clusteringWeek,
   anomalyDetectionWeek,
   timeSeriesWeek,
-  // Phase 3: Knowledge Graph (Week 17-24)
+  // Phase 3: Knowledge Graph (Week 1-8)
   graphIntroWeek,
   cypherModelingWeek,
   week3GraphAlgorithms,
