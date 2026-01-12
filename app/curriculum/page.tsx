@@ -46,9 +46,9 @@ export default function CurriculumPage() {
           title: 'Python & SQL 심화',
           weeks: [
             { week: 1, title: 'Python 심화 + Docker 기초', slug: 'python-advanced', topics: ['제너레이터 & 이터레이터', '데코레이터 패턴', 'Type Hints & mypy', 'Docker 기초 (Dockerfile, Compose)'], practice: '로깅 시스템 + Python 앱 컨테이너화' },
-            { week: 2, title: 'pandas & 데이터 처리', topics: ['대용량 데이터 처리 (chunk)', '고급 pandas (MultiIndex, pivot)', '성능 최적화 (vectorize)', 'Polars 소개'], practice: '1GB+ CSV 처리 파이프라인' },
-            { week: 3, title: 'SQL 심화', topics: ['윈도우 함수 (ROW_NUMBER, LAG/LEAD)', 'CTE & 재귀 쿼리', '실행 계획 분석 & 튜닝', '트랜잭션 & 락'], practice: '복잡한 분석 쿼리 20개' },
-            { week: 4, title: '데이터 모델링', topics: ['정규화 (1NF~3NF)', 'Star Schema vs Snowflake', 'SCD (Type 1/2/3)', '실무 설계 패턴'], practice: '이커머스 데이터 웨어하우스 설계' }
+            { week: 2, title: 'pandas & 데이터 처리', slug: 'pandas-data', topics: ['대용량 데이터 처리 (chunk)', '고급 pandas (MultiIndex, pivot)', '성능 최적화 (vectorize)', 'Polars 소개'], practice: '1GB+ CSV 처리 파이프라인' },
+            { week: 3, title: 'SQL 심화', slug: 'sql-advanced', topics: ['윈도우 함수 (ROW_NUMBER, LAG/LEAD)', 'CTE & 재귀 쿼리', '실행 계획 분석 & 튜닝', '트랜잭션 & 락'], practice: '복잡한 분석 쿼리 20개' },
+            { week: 4, title: '데이터 모델링', slug: 'data-modeling', topics: ['정규화 (1NF~3NF)', 'Star Schema vs Snowflake', 'SCD (Type 1/2/3)', '실무 설계 패턴'], practice: '이커머스 데이터 웨어하우스 설계' }
           ],
           output: 'SQL 쿼리 포트폴리오, ERD 설계'
         },
@@ -56,10 +56,10 @@ export default function CurriculumPage() {
           month: 2,
           title: 'Spark & 파이프라인',
           weeks: [
-            { week: 1, title: 'Apache Spark', topics: ['Spark 아키텍처 (Driver, Executor)', 'DataFrame API 마스터', 'Catalyst & Tungsten 최적화', 'PySpark UDF'], practice: '대용량 로그 분석 파이프라인' },
-            { week: 2, title: 'Spark 심화 & Delta Lake', topics: ['Structured Streaming', 'Delta Lake (ACID, Time Travel)', '성능 튜닝 (파티션, 캐싱)', 'Spark UI 모니터링'], practice: '실시간 처리 + Delta Lake 저장' },
-            { week: 3, title: 'Airflow & dbt', topics: ['Apache Airflow (DAG, Operator)', 'dbt 기초 (models, tests, docs)', 'Airflow + dbt 통합', '모니터링 & 알림'], practice: 'ETL + dbt transformation 레이어' },
-            { week: 4, title: 'E2E 파이프라인 프로젝트', topics: ['아키텍처 설계', '데이터 품질 (Great Expectations)', '모니터링 & 로깅', '문서화'], practice: '포트폴리오 #1: E2E 데이터 파이프라인' }
+            { week: 1, title: 'Apache Spark', slug: 'spark', topics: ['Spark 아키텍처 (Driver, Executor)', 'DataFrame API 마스터', 'Catalyst & Tungsten 최적화', 'PySpark UDF'], practice: '대용량 로그 분석 파이프라인' },
+            { week: 2, title: 'Spark 심화 & Delta Lake', slug: 'spark-advanced', topics: ['Structured Streaming', 'Delta Lake (ACID, Time Travel)', '성능 튜닝 (파티션, 캐싱)', 'Spark UI 모니터링'], practice: '실시간 처리 + Delta Lake 저장' },
+            { week: 3, title: 'Airflow & dbt', slug: 'airflow', topics: ['Apache Airflow (DAG, Operator)', 'dbt 기초 (models, tests, docs)', 'Airflow + dbt 통합', '모니터링 & 알림'], practice: 'ETL + dbt transformation 레이어' },
+            { week: 4, title: 'E2E 파이프라인 프로젝트', slug: 'e2e-pipeline', topics: ['아키텍처 설계', '데이터 품질 (Great Expectations)', '모니터링 & 로깅', '문서화'], practice: '포트폴리오 #1: E2E 데이터 파이프라인' }
           ],
           output: '포트폴리오 #1: E2E 데이터 파이프라인'
         }
@@ -78,10 +78,10 @@ export default function CurriculumPage() {
           month: 3,
           title: '문제 정의 & EDA',
           weeks: [
-            { week: 1, title: '비즈니스 문제 정의 & EDA 기초', topics: ['문제 vs 증상 구분', '5 Whys & MECE 분석', '통계 기초 (분포, 상관관계)', '시각화 (matplotlib, seaborn)'], practice: '문제 정의서 + EDA 리포트' },
-            { week: 2, title: '데이터 이해 & 전처리', topics: ['데이터 소스 매핑', '데이터 품질 6차원 평가', '결측치/이상치 처리', '인코딩 & 변환'], practice: '데이터 품질 평가 + 정제 파이프라인' },
-            { week: 3, title: 'Feature Engineering', topics: ['수치형 피처 (binning, polynomial)', '범주형 피처 (희귀 카테고리 처리)', '시간 피처 (요일, 계절, lag)', '텍스트 피처 (TF-IDF, 길이)'], practice: 'Kaggle 피처 엔지니어링' },
-            { week: 4, title: 'Feature Selection & 차원 축소', topics: ['Filter 방법 (상관관계, 분산)', 'Wrapper 방법 (RFE, Forward/Backward)', 'Embedded 방법 (Lasso, Tree importance)', '차원 축소 (PCA, t-SNE, UMAP)'], practice: '고차원 데이터 시각화' }
+            { week: 1, title: '비즈니스 문제 정의 & EDA 기초', slug: 'problem-definition', topics: ['문제 vs 증상 구분', '5 Whys & MECE 분석', '통계 기초 (분포, 상관관계)', '시각화 (matplotlib, seaborn)'], practice: '문제 정의서 + EDA 리포트' },
+            { week: 2, title: '데이터 이해 & 전처리', slug: 'data-preprocessing', topics: ['데이터 소스 매핑', '데이터 품질 6차원 평가', '결측치/이상치 처리', '인코딩 & 변환'], practice: '데이터 품질 평가 + 정제 파이프라인' },
+            { week: 3, title: 'Feature Engineering', slug: 'feature-engineering', topics: ['수치형 피처 (binning, polynomial)', '범주형 피처 (희귀 카테고리 처리)', '시간 피처 (요일, 계절, lag)', '텍스트 피처 (TF-IDF, 길이)'], practice: 'Kaggle 피처 엔지니어링' },
+            { week: 4, title: 'Feature Selection & 차원 축소', slug: 'feature-selection', topics: ['Filter 방법 (상관관계, 분산)', 'Wrapper 방법 (RFE, Forward/Backward)', 'Embedded 방법 (Lasso, Tree importance)', '차원 축소 (PCA, t-SNE, UMAP)'], practice: '고차원 데이터 시각화' }
           ],
           output: 'Feature Engineering 노트북'
         },
@@ -89,10 +89,10 @@ export default function CurriculumPage() {
           month: 4,
           title: 'ML 모델링 & 커뮤니케이션',
           weeks: [
-            { week: 1, title: '가설 기반 분석 & 분류/회귀', topics: ['가설 기반 분석 접근', '상관관계 vs 인과관계', '앙상블 (XGBoost, LightGBM)', '평가 지표 (F1, AUC, RMSE)'], practice: '가설 검증 + 이탈 예측 모델' },
-            { week: 2, title: '클러스터링 & 세그멘테이션', topics: ['K-means (Elbow, Silhouette)', '계층적 클러스터링 (Dendrogram)', 'RFM 분석', 'Pyramid Principle 보고서'], practice: '세그멘테이션 + 전략 제안' },
-            { week: 3, title: '이상 탐지 (Anomaly Detection)', topics: ['통계적 방법 (Z-score, IQR)', 'Isolation Forest, Autoencoder', '임계값 설정', '비즈니스 언어 번역'], practice: '금융 사기 탐지 시스템' },
-            { week: 4, title: '시계열 분석 & 발표', topics: ['Prophet, ML 접근', '수요 예측 모델', '경영진 발표 기법', '데이터 스토리텔링'], practice: '포트폴리오 #2: 수요 예측 + 발표' }
+            { week: 1, title: '가설 기반 분석 & 분류/회귀', slug: 'supervised-learning', topics: ['가설 기반 분석 접근', '상관관계 vs 인과관계', '앙상블 (XGBoost, LightGBM)', '평가 지표 (F1, AUC, RMSE)'], practice: '가설 검증 + 이탈 예측 모델' },
+            { week: 2, title: '클러스터링 & 세그멘테이션', slug: 'clustering', topics: ['K-means (Elbow, Silhouette)', '계층적 클러스터링 (Dendrogram)', 'RFM 분석', 'Pyramid Principle 보고서'], practice: '세그멘테이션 + 전략 제안' },
+            { week: 3, title: '이상 탐지 (Anomaly Detection)', slug: 'anomaly-detection', topics: ['통계적 방법 (Z-score, IQR)', 'Isolation Forest, Autoencoder', '임계값 설정', '비즈니스 언어 번역'], practice: '금융 사기 탐지 시스템' },
+            { week: 4, title: '시계열 분석 & 발표', slug: 'time-series', topics: ['Prophet, ML 접근', '수요 예측 모델', '경영진 발표 기법', '데이터 스토리텔링'], practice: '포트폴리오 #2: 수요 예측 + 발표' }
           ],
           output: '포트폴리오 #2: 분석 프로젝트 + 경영진 보고서'
         }
