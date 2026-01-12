@@ -38,6 +38,7 @@
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.4",
     "@types/react": "^18",
+    "@types/three": "^0.182.0",
     "autoprefixer": "^10",
     "postcss": "^8",
     "tailwindcss": "^3",
