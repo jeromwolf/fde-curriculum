@@ -606,7 +606,7 @@ export default function CurriculumPage() {
                       ))}
                       <div className="mt-6 text-center">
                         <Link
-                          href={`/learn/phase/${phase.phase}`}
+                          href={`/phase/${phase.phase}`}
                           className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg ${phase.color} text-white font-medium hover:opacity-90 transition-opacity`}
                         >
                           <span>Phase {phase.phase} 학습 시작하기</span>
