@@ -40,6 +40,15 @@ import { sagemakerWeek } from './weeks/sagemaker'
 import { vectorDbWeek } from './weeks/vector-db'
 import { llmServingWeek } from './weeks/llm-serving'
 import { infraProjectWeek } from './weeks/infra-project'
+// Phase 5: Generative AI (Week 1-8)
+import { llmFundamentalsWeek } from './weeks/llm-fundamentals'
+import { langchainBasicsWeek } from './weeks/langchain-basics'
+import { ragSystemWeek } from './weeks/rag-system'
+import { advancedRagWeek } from './weeks/advanced-rag'
+import { aiAgentsWeek } from './weeks/ai-agents'
+import { multiAgentWeek } from './weeks/multi-agent'
+import { llmopsWeek } from './weeks/llmops'
+import { genaiProjectWeek } from './weeks/genai-project'
 
 import type { Week, Task, Day, Module, Course, TaskContent, QuizQuestion } from './types'
 
@@ -81,6 +90,15 @@ export const curriculum: Week[] = [
   vectorDbWeek,
   llmServingWeek,
   infraProjectWeek,
+  // Phase 5: Generative AI (Week 1-8)
+  llmFundamentalsWeek,
+  langchainBasicsWeek,
+  ragSystemWeek,
+  advancedRagWeek,
+  aiAgentsWeek,
+  multiAgentWeek,
+  llmopsWeek,
+  genaiProjectWeek,
 ]
 
 // Week slug로 찾기
