@@ -75,28 +75,19 @@ function generateAnswer(query: string, contexts: SearchResult[]): string {
   return `질문에 대한 답변입니다:\n\n${relevantText}\n\n참고한 문서: ${contexts.map(c => c.documentTitle).join(', ')}`
 }
 
-// PDF 텍스트 추출 함수
-async function extractTextFromPDF(file: File): Promise<string> {
-  const pdfjsLib = await import('pdfjs-dist')
-
-  // Worker 파일을 public 폴더에서 로드 (CSP 문제 없음)
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js'
-
-  const arrayBuffer = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-
-  let fullText = ''
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i)
-    const textContent = await page.getTextContent()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pageText = textContent.items
-      .map((item: any) => item.str || '')
-      .join(' ')
-    fullText += pageText + '\n\n'
+// 텍스트 파일 읽기 함수 (PDF 대신 TXT 지원)
+async function extractTextFromFile(file: File): Promise<string> {
+  // TXT 파일만 지원 (PDF는 서버사이드에서만 가능)
+  if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+    return await file.text()
   }
 
-  return fullText.trim()
+  // PDF는 현재 지원하지 않음 (향후 서버 API로 구현 예정)
+  if (file.type === 'application/pdf') {
+    throw new Error('PDF 파일은 현재 지원되지 않습니다. TXT 파일을 업로드해주세요.')
+  }
+
+  throw new Error('지원하지 않는 파일 형식입니다. TXT 파일을 업로드해주세요.')
 }
 
 export default function RAGPipelinePage() {
@@ -117,22 +108,17 @@ export default function RAGPipelinePage() {
 
   const scenario = ragScenarios[selectedScenario]
 
-  // PDF 업로드 처리
+  // 파일 업로드 처리 (TXT 지원)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.type !== 'application/pdf') {
-      alert('PDF 파일만 업로드 가능합니다.')
-      return
-    }
-
     setIsUploading(true)
     try {
-      const text = await extractTextFromPDF(file)
+      const text = await extractTextFromFile(file)
       setUploadedDoc({
         id: 'uploaded',
-        title: file.name.replace('.pdf', ''),
+        title: file.name.replace(/\.(txt|pdf)$/i, ''),
         content: text,
         source: file.name
       })
@@ -143,8 +129,8 @@ export default function RAGPipelinePage() {
       setGeneratedAnswer('')
       setSelectedQuery('')
     } catch (error) {
-      console.error('PDF 파싱 오류:', error)
-      alert('PDF 파일을 읽는 중 오류가 발생했습니다.')
+      console.error('파일 파싱 오류:', error)
+      alert(error instanceof Error ? error.message : '파일을 읽는 중 오류가 발생했습니다.')
     } finally {
       setIsUploading(false)
     }
@@ -313,7 +299,7 @@ export default function RAGPipelinePage() {
                       : 'bg-gray-100 hover:bg-gray-200'
                   }`}
                 >
-                  PDF 업로드
+                  파일 업로드
                 </button>
               </div>
 
@@ -345,7 +331,7 @@ export default function RAGPipelinePage() {
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf"
+                    accept=".txt"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
@@ -359,9 +345,9 @@ export default function RAGPipelinePage() {
                     }`}
                   >
                     {isUploading ? (
-                      <span className="text-gray-500">⏳ PDF 분석 중...</span>
+                      <span className="text-gray-500">⏳ 파일 분석 중...</span>
                     ) : (
-                      <span className="text-green-600">📄 PDF 파일 선택</span>
+                      <span className="text-green-600">📄 TXT 파일 선택</span>
                     )}
                   </button>
 
@@ -397,7 +383,7 @@ export default function RAGPipelinePage() {
 
                   {!uploadedDoc && (
                     <p className="text-xs text-gray-500 text-center">
-                      PDF 파일을 업로드하면 내용을 추출하여<br />RAG 파이프라인을 테스트할 수 있습니다.
+                      TXT 파일을 업로드하면 내용을 읽어<br />RAG 파이프라인을 테스트할 수 있습니다.
                     </p>
                   )}
                 </div>
