@@ -7,6 +7,12 @@ export * from './packages'
 // Week 데이터 import
 import { pythonAdvancedWeek } from './weeks/week1-python-advanced'
 import { pandasDataWeek } from './weeks/week2-pandas-data'
+import { sqlAdvancedWeek } from './weeks/week3-sql-advanced'
+import { dataModelingWeek } from './weeks/week4-data-modeling'
+import { sparkWeek } from './weeks/week5-spark'
+import { sparkAdvancedWeek } from './weeks/week6-spark-advanced'
+import { airflowWeek } from './weeks/week7-airflow'
+import { e2ePipelineWeek } from './weeks/week8-e2e-pipeline'
 import { graphIntroWeek } from './weeks/graph-intro'
 import { cypherModelingWeek } from './weeks/cypher-modeling'
 import { week3GraphAlgorithms } from './weeks/week3-graph-algorithms'
@@ -22,6 +28,12 @@ import type { Week, Task, Day, Module, Course, TaskContent, QuizQuestion } from 
 export const curriculum: Week[] = [
   pythonAdvancedWeek,
   pandasDataWeek,
+  sqlAdvancedWeek,
+  dataModelingWeek,
+  sparkWeek,
+  sparkAdvancedWeek,
+  airflowWeek,
+  e2ePipelineWeek,
   graphIntroWeek,
   cypherModelingWeek,
   week3GraphAlgorithms,
