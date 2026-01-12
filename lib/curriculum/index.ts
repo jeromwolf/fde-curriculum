@@ -31,6 +31,15 @@ import { week5RagBasics } from './weeks/week5-rag-basics'
 import { week6GraphRag } from './weeks/week6-graph-rag'
 import { week7Text2Cypher } from './weeks/week7-text2cypher'
 import { week8KgProject } from './weeks/week8-kg-project'
+// Phase 4: 클라우드 & AI 인프라 (Week 1-8)
+import { awsFundamentalsWeek } from './weeks/aws-fundamentals'
+import { terraformWeek } from './weeks/terraform'
+import { dockerK8sWeek } from './weeks/docker-k8s'
+import { cicdWeek } from './weeks/cicd'
+import { sagemakerWeek } from './weeks/sagemaker'
+import { vectorDbWeek } from './weeks/vector-db'
+import { llmServingWeek } from './weeks/llm-serving'
+import { infraProjectWeek } from './weeks/infra-project'
 
 import type { Week, Task, Day, Module, Course, TaskContent, QuizQuestion } from './types'
 
@@ -63,6 +72,15 @@ export const curriculum: Week[] = [
   week6GraphRag,
   week7Text2Cypher,
   week8KgProject,
+  // Phase 4: 클라우드 & AI 인프라 (Week 1-8)
+  awsFundamentalsWeek,
+  terraformWeek,
+  dockerK8sWeek,
+  cicdWeek,
+  sagemakerWeek,
+  vectorDbWeek,
+  llmServingWeek,
+  infraProjectWeek,
 ]
 
 // Week slug로 찾기
