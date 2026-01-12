@@ -13,6 +13,16 @@ import { sparkWeek } from './weeks/week5-spark'
 import { sparkAdvancedWeek } from './weeks/week6-spark-advanced'
 import { airflowWeek } from './weeks/week7-airflow'
 import { e2ePipelineWeek } from './weeks/week8-e2e-pipeline'
+// Phase 2: 데이터 분석 & 컨설팅 (Week 9-16)
+import { problemDefinitionWeek } from './weeks/week9-problem-definition'
+import { dataPreprocessingWeek } from './weeks/week10-data-preprocessing'
+import { featureEngineeringWeek } from './weeks/week11-feature-engineering'
+import { featureSelectionWeek } from './weeks/week12-feature-selection'
+import { supervisedLearningWeek } from './weeks/week13-supervised-learning'
+import { clusteringWeek } from './weeks/week14-clustering'
+import { anomalyDetectionWeek } from './weeks/week15-anomaly-detection'
+import { timeSeriesWeek } from './weeks/week16-time-series'
+// Phase 3: Knowledge Graph (Week 17-24)
 import { graphIntroWeek } from './weeks/graph-intro'
 import { cypherModelingWeek } from './weeks/cypher-modeling'
 import { week3GraphAlgorithms } from './weeks/week3-graph-algorithms'
@@ -26,6 +36,7 @@ import type { Week, Task, Day, Module, Course, TaskContent, QuizQuestion } from 
 
 // 전체 커리큘럼 (Week 배열)
 export const curriculum: Week[] = [
+  // Phase 1: 데이터 엔지니어링 기초 (Week 1-8)
   pythonAdvancedWeek,
   pandasDataWeek,
   sqlAdvancedWeek,
@@ -34,6 +45,16 @@ export const curriculum: Week[] = [
   sparkAdvancedWeek,
   airflowWeek,
   e2ePipelineWeek,
+  // Phase 2: 데이터 분석 & 컨설팅 (Week 9-16)
+  problemDefinitionWeek,
+  dataPreprocessingWeek,
+  featureEngineeringWeek,
+  featureSelectionWeek,
+  supervisedLearningWeek,
+  clusteringWeek,
+  anomalyDetectionWeek,
+  timeSeriesWeek,
+  // Phase 3: Knowledge Graph (Week 17-24)
   graphIntroWeek,
   cypherModelingWeek,
   week3GraphAlgorithms,
