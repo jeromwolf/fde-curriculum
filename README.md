@@ -4,24 +4,39 @@
 
 ## 배포 URL
 
-**임시 사이트**: https://fde-curriculum-simple.vercel.app
-
-> 업무 협업 및 커리큘럼 검토용 임시 사이트입니다.
+- **프로덕션**: https://fde-academy.ai.kr
+- **Vercel**: https://fde-curriculum-simple.vercel.app
+- **Cloud Run**: https://fde-academy-827760573017.asia-northeast3.run.app
 
 ## 프로젝트 개요
 
 FDE (Forward Deployed Engineer) 교육 플랫폼의 커리큘럼을 웹으로 제공하는 사이트입니다.
 
-### 커리큘럼 구성 (v2.2)
+### 커리큘럼 구성 (v2.7)
 
-| Phase | 주제 | 기간 | 주요 내용 |
-|-------|------|------|----------|
-| 1 | 데이터 엔지니어링 기초 | 2개월 | Python 심화, SQL, Spark, Airflow, dbt |
-| 2 | 데이터 분석 & 컨설팅 | 2개월 | EDA, ML, Feature Engineering, 경영진 발표 |
-| 3 | Knowledge Graph | 2개월 | Neo4j, Cypher, GraphRAG, LLM 통합 |
-| 4 | 클라우드 & 인프라 | 2개월 | AWS, Docker, Kubernetes, Terraform |
-| 5 | GenAI & AI Agents | 2개월 | LLM, RAG, AI Agent, MCP |
-| 6 | 산업별 프로젝트 | 2개월 | 금융/의료/제조 도메인, 캡스톤 |
+| Phase | 주제 | 기간 | 주요 내용 | 상태 |
+|-------|------|------|----------|------|
+| 1 | 데이터 엔지니어링 기초 | 2개월 | Python 심화, SQL, Spark, Airflow, dbt | ✅ 완료 |
+| 2 | 데이터 분석 & 컨설팅 | 2개월 | EDA, ML, Feature Engineering, 경영진 발표 | ✅ 완료 |
+| 3 | Knowledge Graph | 2개월 | Neo4j, Cypher, GraphRAG, LLM 통합 | ✅ 완료 |
+| 4 | 클라우드 & 인프라 | 2개월 | AWS, Docker, Kubernetes, Terraform | ✅ 완료 |
+| 5 | GenAI & AI Agents | 2개월 | LLM, RAG, AI Agent, MCP | ✅ 완료 |
+| 6 | 산업 프로젝트 & 캡스톤 | 2개월 | 도메인 선택, KG, RAG, Agent, 배포, 발표 | ✅ 완료 |
+
+**총: 48주 (12개월) 전체 커리큘럼 완료!** 🎉
+
+### Phase 6 상세 (산업 프로젝트 & 캡스톤)
+
+| Week | 주제 | 내용 |
+|------|------|------|
+| 1 | 산업 도메인 선택 | 금융(FIBO), 헬스케어(FHIR), 제조(OPC-UA) |
+| 2 | 프로젝트 정의 | PRD, 아키텍처 설계, PoC |
+| 3 | 데이터 파이프라인 | Airflow, Great Expectations |
+| 4 | Knowledge Graph | Neo4j, Triple 추출, 추론 규칙 |
+| 5 | AI/RAG 시스템 | GraphRAG, RAGAS 평가 |
+| 6 | Agent 시스템 | LangGraph, Multi-Agent |
+| 7 | 프론트엔드 & 배포 | Next.js, Docker, CI/CD |
+| 8 | 문서화 & 발표 | 포트폴리오, 데모 |
 
 ### 특별 과정
 
@@ -35,34 +50,20 @@ FDE (Forward Deployed Engineer) 교육 플랫폼의 커리큘럼을 웹으로 �
 - **Typography**: @tailwindcss/typography
 - **Deployment**: Vercel
 
-## 주간 콘텐츠 제작 현황
+## 커리큘럼 완성 현황
 
-> Phase 3 (Knowledge Graph)에 대한 요청이 많아 여기부터 콘텐츠를 제작 중입니다.
+**전체 커리큘럼 완료!** 🎉
 
-### Phase 3: Knowledge Graph (우선 제작)
+| Phase | 주제 | 상태 | Weeks |
+|-------|------|------|-------|
+| 1 | 데이터 엔지니어링 기초 | ✅ 완료 | 8주 |
+| 2 | 데이터 분석 & 컨설팅 | ✅ 완료 | 8주 |
+| 3 | Knowledge Graph | ✅ 완료 | 8주 |
+| 4 | 클라우드 & 인프라 | ✅ 완료 | 8주 |
+| 5 | GenAI & AI Agents | ✅ 완료 | 8주 |
+| 6 | 산업 프로젝트 & 캡스톤 | ✅ 완료 | 8주 |
 
-| Week | 주제 | 상태 | Tasks |
-|------|------|------|-------|
-| 1 | 그래프 이론 & Neo4j 입문 | **완료** | 49개 (video 12, reading 9, code 18, quiz 10) |
-| 2 | Cypher 심화 & 패턴 매칭 | 대기 | - |
-| 3 | 온톨로지 기초 (RDF/OWL) | 대기 | - |
-| 4 | SPARQL & Triple Store | 대기 | - |
-| 5 | Knowledge Graph 구축 | 대기 | - |
-| 6 | 그래프 알고리즘 | 대기 | - |
-| 7 | GraphRAG & LLM 통합 | 대기 | - |
-| 8 | 캡스톤 프로젝트 | 대기 | - |
-
-### Week 1 상세 (그래프 이론 & Neo4j 입문)
-
-| Day | 주제 | 시간 |
-|-----|------|------|
-| 1 | 그래프 데이터 모델 기초 | 150분 |
-| 2 | Neo4j 환경 설정 & 첫 실행 | 140분 |
-| 3 | Cypher 기초 CRUD | 160분 |
-| 4 | Cypher 패턴 매칭 | 150분 |
-| 5 | Weekly Project: 소셜 네트워크 그래프 | 180분 |
-
-**총 학습 시간**: 720분 (12시간)
+**총: 48주 (12개월) 커리큘럼**
 
 ## 프로젝트 구조
 
@@ -100,6 +101,14 @@ npm run dev
 # 빌드
 npm run build
 ```
+
+## v2.7 주요 변경 사항 (2026-01-13)
+
+- **Phase 6 (산업 프로젝트 & 캡스톤) 전체 커리큘럼 추가**
+  - 8주 프로젝트 중심 커리큘럼
+  - 금융/헬스케어/제조 도메인 선택
+  - GitHub 참조 링크 50+ 개 포함
+- **전체 커리큘럼 완료**: 48주 (12개월) 100%
 
 ## v2.6 주요 변경 사항 (2026-01-07)
 
@@ -143,3 +152,5 @@ npm run build
 ---
 
 *FDE Academy - Forward Deployed Engineer 양성 과정*
+
+*최종 업데이트: 2026-01-13*

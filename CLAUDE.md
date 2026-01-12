@@ -1,5 +1,99 @@
 # FDE Academy - 개발 로그
 
+## 2026-01-13: Phase 6 (산업 프로젝트 & 캡스톤) 전체 커리큘럼 추가
+
+### 🎯 목표
+프로젝트 중심의 8주 캡스톤 커리큘럼 구성 (GitHub 참조 링크 다수 포함)
+
+### ✅ 완료된 작업
+
+#### 1. Phase 6 8주차 커리큘럼 생성
+
+| Week | 파일 | 주제 | 주요 내용 |
+|------|------|------|----------|
+| 1 | `industry-domain/index.ts` | 산업 도메인 선택 & 리서치 | 금융(FIBO)/헬스케어(FHIR)/제조(OPC-UA) |
+| 2 | `capstone-definition/index.ts` | 캡스톤 프로젝트 정의 | PRD, 아키텍처 설계, PoC |
+| 3 | `capstone-data-pipeline/index.ts` | 데이터 파이프라인 구축 | Airflow, Great Expectations |
+| 4 | `capstone-knowledge-graph/index.ts` | Knowledge Graph 구축 | Neo4j, Triple 추출, 추론 규칙 |
+| 5 | `capstone-ai-rag/index.ts` | AI/RAG 시스템 구현 | GraphRAG, RAGAS 평가 |
+| 6 | `capstone-agent/index.ts` | Agent 시스템 구현 | LangGraph, Multi-Agent |
+| 7 | `capstone-deployment/index.ts` | 프론트엔드 & 배포 | Next.js, Docker, CI/CD |
+| 8 | `capstone-final/index.ts` | 문서화 & 발표 | 포트폴리오, 데모 |
+
+#### 2. Phase 6 특징 (프로젝트 중심 구조)
+
+**기존 Phase 1-5**: 일일 학습 태스크 (video, reading, quiz, code)
+**Phase 6**: 마일스톤 기반 프로젝트 구조
+- 매일 구체적인 산출물 목표
+- 5일 x 8주 = 40일 프로젝트 일정
+- 실제 GitHub 프로젝트 참조 링크 50+ 개
+
+#### 3. 주요 GitHub 참조 링크
+
+**AI/LLM**:
+- [LangChain](https://github.com/langchain-ai/langchain)
+- [LangGraph](https://github.com/langchain-ai/langgraph)
+- [Microsoft GraphRAG](https://github.com/microsoft/graphrag)
+- [CrewAI](https://github.com/crewAIInc/crewAI)
+- [AutoGen](https://github.com/microsoft/autogen)
+- [RAGAS](https://github.com/explodinggradients/ragas)
+
+**Data/ETL**:
+- [Apache Airflow](https://github.com/apache/airflow)
+- [Great Expectations](https://github.com/great-expectations/great_expectations)
+- [yfinance](https://github.com/ranaroussi/yfinance)
+
+**Knowledge Graph**:
+- [Neo4j Examples](https://github.com/neo4j-examples)
+- [Neo4j GDS](https://github.com/neo4j/graph-data-science)
+- [Neo4j GenAI](https://github.com/neo4j/neo4j-genai-python)
+
+**Frontend**:
+- [shadcn/ui](https://github.com/shadcn-ui/ui)
+- [vis-network](https://github.com/visjs/vis-network)
+- [Recharts](https://github.com/recharts/recharts)
+
+**도메인 특화**:
+- [FinGPT](https://github.com/AI4Finance-Foundation/FinGPT)
+- [OpenBB](https://github.com/OpenBB-finance/OpenBB)
+- [Synthea](https://github.com/synthetichealth/synthea)
+- [PrimeKG](https://github.com/mims-harvard/PrimeKG)
+
+### 📁 신규 파일
+
+```
+lib/curriculum/weeks/
+├── industry-domain/index.ts         (NEW)
+├── capstone-definition/index.ts     (NEW)
+├── capstone-data-pipeline/index.ts  (NEW)
+├── capstone-knowledge-graph/index.ts (NEW)
+├── capstone-ai-rag/index.ts         (NEW)
+├── capstone-agent/index.ts          (NEW)
+├── capstone-deployment/index.ts     (NEW)
+└── capstone-final/index.ts          (NEW)
+```
+
+**lib/curriculum/index.ts** - Phase 6 등록 추가
+
+### 📊 전체 커리큘럼 현황
+
+```
+Phase 1: 8/8주 완료 (100%) ✅
+Phase 2: 8/8주 완료 (100%) ✅
+Phase 3: 8/8주 완료 (100%) ✅
+Phase 4: 8/8주 완료 (100%) ✅
+Phase 5: 8/8주 완료 (100%) ✅
+Phase 6: 8/8주 완료 (100%) ✅ (NEW!)
+
+총: 48주 중 48주 완료 (100%) 🎉
+```
+
+### 🔧 수정 사항
+
+- `capstone-ai-rag/index.ts`: Python f-string 구문 TypeScript 호환 수정
+
+---
+
 ## 2026-01-07: Week 5 Day 7-8 추가 (LangGraph Agent, Domain Agents)
 
 ### 🎯 목표
@@ -718,4 +812,4 @@ Week
 
 ---
 
-*최종 업데이트: 2025-12-31*
+*최종 업데이트: 2026-01-13*
