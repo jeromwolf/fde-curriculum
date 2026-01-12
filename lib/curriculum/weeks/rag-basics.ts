@@ -612,7 +612,15 @@ print("출처:", result["source_documents"])
 3. **Reranking**: 검색 결과 재정렬
 4. **Query Transformation**: 질문 재작성
 5. **Metadata Filtering**: 메타데이터로 검색 범위 제한
-            `
+            `,
+            simulators: [
+              {
+                id: 'rag-pipeline',
+                title: 'RAG Pipeline 시뮬레이터',
+                description: 'RAG 파이프라인의 5단계(청킹, 임베딩, 검색, 컨텍스트 결합, 답변 생성)를 시각적으로 체험해보세요',
+                url: '/simulators/rag-pipeline'
+              }
+            ]
           }
         },
         {
