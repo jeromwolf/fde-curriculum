@@ -12,7 +12,7 @@
 
 FDE (Forward Deployed Engineer) 교육 플랫폼의 커리큘럼을 웹으로 제공하는 사이트입니다.
 
-### 커리큘럼 구성 (v2.7)
+### 커리큘럼 구성 (v2.8)
 
 | Phase | 주제 | 기간 | 주요 내용 | 상태 |
 |-------|------|------|----------|------|
@@ -45,10 +45,13 @@ FDE (Forward Deployed Engineer) 교육 플랫폼의 커리큘럼을 웹으로 �
 ## 기술 스택
 
 - **Framework**: Next.js 14 (App Router)
+- **Database**: Neon PostgreSQL (Serverless)
+- **ORM**: Prisma
+- **Auth**: NextAuth.js
 - **Styling**: Tailwind CSS
 - **Markdown**: react-markdown, remark-gfm
 - **Typography**: @tailwindcss/typography
-- **Deployment**: Vercel
+- **Deployment**: Google Cloud Run, Vercel
 
 ## 커리큘럼 완성 현황
 
@@ -101,6 +104,17 @@ npm run dev
 # 빌드
 npm run build
 ```
+
+## v2.8 주요 변경 사항 (2026-01-13)
+
+- **데이터베이스 마이그레이션**: Azure PostgreSQL → Neon PostgreSQL
+  - Serverless PostgreSQL (무료 티어 512MB)
+  - Connection Pooling 지원
+  - 월 $15-30 비용 절감
+- **Prompt Lab 시뮬레이터 추가** (17번째 시뮬레이터)
+  - 프롬프트 엔지니어링 학습
+  - Zero-shot, Few-shot, CoT 등 기법
+  - Phase 5 Week 1에 연결
 
 ## v2.7 주요 변경 사항 (2026-01-13)
 

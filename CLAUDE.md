@@ -1,5 +1,102 @@
 # FDE Academy - 개발 로그
 
+## 2026-01-13: Neon DB 마이그레이션 & Prompt Lab 시뮬레이터
+
+### 🎯 목표
+Azure PostgreSQL에서 Neon PostgreSQL로 마이그레이션하여 비용 절감
+
+### ✅ 완료된 작업
+
+#### 1. Prompt Lab 시뮬레이터 추가
+
+| 파일 | 설명 |
+|------|------|
+| `components/simulators/prompt-lab/types.ts` | 타입 정의 (7가지 기법, 8개 모델) |
+| `components/simulators/prompt-lab/sampleTemplates.ts` | 10개 샘플 프롬프트 |
+| `components/simulators/prompt-lab/PromptLab.tsx` | 메인 컴포넌트 |
+| `app/simulators/prompt-lab/page.tsx` | 페이지 |
+
+**지원 기법**: Zero-Shot, Few-Shot, Chain-of-Thought, Role-Playing, Structured Output, Self-Consistency, Tree-of-Thought
+
+#### 2. Azure → Neon 데이터베이스 마이그레이션
+
+**이전 환경 (Azure)**:
+- Host: `aion-postgres.postgres.database.azure.com`
+- Database: `aion_db` (schema: `fde_academy`)
+- 비용: ~$15-30/월
+
+**새 환경 (Neon)**:
+- Host: `ep-mute-sea-a1dps4u3-pooler.ap-southeast-1.aws.neon.tech`
+- Database: `neondb`
+- 비용: **$0** (Free Tier 512MB)
+
+**마이그레이션된 데이터**:
+| 테이블 | 건수 |
+|--------|------|
+| users | 15 |
+| profiles | 5 |
+| badges | 15 |
+| user_badges | 31 |
+| user_levels | 10 |
+| streaks | 10 |
+| progress | 21 |
+| categories | 6 |
+| posts | 1 |
+| comments | 1 |
+
+#### 3. Prisma 스키마 업데이트
+
+```prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")  // 추가: Neon connection pooling 지원
+}
+```
+
+#### 4. Cloud Run 환경 변수 업데이트
+
+| 변수 | 값 |
+|------|---|
+| DATABASE_URL | Neon pooler URL |
+| DIRECT_URL | Neon direct URL |
+| AUTH_URL | https://fde-academy.ai.kr |
+| NEXTAUTH_URL | https://fde-academy.ai.kr |
+
+#### 5. Azure PostgreSQL 서버 중지
+
+```bash
+az postgres flexible-server stop --name aion-postgres --resource-group <rg>
+```
+
+- 상태: **Stopped**
+- 컴퓨팅 비용: $0
+- 스토리지 비용: 소액 (삭제 시 $0)
+- 📅 **1/20 삭제 예정**
+
+### 💰 비용 절감 효과
+
+| 항목 | Before | After |
+|------|--------|-------|
+| Azure PostgreSQL | ~$15-30/월 | $0 (중지) |
+| Neon PostgreSQL | - | $0 (Free) |
+| **예상 월 절감** | - | **~$15-30** |
+
+### 📁 수정된 파일
+
+- `prisma/schema.prisma` - directUrl 추가
+- `.env.local` - Neon 연결 정보
+- Cloud Run 환경 변수 업데이트
+
+### 🚀 배포
+
+| 리비전 | 변경사항 |
+|--------|---------|
+| fde-academy-00023-2bs | Prompt Lab 추가 |
+| fde-academy-00027-9j9 | Neon DB + AUTH_URL 수정 |
+
+---
+
 ## 2026-01-13: Phase 6 (산업 프로젝트 & 캡스톤) 전체 커리큘럼 추가
 
 ### 🎯 목표
