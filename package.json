@@ -29,6 +29,7 @@
     "react-markdown": "^8.0.7",
     "react-simple-code-editor": "^0.14.1",
     "react-syntax-highlighter": "^16.1.0",
+    "reactflow": "^11.11.4",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^3.0.1",
     "three": "^0.182.0",
