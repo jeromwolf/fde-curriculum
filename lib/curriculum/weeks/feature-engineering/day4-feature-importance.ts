@@ -219,6 +219,113 @@ print(f"제외된 피처 (노이즈): {[f for f in X.columns if f not in top_fea
   },
   {
     id: 'p2w3d4t3',
+    type: 'video',
+    title: 'SHAP 실전 활용',
+    duration: 20,
+    content: {
+      videoUrl: 'https://www.youtube.com/watch?v=placeholder',
+      transcript: `# SHAP (SHapley Additive exPlanations) 실전 활용
+
+## 1. SHAP이란?
+
+게임 이론의 Shapley Value를 기반으로 각 피처의 기여도를 계산합니다.
+
+\\\`\\\`\\\`python
+# 설치
+# pip install shap
+
+import shap
+from sklearn.ensemble import RandomForestClassifier
+
+# 모델 학습
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# SHAP Explainer 생성
+explainer = shap.TreeExplainer(model)
+shap_values = explainer.shap_values(X_test)
+\\\`\\\`\\\`
+
+## 2. Summary Plot (전체 피처 중요도)
+
+\\\`\\\`\\\`python
+# Bar Plot (평균 |SHAP|)
+shap.summary_plot(shap_values[1], X_test, plot_type="bar")
+
+# Beeswarm Plot (분포까지 확인)
+shap.summary_plot(shap_values[1], X_test)
+\\\`\\\`\\\`
+
+## 3. Dependence Plot (피처 vs 타겟 관계)
+
+\\\`\\\`\\\`python
+# 특정 피처의 SHAP 값 분포
+shap.dependence_plot("feature_name", shap_values[1], X_test)
+
+# 상호작용 피처 자동 선택
+shap.dependence_plot("feature_name", shap_values[1], X_test, interaction_index="auto")
+\\\`\\\`\\\`
+
+## 4. Force Plot (개별 예측 설명)
+
+\\\`\\\`\\\`python
+# 단일 예측
+shap.force_plot(
+    explainer.expected_value[1],
+    shap_values[1][0],
+    X_test.iloc[0]
+)
+
+# 여러 예측
+shap.force_plot(
+    explainer.expected_value[1],
+    shap_values[1][:100],
+    X_test.iloc[:100]
+)
+\\\`\\\`\\\`
+
+## 5. Waterfall Plot (세로 막대)
+
+\\\`\\\`\\\`python
+# 개별 예측의 피처별 기여도
+shap.waterfall_plot(
+    shap.Explanation(
+        values=shap_values[1][0],
+        base_values=explainer.expected_value[1],
+        data=X_test.iloc[0],
+        feature_names=X_test.columns.tolist()
+    )
+)
+\\\`\\\`\\\`
+
+## 6. 비즈니스 리포트용 코드
+
+\\\`\\\`\\\`python
+# Top 10 피처 추출
+feature_importance = pd.DataFrame({
+    'feature': X_test.columns,
+    'importance': np.abs(shap_values[1]).mean(axis=0)
+}).sort_values('importance', ascending=False)
+
+top_10 = feature_importance.head(10)
+print(top_10)
+\\\`\\\`\\\`
+`,
+      objectives: [
+        'SHAP을 사용하여 모델을 해석할 수 있다',
+        '다양한 SHAP 시각화를 활용할 수 있다',
+        '개별 예측을 설명할 수 있다'
+      ],
+      keyPoints: [
+        'TreeExplainer: 트리 모델용 (빠름)',
+        'Summary Plot: 전체 피처 중요도',
+        'Force/Waterfall: 개별 예측 설명',
+        'Dependence: 피처-타겟 관계'
+      ]
+    }
+  },
+  {
+    id: 'p2w3d4t4',
     type: 'quiz',
     title: 'Day 4 퀴즈',
     duration: 10,
@@ -227,18 +334,112 @@ print(f"제외된 피처 (노이즈): {[f for f in X.columns if f not in top_fea
         {
           question: 'Permutation Importance가 Tree Importance보다 나은 점은?',
           options: ['더 빠르다', '고카디널리티 편향이 없다', '더 간단하다', '메모리 효율적이다'],
-          answer: 1
+          answer: 1,
+          explanation: 'Tree Importance는 분할 횟수 기반이라 고카디널리티 피처에 편향되지만, Permutation은 실제 예측 성능 변화를 측정합니다.'
         },
         {
           question: 'SHAP의 주요 장점은?',
           options: ['계산 속도', '개별 예측 설명 가능', '메모리 효율', '범용성'],
-          answer: 1
+          answer: 1,
+          explanation: 'SHAP은 전체 피처 중요도뿐 아니라 개별 예측에서 각 피처가 어떻게 기여했는지 설명할 수 있습니다.'
         },
         {
           question: '상관관계 분석의 한계는?',
           options: ['느리다', '비선형 관계 포착 불가', '범주형 불가', '결측치 필요'],
-          answer: 1
+          answer: 1,
+          explanation: '피어슨 상관계수는 선형 관계만 측정하므로, U자형이나 복잡한 비선형 관계는 포착하지 못합니다.'
+        },
+        {
+          question: 'SHAP Summary Plot에서 색상이 의미하는 것은?',
+          options: ['피처 순서', '피처 값의 크기', '예측 확률', '오차 정도'],
+          answer: 1,
+          explanation: 'Summary Plot에서 빨간색은 피처 값이 높음, 파란색은 낮음을 의미합니다.'
         }
+      ]
+    }
+  },
+  {
+    id: 'p2w3d4t5',
+    type: 'challenge',
+    title: '도전과제: 모델 해석 리포트',
+    duration: 30,
+    content: {
+      instructions: `# 도전과제: 모델 해석 리포트 작성
+
+## 목표
+RandomForest 모델을 학습하고, 피처 중요도 분석 리포트를 작성하세요.
+
+## 요구사항
+1. 모델 학습 (AUC 0.7 이상)
+2. 3가지 피처 중요도 방법 비교
+   - Tree Feature Importance
+   - Permutation Importance
+   - SHAP Values
+3. 상위 10개 피처 분석
+4. 비즈니스 인사이트 도출
+
+## 평가 기준
+- 분석 방법의 다양성 (30%)
+- 시각화 품질 (30%)
+- 인사이트 도출 (40%)
+
+## 보너스
+- SHAP Dependence Plot으로 피처 상호작용 분석
+- 방법별 순위 일관성 분석
+`,
+      starterCode: `import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import roc_auc_score
+# import shap  # pip install shap
+
+np.random.seed(42)
+n = 2000
+
+# 은행 고객 이탈 예측 데이터
+df = pd.DataFrame({
+    'credit_score': np.random.randint(300, 850, n),
+    'age': np.random.randint(18, 70, n),
+    'tenure': np.random.randint(0, 10, n),
+    'balance': np.random.uniform(0, 250000, n),
+    'num_products': np.random.randint(1, 5, n),
+    'has_credit_card': np.random.randint(0, 2, n),
+    'is_active_member': np.random.randint(0, 2, n),
+    'estimated_salary': np.random.uniform(10000, 200000, n),
+    'churn': np.random.randint(0, 2, n)  # 타겟
+})
+
+# 일부 상관관계 추가
+df.loc[(df['age'] > 50) & (df['num_products'] > 2), 'churn'] = 1
+df.loc[(df['is_active_member'] == 1) & (df['balance'] > 100000), 'churn'] = 0
+
+print("데이터 개요:")
+print(df.describe())
+
+X = df.drop('churn', axis=1)
+y = df['churn']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# TODO: 모델 학습 및 피처 중요도 분석 리포트 작성
+`,
+      hints: [
+        'rf.feature_importances_로 Tree Importance',
+        'permutation_importance(rf, X_test, y_test)로 Permutation',
+        'shap.TreeExplainer(rf)로 SHAP',
+        '각 방법의 순위를 비교해보세요'
+      ],
+      evaluationCriteria: [
+        '3가지 방법 모두 적용',
+        '시각화 포함',
+        '방법별 결과 비교',
+        '비즈니스 인사이트'
+      ],
+      bonusPoints: [
+        'SHAP Dependence Plot 분석',
+        '방법별 순위 상관관계 계산'
       ]
     }
   }

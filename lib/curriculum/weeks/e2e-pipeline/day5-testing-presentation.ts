@@ -864,5 +864,429 @@ Phase 1 경험을 공유해주세요:
         { title: 'Apache Airflow Slack', url: 'https://apache-airflow.slack.com/' }
       ]
     }
+  },
+  {
+    id: 'w8d5-challenge',
+    type: 'challenge',
+    title: '주간 도전과제: 실시간 스트리밍 파이프라인 확장',
+    duration: 60,
+    content: {
+      instructions: `# 주간 도전과제: 실시간 스트리밍 파이프라인 확장
+
+## 🎯 목표
+Phase 1에서 배운 **배치 처리 파이프라인**을 **실시간 스트리밍**으로 확장하세요. Spark Structured Streaming과 Kafka를 활용하여 이벤트가 발생하는 즉시 처리되는 Near Real-Time 파이프라인을 구축합니다.
+
+## 📊 시나리오
+기존 Daily Batch 파이프라인에 더해 다음 요구사항이 추가되었습니다:
+- **실시간 대시보드**: 운영팀이 분 단위로 핵심 지표를 모니터링
+- **실시간 알림**: 이상 행동(높은 오류율, 급격한 트래픽 증가) 즉시 감지
+- **Fresh Data**: 데이터 레이턴시를 24시간에서 5분 이내로 단축
+
+## 📋 요구사항
+
+### Part 1: 스트리밍 인프라 (20점)
+1. **Kafka 설정**
+   - 토픽 설계 (events, users, payments)
+   - 파티션 전략 (user_id 기준)
+   - Retention 설정
+
+2. **Producer 구현**
+   - 기존 Extractor를 Kafka Producer로 변환
+   - JSON 직렬화
+   - 에러 핸들링 (재시도, DLQ)
+
+### Part 2: Spark Structured Streaming (30점)
+1. **스트림 소비**
+   - Kafka Source 설정
+   - Checkpoint 관리
+   - Trigger 설정 (processingTime)
+
+2. **스트림 변환**
+   - 이벤트 파싱 및 정제
+   - Watermark 설정 (late data 처리)
+   - 윈도우 집계 (5분 단위)
+
+3. **싱크 설정**
+   - Delta Lake로 스트리밍 쓰기
+   - 실시간 메트릭 Redis 저장
+   - 알림 트리거 (임계치 초과 시)
+
+### Part 3: Lambda Architecture 통합 (25점)
+1. **Batch + Streaming 통합**
+   - Batch Layer: 기존 Daily Pipeline (정확성)
+   - Speed Layer: 실시간 Pipeline (속도)
+   - Serving Layer: 두 결과 병합 View
+
+2. **데이터 일관성**
+   - Exactly-once 보장 전략
+   - Late Data 처리 로직
+   - 배치/스트리밍 결과 비교 검증
+
+### Part 4: 모니터링 & 운영 (25점)
+1. **스트리밍 메트릭**
+   - 처리량 (records/sec)
+   - 지연 시간 (end-to-end latency)
+   - Consumer Lag
+
+2. **알림 설정**
+   - 처리 지연 알림
+   - 오류율 임계치 알림
+   - Kafka Consumer Lag 알림
+
+3. **운영 대시보드**
+   - Spark Streaming UI 설정
+   - Kafka Metrics 모니터링
+   - 실시간 데이터 품질 지표
+
+## 🏆 평가 기준
+
+| 항목 | 배점 | 세부 기준 |
+|------|------|-----------|
+| 스트리밍 인프라 | 20점 | Kafka 설정(10), Producer(10) |
+| Structured Streaming | 30점 | 스트림 변환(15), Watermark/Window(15) |
+| Lambda Architecture | 25점 | 통합 설계(15), 일관성(10) |
+| 모니터링 & 운영 | 25점 | 메트릭(15), 알림(10) |
+
+## 💡 힌트
+
+### Kafka Docker Compose
+\`\`\`yaml
+# docker-compose.streaming.yml
+version: '3'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+\`\`\`
+
+### Kafka Producer 예시
+\`\`\`python
+from confluent_kafka import Producer
+import json
+
+def delivery_report(err, msg):
+    if err is not None:
+        print(f"Delivery failed: {err}")
+    else:
+        print(f"Message delivered to {msg.topic()} [{msg.partition()}]")
+
+producer = Producer({'bootstrap.servers': 'localhost:9092'})
+
+# 이벤트 발행
+event = {"user_id": 123, "event_type": "page_view", "timestamp": "2024-01-01T10:00:00Z"}
+producer.produce(
+    topic='events',
+    key=str(event['user_id']),
+    value=json.dumps(event),
+    callback=delivery_report
+)
+producer.flush()
+\`\`\`
+
+### Spark Structured Streaming
+\`\`\`python
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import *
+from pyspark.sql.types import *
+
+spark = SparkSession.builder \\
+    .appName("StreamingPipeline") \\
+    .config("spark.sql.streaming.schemaInference", "true") \\
+    .getOrCreate()
+
+# Kafka 소스
+events_df = spark.readStream \\
+    .format("kafka") \\
+    .option("kafka.bootstrap.servers", "localhost:9092") \\
+    .option("subscribe", "events") \\
+    .option("startingOffsets", "latest") \\
+    .load()
+
+# JSON 파싱
+event_schema = StructType([
+    StructField("user_id", IntegerType()),
+    StructField("event_type", StringType()),
+    StructField("timestamp", TimestampType())
+])
+
+parsed_df = events_df \\
+    .select(from_json(col("value").cast("string"), event_schema).alias("data")) \\
+    .select("data.*")
+
+# Watermark 설정 (5분 지연 허용)
+watermarked_df = parsed_df \\
+    .withWatermark("timestamp", "5 minutes")
+
+# 5분 윈도우 집계
+windowed_counts = watermarked_df \\
+    .groupBy(
+        window(col("timestamp"), "5 minutes"),
+        col("event_type")
+    ) \\
+    .count()
+
+# Delta Lake로 스트리밍 쓰기
+query = windowed_counts.writeStream \\
+    .format("delta") \\
+    .outputMode("append") \\
+    .option("checkpointLocation", "/tmp/checkpoint/events") \\
+    .trigger(processingTime="1 minute") \\
+    .start("/data/streaming/event_counts")
+
+query.awaitTermination()
+\`\`\`
+
+### 실시간 알림 예시
+\`\`\`python
+def alert_on_threshold(batch_df, batch_id):
+    """배치마다 실행되는 알림 로직"""
+    error_rate = batch_df.filter(col("event_type") == "error").count() / batch_df.count()
+
+    if error_rate > 0.05:  # 5% 초과 시 알림
+        send_slack_alert(f"High error rate detected: {error_rate:.2%}")
+
+# foreachBatch로 커스텀 로직 실행
+query = parsed_df.writeStream \\
+    .foreachBatch(alert_on_threshold) \\
+    .trigger(processingTime="1 minute") \\
+    .start()
+\`\`\`
+
+## 🔗 참고 자료
+- [Spark Structured Streaming](https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html)
+- [Kafka Documentation](https://kafka.apache.org/documentation/)
+- [Delta Lake Streaming](https://docs.delta.io/latest/delta-streaming.html)
+- [Lambda Architecture](http://lambda-architecture.net/)
+`,
+      starterCode: `"""
+Week 8 도전과제: 실시간 스트리밍 파이프라인 확장
+===============================================
+목표: 배치 파이프라인을 실시간 스트리밍으로 확장
+"""
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import *
+from pyspark.sql.types import *
+from typing import Dict, Any
+import json
+
+# ===========================================
+# Part 1: Kafka Producer
+# ===========================================
+
+class EventProducer:
+    """이벤트를 Kafka로 발행하는 Producer"""
+
+    def __init__(self, bootstrap_servers: str = "localhost:9092"):
+        self.bootstrap_servers = bootstrap_servers
+        self.producer = None
+
+    def connect(self):
+        """Kafka 연결"""
+        # TODO: confluent_kafka Producer 초기화
+        pass
+
+    def send_event(self, topic: str, event: Dict[str, Any]):
+        """이벤트 발행"""
+        # TODO: JSON 직렬화 및 Kafka 발행
+        pass
+
+    def close(self):
+        """연결 종료"""
+        # TODO: flush 및 연결 종료
+        pass
+
+# ===========================================
+# Part 2: Spark Structured Streaming
+# ===========================================
+
+class StreamingPipeline:
+    """Spark Structured Streaming 파이프라인"""
+
+    EVENT_SCHEMA = StructType([
+        StructField("user_id", IntegerType(), True),
+        StructField("event_type", StringType(), True),
+        StructField("page_url", StringType(), True),
+        StructField("session_id", StringType(), True),
+        StructField("timestamp", TimestampType(), True)
+    ])
+
+    def __init__(self, spark: SparkSession, kafka_servers: str = "localhost:9092"):
+        self.spark = spark
+        self.kafka_servers = kafka_servers
+        self.stream = None
+
+    def read_kafka_stream(self, topic: str):
+        """Kafka 스트림 읽기"""
+        # TODO: Kafka Source 설정
+        # - subscribe
+        # - startingOffsets
+        pass
+
+    def parse_events(self, df):
+        """JSON 파싱 및 스키마 적용"""
+        # TODO: from_json으로 파싱
+        pass
+
+    def add_watermark(self, df, delay: str = "5 minutes"):
+        """Watermark 설정"""
+        # TODO: withWatermark 적용
+        pass
+
+    def aggregate_by_window(self, df, window_duration: str = "5 minutes"):
+        """윈도우 집계"""
+        # TODO: window 함수로 집계
+        pass
+
+    def write_to_delta(self, df, path: str, checkpoint: str):
+        """Delta Lake로 스트리밍 쓰기"""
+        # TODO: writeStream 설정
+        pass
+
+# ===========================================
+# Part 3: 실시간 알림
+# ===========================================
+
+class AlertManager:
+    """실시간 알림 관리"""
+
+    def __init__(self, error_threshold: float = 0.05):
+        self.error_threshold = error_threshold
+        self.alerts = []
+
+    def check_error_rate(self, batch_df, batch_id: int):
+        """오류율 체크 및 알림"""
+        # TODO: 오류율 계산 및 임계치 초과 시 알림
+        pass
+
+    def check_traffic_spike(self, batch_df, batch_id: int, spike_threshold: float = 2.0):
+        """트래픽 급증 감지"""
+        # TODO: 이전 윈도우 대비 급증 감지
+        pass
+
+    def send_alert(self, message: str, severity: str = "warning"):
+        """알림 발송"""
+        # TODO: Slack/이메일 알림 발송
+        print(f"[{severity.upper()}] {message}")
+        self.alerts.append({"message": message, "severity": severity})
+
+# ===========================================
+# Part 4: Lambda Architecture 통합
+# ===========================================
+
+class LambdaArchitecture:
+    """Lambda Architecture 통합 레이어"""
+
+    def __init__(self, spark: SparkSession):
+        self.spark = spark
+
+    def merge_batch_and_stream(self, batch_path: str, stream_path: str):
+        """배치와 스트리밍 결과 병합"""
+        # TODO: UNION 또는 MERGE 로직
+        pass
+
+    def create_serving_view(self, view_name: str):
+        """서빙 레이어 View 생성"""
+        # TODO: 최신 데이터 우선 View
+        pass
+
+    def validate_consistency(self, batch_df, stream_df):
+        """배치/스트리밍 일관성 검증"""
+        # TODO: 결과 비교 로직
+        pass
+
+# ===========================================
+# Part 5: 메트릭 수집
+# ===========================================
+
+class StreamingMetrics:
+    """스트리밍 메트릭 수집"""
+
+    def __init__(self):
+        self.metrics = {}
+
+    def collect_from_query(self, query):
+        """StreamingQuery에서 메트릭 수집"""
+        # TODO: lastProgress에서 메트릭 추출
+        pass
+
+    def get_processing_rate(self) -> float:
+        """처리율 (records/sec)"""
+        # TODO: inputRowsPerSecond 반환
+        pass
+
+    def get_latency(self) -> float:
+        """처리 지연 시간 (ms)"""
+        # TODO: triggerExecution 시간 반환
+        pass
+
+    def report(self) -> Dict[str, Any]:
+        """메트릭 리포트"""
+        return self.metrics
+
+# ===========================================
+# 메인 실행
+# ===========================================
+
+def create_spark_session():
+    """스트리밍용 Spark 세션 생성"""
+    return SparkSession.builder \\
+        .appName("StreamingChallenge") \\
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \\
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \\
+        .config("spark.sql.streaming.schemaInference", "true") \\
+        .master("local[*]") \\
+        .getOrCreate()
+
+
+if __name__ == "__main__":
+    print("=" * 60)
+    print("실시간 스트리밍 파이프라인 도전과제")
+    print("=" * 60)
+
+    # Spark 세션 생성
+    spark = create_spark_session()
+
+    # 스트리밍 파이프라인 초기화
+    pipeline = StreamingPipeline(spark)
+
+    # 알림 관리자 초기화
+    alert_manager = AlertManager(error_threshold=0.05)
+
+    # 메트릭 수집기 초기화
+    metrics = StreamingMetrics()
+
+    # TODO: 파이프라인 실행 로직 구현
+    # 1. Kafka 스트림 읽기
+    # 2. 이벤트 파싱 및 변환
+    # 3. 윈도우 집계
+    # 4. Delta Lake 쓰기
+    # 5. 알림 설정
+    # 6. 메트릭 수집
+
+    print("\\n파이프라인이 시작되면 Kafka 메시지를 기다립니다...")
+`,
+      hints: [
+        'withWatermark는 groupBy 전에 적용해야 함',
+        'foreachBatch로 배치마다 커스텀 로직 실행 가능',
+        'checkpointLocation은 스트리밍 쿼리마다 고유해야 함',
+        'outputMode: append는 새 데이터만, complete는 전체 결과',
+        'trigger(processingTime="1 minute")로 처리 주기 설정',
+        'Kafka Consumer Lag는 토픽 offset 차이로 계산'
+      ]
+    }
   }
 ]

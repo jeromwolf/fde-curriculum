@@ -4,9 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 export default function CurriculumPage() {
-  const [activeTab, setActiveTab] = useState<'main' | 'foundry'>('main')
   const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set([1]))
-  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set(['1-2']))
 
   const togglePhase = (phase: number) => {
     setExpandedPhases(prev => {
@@ -15,18 +13,6 @@ export default function CurriculumPage() {
         newSet.delete(phase)
       } else {
         newSet.add(phase)
-      }
-      return newSet
-    })
-  }
-
-  const toggleWeek = (week: string) => {
-    setExpandedWeeks(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(week)) {
-        newSet.delete(week)
-      } else {
-        newSet.add(week)
       }
       return newSet
     })
@@ -229,131 +215,38 @@ export default function CurriculumPage() {
     }
   ]
 
-  const foundryCurriculum = [
-    {
-      week: '1-2',
-      title: 'Foundry Foundations',
-      color: 'bg-cyan-500',
-      borderColor: 'border-cyan-500',
-      lightBg: 'bg-cyan-50',
-      days: [
-        { day: '1-3', title: '플랫폼 아키텍처', topics: ['Foundry 전체 아키텍처', 'Workspace Navigator', 'Compass 검색', 'Lineage 이해'], practice: '플랫폼 탐색 실습' },
-        { day: '4-5', title: '데이터 탐색', topics: ['Dataset 구조', 'Contour 분석', '데이터 프리뷰', 'Metadata 관리'], practice: '샘플 데이터셋 분석' },
-        { day: '6-8', title: '권한 모델', topics: ['Organization 구조', 'Project Roles', 'Marking 시스템', '접근 제어'], practice: '프로젝트 권한 설정' },
-        { day: '9-10', title: 'Code Repositories 기초', topics: ['Git 통합', '브랜치 전략', 'Code Review', 'CI Checks'], practice: '첫 번째 Repository 생성' },
-        { day: '11-14', title: 'Pipeline Builder 입문', topics: ['Transform 기초', '노드 연결', '스케줄링', '실행 모니터링'], practice: 'Foundations 배지 도전' }
-      ],
-      output: 'Foundations 배지'
-    },
-    {
-      week: '3-4',
-      title: 'Data Engineering Track',
-      color: 'bg-blue-500',
-      borderColor: 'border-blue-500',
-      lightBg: 'bg-blue-50',
-      days: [
-        { day: '1-3', title: 'Data Connection', topics: ['Source 연결 (JDBC, S3, API)', 'Sync 설정', '증분 로딩', '에러 핸들링'], practice: '외부 데이터 소스 연결' },
-        { day: '4-6', title: 'Pipeline Builder 심화', topics: ['복잡한 Transform', 'Join 전략', '집계 함수', '조건부 로직'], practice: '복잡한 ETL 파이프라인' },
-        { day: '7-8', title: '데이터 품질', topics: ['Data Expectations', '품질 규칙 정의', '모니터링 대시보드', '알림 설정'], practice: '품질 체크 구현' },
-        { day: '9-11', title: 'Code Transforms (PySpark)', topics: ['PySpark in Foundry', '커스텀 함수', '파티셔닝', '성능 최적화'], practice: 'PySpark Transform 작성' },
-        { day: '12-14', title: '멀티 입출력 & 테스트', topics: ['멀티 브랜치 파이프라인', '유닛 테스트', '통합 테스트', '디버깅'], practice: '데이터 파이프라인 프로젝트' }
-      ],
-      output: '데이터 파이프라인 프로젝트'
-    },
-    {
-      week: '5-6',
-      title: 'Ontology & Application',
-      color: 'bg-purple-500',
-      borderColor: 'border-purple-500',
-      lightBg: 'bg-purple-50',
-      days: [
-        { day: '1-3', title: 'Ontology Manager', topics: ['Object Type 생성', 'Property 정의', 'Primary Key 설정', 'Backing Dataset'], practice: '도메인 온톨로지 설계' },
-        { day: '4-5', title: 'Object Links & Actions', topics: ['Link Type 정의', '관계 매핑', 'Action 기초', '파라미터 설정'], practice: '엔티티 관계 모델링' },
-        { day: '6-8', title: 'Workshop 기초', topics: ['Widget 종류', '레이아웃 설계', '데이터 바인딩', '필터링'], practice: '기본 대시보드 구축' },
-        { day: '9-11', title: 'Workshop 심화', topics: ['Variables & Events', '조건부 렌더링', '커스텀 액션', 'Writeback'], practice: '인터랙티브 대시보드' },
-        { day: '12-14', title: 'Quiver & Vertex', topics: ['그래프 시각화', '네트워크 분석', '패턴 탐지', '지도 시각화'], practice: '운영 애플리케이션' }
-      ],
-      output: '운영 애플리케이션'
-    },
-    {
-      week: '7-8',
-      title: 'AIP & Certification',
-      color: 'bg-green-500',
-      borderColor: 'border-green-500',
-      lightBg: 'bg-green-50',
-      days: [
-        { day: '1-3', title: 'AIP 개요 & Logic', topics: ['AIP 아키텍처', 'AIP Logic 함수', 'LLM 통합', '프롬프트 관리'], practice: 'AIP Logic 함수 작성' },
-        { day: '4-6', title: 'Agentic Workflows', topics: ['에이전트 설계', 'Tool 정의', '워크플로우 체이닝', '에러 핸들링'], practice: 'AI 에이전트 구축' },
-        { day: '7-8', title: 'PDF & 문서 처리', topics: ['Document AI', 'PDF 파싱', '정보 추출', '구조화'], practice: '문서 자동 처리 시스템' },
-        { day: '9-11', title: '자격증 복습', topics: ['핵심 개념 정리', '실습 문제', '약점 보완', '팁 & 트릭'], practice: '영역별 복습 퀴즈' },
-        { day: '12-14', title: '모의시험 & 시험', topics: ['모의시험 2회', '오답 분석', '최종 점검', '시험 응시'], practice: '공식 자격증!' }
-      ],
-      output: '공식 자격증!'
-    }
-  ]
-
   const certifications = [
     { name: 'AWS Solutions Architect Associate', month: 7, color: 'bg-orange-100 text-orange-700', details: '공식 시험 | $150' },
     { name: 'Neo4j Certified Professional', month: 6, color: 'bg-purple-100 text-purple-700', details: '무료 시험 | 온라인' }
   ]
 
-  const prerequisites = {
-    main: [
-      { skill: 'Python 기초', level: '필수', description: '변수, 함수, 클래스, 모듈 이해' },
-      { skill: 'SQL 기초', level: '필수', description: 'SELECT, JOIN, GROUP BY 사용 가능' },
-      { skill: 'Git 기초', level: '필수', description: 'clone, commit, push, branch 사용 가능' },
-      { skill: '영어 문서 독해', level: '권장', description: '기술 문서 읽기 가능 수준' },
-      { skill: '통계 기초', level: '권장', description: '평균, 분산, 분포 개념 이해' }
-    ],
-    foundry: [
-      { skill: '메인 과정 수료', level: '필수', description: 'Phase 1~4 완료 또는 동등 경력' },
-      { skill: 'PySpark 경험', level: '필수', description: 'DataFrame API 사용 가능' },
-      { skill: '데이터 모델링', level: '필수', description: 'ERD 설계 경험' },
-      { skill: 'Palantir 계정', level: '필수', description: 'Foundry 환경 접근 필요' }
+  const prerequisites = [
+    { skill: 'Python 기초', level: '필수', description: '변수, 함수, 클래스, 모듈 이해' },
+    { skill: 'SQL 기초', level: '필수', description: 'SELECT, JOIN, GROUP BY 사용 가능' },
+    { skill: 'Git 기초', level: '필수', description: 'clone, commit, push, branch 사용 가능' },
+    { skill: '영어 문서 독해', level: '권장', description: '기술 문서 읽기 가능 수준' },
+    { skill: '통계 기초', level: '권장', description: '평균, 분산, 분포 개념 이해' }
+  ]
+
+  const weeklySchedule = {
+    totalHours: 40,
+    breakdown: [
+      { activity: '이론 학습 (강의/문서)', hours: 8 },
+      { activity: '실습 & 코딩', hours: 20 },
+      { activity: '프로젝트 작업', hours: 8 },
+      { activity: '복습 & 퀴즈', hours: 4 }
     ]
   }
 
-  const weeklySchedule = {
-    main: {
-      totalHours: 40,
-      breakdown: [
-        { activity: '이론 학습 (강의/문서)', hours: 8 },
-        { activity: '실습 & 코딩', hours: 20 },
-        { activity: '프로젝트 작업', hours: 8 },
-        { activity: '복습 & 퀴즈', hours: 4 }
-      ]
-    },
-    foundry: {
-      totalHours: 50,
-      breakdown: [
-        { activity: '플랫폼 실습', hours: 25 },
-        { activity: '이론 학습', hours: 10 },
-        { activity: '미니 프로젝트', hours: 10 },
-        { activity: '자격증 준비', hours: 5 }
-      ]
-    }
-  }
-
   const evaluationCriteria = {
-    main: [
+    criteria: [
       { type: '주간 퀴즈', weight: 10, description: '매주 금요일, 객관식+단답형 20문제' },
       { type: '코딩 과제', weight: 30, description: '주 1-2회, GitHub 제출, 코드 리뷰' },
       { type: '월간 프로젝트', weight: 40, description: '매월 1개, 실무 시나리오 기반' },
       { type: '최종 포트폴리오', weight: 20, description: '6개 프로젝트 통합, 발표 평가' }
     ],
-    foundry: [
-      { type: '실습 완료', weight: 30, description: '각 트랙별 핸즈온 완료' },
-      { type: 'Palantir 배지', weight: 20, description: 'Foundations + Track 배지 취득' },
-      { type: '미니 프로젝트', weight: 20, description: '주차별 산출물 제출' },
-      { type: '공식 자격증', weight: 30, description: '시험 합격 (70% 이상)' }
-    ],
     passingScore: 70
   }
-
-  const foundryCertifications = [
-    { name: 'Foundry Data Engineer', color: 'bg-blue-100 text-blue-700 border-blue-300', details: '60문제 | 70% 합격', topics: ['Data Connection', 'Pipeline Builder', 'Code Transforms', 'Data Quality'] },
-    { name: 'Foundry Application Developer', color: 'bg-purple-100 text-purple-700 border-purple-300', details: '60문제 | 70% 합격', topics: ['Ontology Manager', 'Workshop', 'Quiver', 'Functions', 'OSDK'] }
-  ]
 
   const portfolios = [
     { num: 1, title: 'E2E 데이터 파이프라인', phase: 1, stack: 'Python, Spark, Airflow, Delta Lake' },
@@ -366,51 +259,48 @@ export default function CurriculumPage() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
-      <header className={`${activeTab === 'main' ? 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700' : 'bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600'} text-white`}>
+      <header className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-2">
-            {activeTab === 'main' ? (
-              <span className="px-3 py-1 bg-blue-500 rounded-full text-sm font-bold">MAIN COURSE</span>
-            ) : (
-              <span className="px-3 py-1 bg-purple-500 rounded-full text-sm font-bold">SPECIAL COURSE</span>
-            )}
+            <span className="px-3 py-1 bg-blue-500 rounded-full text-sm font-bold">MAIN COURSE</span>
             <span className="px-3 py-1 bg-green-500 rounded-full text-sm font-bold">v3.6</span>
           </div>
-          <h1 className="text-4xl font-bold">{activeTab === 'main' ? 'FDE Academy' : 'Palantir Foundry 스페셜'}</h1>
-          <p className={`${activeTab === 'main' ? 'text-blue-100' : 'text-purple-100'} mt-2 text-lg`}>
-            {activeTab === 'main' ? 'Forward Deployed Engineer 양성 과정 | 12개월 풀타임' : 'Palantir Foundry 전문가 과정 | 2개월 집중 과정'}
+          <h1 className="text-4xl font-bold">FDE Academy</h1>
+          <p className="text-blue-100 mt-2 text-lg">
+            Forward Deployed Engineer 양성 과정 | 12개월 풀타임
           </p>
         </div>
       </header>
 
       <div className="bg-white border-b-2 border-gray-200 sticky top-0 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex">
-            <button onClick={() => setActiveTab('main')} className={`px-8 py-4 font-bold transition-all border-b-4 ${activeTab === 'main' ? 'text-blue-600 border-blue-600 bg-blue-50' : 'text-gray-400 border-transparent hover:text-gray-600 hover:bg-gray-50'}`}>
-              <div className="flex items-center gap-2">
-                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${activeTab === 'main' ? 'bg-blue-600' : 'bg-gray-300'}`}>1</span>
-                <div className="text-left">
-                  <div>메인 과정</div>
-                  <div className="text-xs font-normal opacity-70">12개월 | FDE 기초~실전</div>
-                </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 px-6 py-4">
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-blue-600">1</span>
+              <div className="text-left">
+                <div className="font-bold text-blue-600">메인 과정</div>
+                <div className="text-xs text-gray-500">12개월 | FDE 기초~실전</div>
               </div>
-            </button>
-            <button onClick={() => setActiveTab('foundry')} className={`px-8 py-4 font-bold transition-all border-b-4 ${activeTab === 'foundry' ? 'text-purple-600 border-purple-600 bg-purple-50' : 'text-gray-400 border-transparent hover:text-gray-600 hover:bg-gray-50'}`}>
-              <div className="flex items-center gap-2">
-                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-white ${activeTab === 'foundry' ? 'bg-purple-600' : 'bg-gray-300'}`}>2</span>
-                <div className="text-left">
-                  <div>Foundry 스페셜</div>
-                  <div className="text-xs font-normal opacity-70">2개월 | Palantir 전문</div>
-                </div>
+            </div>
+            <Link
+              href="/specials"
+              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 hover:from-purple-200 hover:to-indigo-200 transition-all"
+            >
+              <span className="text-xl">🎯</span>
+              <div className="text-left">
+                <div className="font-bold">스페셜 과정</div>
+                <div className="text-xs opacity-70">Foundry, AWS, LLM 심화</div>
               </div>
-            </button>
+              <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
           </div>
         </div>
       </div>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {activeTab === 'main' ? (
-          <>
+        <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
                 <div className="text-3xl font-bold text-blue-600">12개월</div>
@@ -487,7 +377,7 @@ export default function CurriculumPage() {
                 <span>📋</span> 선수 과목 (Prerequisites)
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {prerequisites.main.map((req) => (
+                {prerequisites.map((req) => (
                   <div key={req.skill} className="bg-white rounded-lg p-4 border border-yellow-100">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`px-2 py-0.5 rounded text-xs font-bold ${req.level === '필수' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
@@ -507,11 +397,11 @@ export default function CurriculumPage() {
                 <span>⏰</span> 주간 학습 시간
               </h2>
               <div className="flex items-center gap-6 mb-4">
-                <div className="text-4xl font-bold text-indigo-600">{weeklySchedule.main.totalHours}시간</div>
+                <div className="text-4xl font-bold text-indigo-600">{weeklySchedule.totalHours}시간</div>
                 <div className="text-gray-600">/ 주 (풀타임 기준)</div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {weeklySchedule.main.breakdown.map((item) => (
+                {weeklySchedule.breakdown.map((item) => (
                   <div key={item.activity} className="bg-white rounded-lg p-3 border border-indigo-100">
                     <div className="text-2xl font-bold text-indigo-600">{item.hours}h</div>
                     <div className="text-sm text-gray-600">{item.activity}</div>
@@ -530,7 +420,7 @@ export default function CurriculumPage() {
                 <span className="px-3 py-1 bg-emerald-600 text-white rounded-full font-bold">{evaluationCriteria.passingScore}% 이상</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                {evaluationCriteria.main.map((criteria) => (
+                {evaluationCriteria.criteria.map((criteria) => (
                   <div key={criteria.type} className="bg-white rounded-lg p-4 border border-emerald-100">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-semibold text-gray-900">{criteria.type}</span>
@@ -746,152 +636,43 @@ export default function CurriculumPage() {
               </div>
             </div>
           </>
-        ) : (
-          <>
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 mb-8 border border-purple-200">
-              <h2 className="text-2xl font-bold text-purple-800 mb-2">Palantir Foundry 스페셜 과정</h2>
-              <p className="text-gray-600">메인 과정 수료 후 선택 가능 | 2개월 (8주) | 공식 자격증 취득 목표</p>
-            </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-cyan-50 rounded-xl p-5 border border-cyan-100">
-                <div className="text-3xl font-bold text-cyan-600">2개월</div>
-                <div className="text-gray-600 mt-1">학습 기간</div>
-              </div>
-              <div className="bg-green-50 rounded-xl p-5 border border-green-100">
-                <div className="text-3xl font-bold text-green-600">4 Tracks</div>
-                <div className="text-gray-600 mt-1">주차별 학습</div>
-              </div>
-              <div className="bg-purple-50 rounded-xl p-5 border border-purple-100">
-                <div className="text-3xl font-bold text-purple-600">2개</div>
-                <div className="text-gray-600 mt-1">자격증 옵션</div>
-              </div>
-              <div className="bg-blue-50 rounded-xl p-5 border border-blue-100">
-                <div className="text-3xl font-bold text-blue-600">AIP</div>
-                <div className="text-gray-600 mt-1">AI 플랫폼 포함</div>
-              </div>
+        {/* 스페셜 과정 CTA */}
+        <div className="mt-12 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-2xl p-8 text-white">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-sm font-bold mb-4">
+              <span>🎯</span> SPECIAL COURSES
             </div>
-
-            {/* Foundry 선수 과목 */}
-            <div className="bg-yellow-50 rounded-xl p-6 mb-8 border border-yellow-200">
-              <h2 className="text-xl font-bold text-yellow-800 mb-4 flex items-center gap-2">
-                <span>📋</span> 선수 과목 (Prerequisites)
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {prerequisites.foundry.map((req) => (
-                  <div key={req.skill} className="bg-white rounded-lg p-4 border border-yellow-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700">
-                        {req.level}
-                      </span>
-                      <span className="font-semibold text-gray-900">{req.skill}</span>
-                    </div>
-                    <p className="text-sm text-gray-600">{req.description}</p>
-                  </div>
-                ))}
-              </div>
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">
+              전문 분야로 더 깊이 들어가세요
+            </h2>
+            <p className="text-white/90 mb-6">
+              메인 과정 수료 후 또는 병행하여 수강할 수 있는 스페셜 과정이 준비되어 있습니다.
+              Palantir Foundry 자격증, AWS 자격증, LLM 심화, 도메인 특화 과정까지!
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <Link
+                href="/specials/foundry"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-700 rounded-xl font-bold hover:bg-gray-100 transition-colors"
+              >
+                <span>🔷</span>
+                Foundry 스페셜 (8주)
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+              <Link
+                href="/specials"
+                className="inline-flex items-center gap-2 px-6 py-3 border-2 border-white/50 text-white rounded-xl font-bold hover:bg-white/10 transition-colors"
+              >
+                전체 스페셜 과정 보기
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
             </div>
-
-            {/* Foundry 주간 학습 시간 */}
-            <div className="bg-indigo-50 rounded-xl p-6 mb-8 border border-indigo-200">
-              <h2 className="text-xl font-bold text-indigo-800 mb-4 flex items-center gap-2">
-                <span>⏰</span> 주간 학습 시간
-              </h2>
-              <div className="flex items-center gap-6 mb-4">
-                <div className="text-4xl font-bold text-indigo-600">{weeklySchedule.foundry.totalHours}시간</div>
-                <div className="text-gray-600">/ 주 (집중 과정)</div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {weeklySchedule.foundry.breakdown.map((item) => (
-                  <div key={item.activity} className="bg-white rounded-lg p-3 border border-indigo-100">
-                    <div className="text-2xl font-bold text-indigo-600">{item.hours}h</div>
-                    <div className="text-sm text-gray-600">{item.activity}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Foundry 평가 기준 */}
-            <div className="bg-emerald-50 rounded-xl p-6 mb-8 border border-emerald-200">
-              <h2 className="text-xl font-bold text-emerald-800 mb-4 flex items-center gap-2">
-                <span>📊</span> 평가 기준
-              </h2>
-              <div className="mb-4 flex items-center gap-3">
-                <span className="text-gray-600">수료 기준:</span>
-                <span className="px-3 py-1 bg-emerald-600 text-white rounded-full font-bold">{evaluationCriteria.passingScore}% 이상</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                {evaluationCriteria.foundry.map((criteria) => (
-                  <div key={criteria.type} className="bg-white rounded-lg p-4 border border-emerald-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-gray-900">{criteria.type}</span>
-                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-sm font-bold">{criteria.weight}%</span>
-                    </div>
-                    <p className="text-sm text-gray-600">{criteria.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <h2 className="text-2xl font-bold mb-6">주차별 커리큘럼</h2>
-            <div className="space-y-4">
-              {foundryCurriculum.map((weekData) => (
-                <div key={weekData.week} className={`bg-white rounded-xl overflow-hidden border-2 ${weekData.borderColor}`}>
-                  <button onClick={() => toggleWeek(weekData.week)} className="w-full px-6 py-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-12 h-12 rounded-xl ${weekData.color} flex items-center justify-center text-white font-bold`}>W{weekData.week}</div>
-                      <div className="text-left">
-                        <span className="text-lg font-bold text-gray-900">{weekData.title}</span>
-                        <span className="block text-gray-500 text-sm">Week {weekData.week}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-green-600">{weekData.output}</span>
-                      <span className={`text-2xl transition-transform ${expandedWeeks.has(weekData.week) ? 'rotate-180' : ''}`}>▾</span>
-                    </div>
-                  </button>
-                  {expandedWeeks.has(weekData.week) && (
-                    <div className={`px-6 pb-6 ${weekData.lightBg}`}>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                        {weekData.days.map((day) => (
-                          <div key={day.day} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">Day {day.day}</span>
-                            <h5 className="font-semibold text-gray-900 mt-2 mb-2">{day.title}</h5>
-                            <ul className="text-sm text-gray-600 space-y-1 mb-3">
-                              {day.topics.map((topic, i) => (
-                                <li key={i} className="flex items-start gap-1"><span className="text-gray-400">•</span><span>{topic}</span></li>
-                              ))}
-                            </ul>
-                            <div className="text-xs font-medium text-purple-600 pt-2 border-t border-gray-100">💻 {day.practice}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <h2 className="text-2xl font-bold mt-12 mb-6">Palantir 공식 자격증</h2>
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {foundryCertifications.map((cert) => (
-                  <div key={cert.name} className={`rounded-xl p-5 ${cert.color} border-2`}>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-xl font-bold">{cert.name}</h3>
-                      <span className="px-2 py-1 bg-white/50 rounded text-xs">{cert.details}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {cert.topics.map((topic, i) => (
-                        <span key={i} className="px-2 py-1 bg-white/70 rounded text-xs">{topic}</span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
+          </div>
+        </div>
 
         <div className="mt-16 pt-8 border-t border-gray-200 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-full text-gray-600 text-sm">
@@ -900,7 +681,7 @@ export default function CurriculumPage() {
             <span className="text-green-600 font-bold">v3.6</span>
           </div>
           <div className="mt-3 text-xs text-gray-400">
-            마지막 업데이트: 2025-12-25 | Core 6개월 + Specialization 구조, Phase 3 8주 확장
+            마지막 업데이트: 2026-01-13 | 스페셜 과정 분리, Foundry 8주 상세 커리큘럼 추가
           </div>
         </div>
       </main>

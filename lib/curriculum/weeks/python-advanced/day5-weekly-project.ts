@@ -1608,5 +1608,216 @@ Week 1 Python 심화 과정을 완료했습니다.
         '다음 Week로 진행 준비'
       ]
     }
+  },
+  {
+    id: 'project-challenge',
+    type: 'challenge',
+    title: '주간 도전과제: 고급 Python 라이브러리 구현',
+    duration: 60,
+    content: {
+      instructions: `# 주간 도전과제: 고급 Python 라이브러리 구현
+
+## 목표
+이번 주에 배운 **이터레이터, 데코레이터, 컨텍스트 매니저, 타입 힌트**를 활용하여 실무에서 바로 사용할 수 있는 **Rate Limiter 라이브러리**를 구현하세요.
+
+## 도전 과제: Rate Limiter 라이브러리
+
+API 호출 속도 제한을 위한 라이브러리를 구현합니다.
+
+### 평가 기준
+
+#### 1. @rate_limit 데코레이터 (30점)
+| 요구사항 | 점수 |
+|---------|------|
+| 초당 호출 횟수 제한 | 10점 |
+| 슬라이딩 윈도우 알고리즘 | 10점 |
+| 제한 초과 시 예외 발생 또는 대기 | 10점 |
+
+#### 2. 제너레이터 기반 배치 처리 (25점)
+| 요구사항 | 점수 |
+|---------|------|
+| batch_generator(items, batch_size) | 10점 |
+| rate_limited_iter(items, calls_per_sec) | 15점 |
+
+#### 3. 컨텍스트 매니저 (25점)
+| 요구사항 | 점수 |
+|---------|------|
+| RateLimitContext로 구간별 제한 적용 | 15점 |
+| 스레드 안전한 구현 | 10점 |
+
+#### 4. 타입 힌트 & 문서화 (20점)
+| 요구사항 | 점수 |
+|---------|------|
+| mypy --strict 통과 | 10점 |
+| 모든 함수 docstring | 10점 |
+
+## 제출물
+1. \`rate_limiter.py\` (구현 코드)
+2. \`test_rate_limiter.py\` (테스트 코드)
+3. 사용 예제 코드
+
+## 힌트
+- time.sleep()과 time.time()으로 시간 제어
+- collections.deque(maxlen=window_size)로 슬라이딩 윈도우
+- functools.wraps로 데코레이터 메타데이터 보존
+`,
+      starterCode: `"""
+Week 1 도전과제: Rate Limiter 라이브러리
+"""
+
+from __future__ import annotations
+from typing import TypeVar, Callable, Iterator, Generator, Any, ParamSpec
+from collections import deque
+from dataclasses import dataclass
+from functools import wraps
+from contextlib import contextmanager
+import threading
+import time
+
+P = ParamSpec('P')
+R = TypeVar('R')
+T = TypeVar('T')
+
+
+# =============================================================================
+# 1. @rate_limit 데코레이터
+# =============================================================================
+
+class RateLimitExceeded(Exception):
+    """Rate limit 초과 예외"""
+    pass
+
+
+def rate_limit(
+    calls_per_second: float,
+    wait: bool = True
+) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    """함수 호출 속도 제한 데코레이터
+
+    Args:
+        calls_per_second: 초당 최대 호출 횟수
+        wait: True면 대기, False면 예외 발생
+
+    Returns:
+        데코레이터 함수
+
+    Example:
+        @rate_limit(calls_per_second=2, wait=True)
+        def api_call(url: str) -> str:
+            return requests.get(url).text
+    """
+    # TODO: 구현
+    pass
+
+
+# =============================================================================
+# 2. 제너레이터 기반 배치 처리
+# =============================================================================
+
+def batch_generator(
+    items: Iterator[T],
+    batch_size: int
+) -> Generator[list[T], None, None]:
+    """아이템을 배치로 묶어서 yield
+
+    Args:
+        items: 입력 이터레이터
+        batch_size: 배치 크기
+
+    Yields:
+        배치 리스트
+
+    Example:
+        for batch in batch_generator(range(10), 3):
+            print(batch)  # [0,1,2], [3,4,5], [6,7,8], [9]
+    """
+    # TODO: 구현
+    pass
+
+
+def rate_limited_iter(
+    items: Iterator[T],
+    calls_per_second: float
+) -> Generator[T, None, None]:
+    """속도 제한된 이터레이터
+
+    Args:
+        items: 입력 이터레이터
+        calls_per_second: 초당 아이템 처리 횟수
+
+    Yields:
+        아이템 (속도 제한 적용)
+    """
+    # TODO: 구현
+    pass
+
+
+# =============================================================================
+# 3. 컨텍스트 매니저
+# =============================================================================
+
+@dataclass
+class RateLimitStats:
+    """Rate limit 통계"""
+    total_calls: int = 0
+    waited_seconds: float = 0.0
+    exceeded_count: int = 0
+
+
+@contextmanager
+def rate_limit_context(
+    calls_per_second: float,
+    name: str = "default"
+) -> Generator[RateLimitStats, None, None]:
+    """Rate limit 컨텍스트 매니저
+
+    Args:
+        calls_per_second: 초당 최대 호출 횟수
+        name: 컨텍스트 이름 (로깅용)
+
+    Yields:
+        RateLimitStats: 통계 객체
+
+    Example:
+        with rate_limit_context(10, "api_batch") as stats:
+            for item in items:
+                process(item)
+        print(f"Total calls: {stats.total_calls}")
+    """
+    # TODO: 구현
+    pass
+
+
+# =============================================================================
+# 테스트
+# =============================================================================
+
+if __name__ == "__main__":
+    print("=== Rate Limiter 테스트 ===\\n")
+
+    # 1. 데코레이터 테스트
+    print("[1] @rate_limit 데코레이터 테스트")
+    # TODO: rate_limit 데코레이터 테스트
+
+    # 2. batch_generator 테스트
+    print("\\n[2] batch_generator 테스트")
+    # TODO: batch_generator 테스트
+
+    # 3. rate_limited_iter 테스트
+    print("\\n[3] rate_limited_iter 테스트")
+    # TODO: rate_limited_iter 테스트
+
+    # 4. 컨텍스트 매니저 테스트
+    print("\\n[4] rate_limit_context 테스트")
+    # TODO: rate_limit_context 테스트
+`,
+      hints: [
+        'deque(maxlen=N)으로 최근 N개 호출 시간 기록',
+        'time.time() - window[0] > 1.0이면 슬라이딩 윈도우 이동',
+        'threading.Lock()으로 스레드 안전성 확보',
+        'yield from으로 제너레이터 위임',
+        '@wraps(func)로 데코레이터 메타데이터 보존'
+      ]
+    }
   }
 ]

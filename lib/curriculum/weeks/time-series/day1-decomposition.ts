@@ -302,17 +302,20 @@ print(f"계절 제거 후: {df['deseasonalized'].std():.2f}")
         {
           question: '시계열의 3가지 구성 요소는?',
           options: ['Mean, Median, Mode', 'Trend, Seasonal, Residual', 'X, Y, Z', 'Input, Output, Error'],
-          answer: 1
+          answer: 1,
+          explanation: '시계열은 Trend(추세, 장기적 증가/감소), Seasonal(계절성, 주기적 반복 패턴), Residual(잔차, 설명되지 않는 노이즈)의 세 가지 구성 요소로 분해됩니다. 이 분해를 통해 각 성분을 독립적으로 분석하고 예측에 활용할 수 있습니다.'
         },
         {
           question: 'Multiplicative 분해를 사용해야 할 때는?',
           options: ['계절 변동이 일정', '계절 변동이 추세에 비례', '노이즈가 많을 때', '데이터가 적을 때'],
-          answer: 1
+          answer: 1,
+          explanation: 'Multiplicative(승법) 분해는 Y = Trend × Seasonal × Residual로 표현되며, 계절 변동이 추세에 비례하여 커질 때 사용합니다. 예를 들어 매출이 100만원일 때 계절 변동이 10만원이고, 매출이 1000만원이 되면 변동도 100만원으로 커지는 경우입니다. 반면 Additive는 계절 변동이 추세와 무관하게 일정할 때 사용합니다.'
         },
         {
           question: 'period=7의 의미는?',
           options: ['7년 주기', '7개월 주기', '7일(주간) 주기', '7시간 주기'],
-          answer: 2
+          answer: 2,
+          explanation: 'period 파라미터는 계절성의 주기를 지정합니다. period=7은 7개 관측치마다 패턴이 반복된다는 의미로, 일별 데이터에서는 주간 패턴(월-일요일 반복), period=12는 월별 데이터에서 연간 패턴(1-12월 반복)을 의미합니다. 데이터의 빈도에 따라 적절한 주기를 설정해야 합니다.'
         }
       ]
     }

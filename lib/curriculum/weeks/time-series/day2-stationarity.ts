@@ -320,17 +320,20 @@ print(f"\\n추천 ARIMA 차수: ({significant_lags}, 1, {significant_acf})")
         {
           question: 'ADF 검정에서 p-value < 0.05면?',
           options: ['비정상', '정상', '차분 필요', '계절성 있음'],
-          answer: 1
+          answer: 1,
+          explanation: 'ADF(Augmented Dickey-Fuller) 검정의 귀무가설(H0)은 "시계열이 비정상(단위근 존재)"입니다. p-value < 0.05면 귀무가설을 기각하여 시계열이 정상임을 의미합니다. 정상 시계열은 평균과 분산이 시간에 따라 일정하여 ARIMA 등 전통 모델에 적합합니다.'
         },
         {
           question: 'ACF가 천천히 감소하면 의미는?',
           options: ['정상', '비정상 (차분 필요)', '계절성 없음', 'MA 모델 적합'],
-          answer: 1
+          answer: 1,
+          explanation: 'ACF(자기상관함수)가 lag이 증가해도 천천히 감소하며 0에 가까워지지 않으면 비정상 시계열의 특징입니다. 이는 추세나 높은 자기상관이 존재함을 나타내며, 차분(differencing)을 통해 정상화해야 합니다. 정상 시계열의 ACF는 빠르게 0으로 수렴합니다.'
         },
         {
           question: 'PACF가 lag 2에서 절단되면 적합한 모델은?',
           options: ['MA(2)', 'AR(2)', 'ARIMA(0,1,2)', 'ARIMA(2,0,0)'],
-          answer: 1
+          answer: 1,
+          explanation: 'PACF(부분자기상관함수)에서 lag p 이후 급격히 0으로 절단되면 AR(p) 모델이 적합합니다. lag 2에서 절단되면 AR(2) 모델을 의미합니다. 반대로 ACF가 절단되면 MA(q) 모델, 둘 다 천천히 감소하면 ARMA 또는 ARIMA 모델을 고려합니다.'
         }
       ]
     }

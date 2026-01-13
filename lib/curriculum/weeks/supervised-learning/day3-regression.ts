@@ -300,23 +300,266 @@ print(comparison)
         {
           question: 'Lasso 규제의 특징은?',
           options: ['계수를 작게 만듦', '일부 계수를 0으로 만듦', '계수를 크게 만듦', '계수 부호 변경'],
-          answer: 1
+          answer: 1,
+          explanation: 'Lasso(L1 규제)는 비용 함수에 계수의 절대값 합을 추가합니다. 이로 인해 일부 계수가 정확히 0이 되어 자연스러운 피처 선택 효과가 있습니다.'
         },
         {
           question: 'RMSE와 MAE 중 이상치에 더 민감한 것은?',
           options: ['RMSE', 'MAE', '둘 다 동일', '상황에 따라 다름'],
-          answer: 0
+          answer: 0,
+          explanation: 'RMSE는 오차를 제곱하므로 큰 오차에 더 큰 페널티를 부여합니다. 이상치가 있으면 RMSE가 급격히 증가하지만, MAE는 절대값만 사용하므로 상대적으로 안정적입니다.'
         },
         {
           question: 'R² = 0.8의 의미는?',
           options: ['80% 정확도', '80% 분산 설명', '20% 오류율', '0.8 상관계수'],
-          answer: 1
+          answer: 1,
+          explanation: 'R²(결정계수)는 모델이 타겟 변수의 분산을 얼마나 설명하는지 나타냅니다. 0.8은 80%의 분산을 설명한다는 의미로, 1에 가까울수록 좋습니다.'
         },
         {
           question: '과적합 방지에 효과적인 규제는?',
           options: ['규제 없음', 'Ridge (L2)', '학습률 증가', '더 많은 피처'],
-          answer: 1
+          answer: 1,
+          explanation: 'Ridge(L2 규제)는 계수를 작게 만들어 모델의 복잡도를 낮춥니다. 이로 인해 학습 데이터에 과도하게 맞추는 것을 방지하여 일반화 성능이 향상됩니다.'
         }
+      ]
+    }
+  },
+  {
+    id: 'p2w5d3t4',
+    type: 'video',
+    title: '앙상블 회귀: Stacking & Blending',
+    duration: 20,
+    content: {
+      videoUrl: 'https://www.youtube.com/watch?v=placeholder',
+      transcript: `# 앙상블 회귀: Stacking & Blending
+
+## 앙상블의 종류
+
+\`\`\`
+1. Bagging (Random Forest)
+   - 병렬 학습
+   - 분산 감소
+
+2. Boosting (XGBoost, LightGBM)
+   - 순차 학습
+   - 편향 감소
+
+3. Stacking (오늘 배울 것)
+   - 메타 모델 학습
+   - 다양한 모델의 장점 결합
+\`\`\`
+
+## Stacking 기본 개념
+
+\`\`\`
+Level 0 (Base Models):
+├── Linear Regression → pred_lr
+├── Random Forest    → pred_rf
+└── XGBoost         → pred_xgb
+
+Level 1 (Meta Model):
+└── [pred_lr, pred_rf, pred_xgb] → Final Prediction
+\`\`\`
+
+## sklearn StackingRegressor
+
+\`\`\`python
+from sklearn.ensemble import StackingRegressor
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.ensemble import RandomForestRegressor
+import xgboost as xgb
+
+# Base models
+estimators = [
+    ('lr', Ridge(alpha=1.0)),
+    ('rf', RandomForestRegressor(n_estimators=100, random_state=42)),
+    ('xgb', xgb.XGBRegressor(n_estimators=100, random_state=42))
+]
+
+# Stacking
+stacking_reg = StackingRegressor(
+    estimators=estimators,
+    final_estimator=LinearRegression(),  # Meta model
+    cv=5,
+    n_jobs=-1
+)
+
+stacking_reg.fit(X_train, y_train)
+y_pred = stacking_reg.predict(X_test)
+\`\`\`
+
+## Blending (간소화된 Stacking)
+
+\`\`\`python
+# Hold-out 방식 (CV 대신)
+X_train_base, X_val, y_train_base, y_val = train_test_split(
+    X_train, y_train, test_size=0.2, random_state=42
+)
+
+# Base models 학습
+models = [Ridge(), RandomForestRegressor(), xgb.XGBRegressor()]
+blend_train = np.zeros((len(X_val), len(models)))
+blend_test = np.zeros((len(X_test), len(models)))
+
+for i, model in enumerate(models):
+    model.fit(X_train_base, y_train_base)
+    blend_train[:, i] = model.predict(X_val)
+    blend_test[:, i] = model.predict(X_test)
+
+# Meta model
+meta_model = LinearRegression()
+meta_model.fit(blend_train, y_val)
+final_pred = meta_model.predict(blend_test)
+\`\`\`
+
+## 주의사항
+
+\`\`\`
+✅ 좋은 실천:
+- 다양한 유형의 모델 조합 (선형 + 트리)
+- 충분한 CV 폴드 (최소 5개)
+- 적절한 메타 모델 선택
+
+❌ 피해야 할 것:
+- 비슷한 모델만 조합
+- 데이터 누수 (test로 학습)
+- 과도한 복잡도
+\`\`\`
+`,
+      objectives: [
+        'Stacking과 Blending의 차이를 이해한다',
+        'sklearn StackingRegressor를 사용할 수 있다',
+        '효과적인 앙상블 조합을 설계할 수 있다'
+      ],
+      keyPoints: [
+        'Stacking: 메타 모델이 base 예측 조합',
+        'Blending: Hold-out 기반 간소화 버전',
+        '다양한 모델 조합이 핵심',
+        'CV로 데이터 누수 방지'
+      ]
+    }
+  },
+  {
+    id: 'p2w5d3t5',
+    type: 'challenge',
+    title: '도전과제: 주택 가격 예측 경쟁',
+    duration: 35,
+    content: {
+      instructions: `# 도전과제: 주택 가격 예측 모델 최적화
+
+## 목표
+다양한 회귀 모델을 조합하여 최저 RMSE를 달성하세요.
+
+## 요구사항
+
+### 1. 모델 앙상블 구축
+- 최소 3가지 다른 유형의 모델 조합
+- Linear 계열 1개 이상
+- Tree 계열 1개 이상
+- Stacking 또는 평균 앙상블
+
+### 2. 성능 최적화
+- 기준 RMSE: 개별 최고 모델 대비 5% 이상 개선
+- 5-Fold CV로 검증
+- 테스트 세트 최종 평가
+
+### 3. 분석 리포트
+- 각 모델의 기여도 분석
+- 예측 오차 분포 시각화
+- 개선 포인트 정리
+
+## 평가 기준
+
+| 항목 | 점수 |
+|------|------|
+| 앙상블 구성 | 30점 |
+| RMSE 개선율 | 40점 |
+| 분석 품질 | 30점 |
+
+## 보너스
+- 10% 이상 개선: +10점
+- Feature Engineering 추가: +5점
+`,
+      starterCode: `"""
+주택 가격 예측 도전과제
+목표: 앙상블로 RMSE 5% 이상 개선
+"""
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge, Lasso, ElasticNet
+from sklearn.ensemble import RandomForestRegressor, StackingRegressor
+import xgboost as xgb
+import lightgbm as lgb
+from sklearn.metrics import mean_squared_error
+import warnings
+warnings.filterwarnings('ignore')
+
+# 데이터 생성
+np.random.seed(42)
+n = 1500
+
+df = pd.DataFrame({
+    'sqft': np.random.randint(500, 4000, n),
+    'bedrooms': np.random.randint(1, 6, n),
+    'bathrooms': np.random.randint(1, 4, n),
+    'age': np.random.randint(0, 50, n),
+    'location_score': np.random.uniform(1, 10, n),
+    'garage': np.random.randint(0, 3, n),
+    'pool': np.random.randint(0, 2, n),
+})
+
+df['price'] = (
+    df['sqft'] * 150 +
+    df['bedrooms'] * 15000 +
+    df['bathrooms'] * 20000 -
+    df['age'] * 2500 +
+    df['location_score'] * 25000 +
+    df['garage'] * 15000 +
+    df['pool'] * 30000 +
+    np.random.normal(0, 35000, n)
+)
+
+X = df.drop('price', axis=1)
+y = df['price']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+print(f"데이터: {len(X_train)} train, {len(X_test)} test")
+print(f"평균 가격: $" + f"{y.mean():,.0f}")
+
+# =============================================================================
+# 1. 개별 모델 성능 확인
+# =============================================================================
+print("\\n=== 1. 개별 모델 RMSE ===")
+
+# TODO: 각 모델의 CV RMSE 계산
+
+# =============================================================================
+# 2. 앙상블 구축
+# =============================================================================
+print("\\n=== 2. 앙상블 모델 ===")
+
+# TODO: Stacking 또는 평균 앙상블 구현
+
+# =============================================================================
+# 3. 결과 분석
+# =============================================================================
+print("\\n=== 3. 결과 분석 ===")
+
+# TODO: 개선율 계산 및 분석
+`,
+      hints: [
+        'StackingRegressor(estimators=[...], final_estimator=Ridge())',
+        '선형 모델은 스케일링된 데이터 사용',
+        'CV scoring="neg_root_mean_squared_error"',
+        '앙상블 = 다양성이 핵심 (서로 다른 유형 조합)'
       ]
     }
   }

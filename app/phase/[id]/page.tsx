@@ -32,6 +32,11 @@ const phaseInfo: Record<string, { title: string; color: string; description: str
     color: 'red',
     description: '도메인별 실전 프로젝트와 취업 준비'
   },
+  '7': {
+    title: 'Palantir Foundry 스페셜',
+    color: 'indigo',
+    description: 'Foundry 플랫폼 마스터 및 자격증 취득 (2개월 집중 과정)'
+  },
 }
 
 export async function generateStaticParams() {
@@ -42,6 +47,7 @@ export async function generateStaticParams() {
     { id: '4' },
     { id: '5' },
     { id: '6' },
+    { id: '7' },
   ]
 }
 
@@ -73,6 +79,7 @@ export default async function PhasePage({ params }: { params: { id: string } }) 
     green: { gradient: 'from-green-600 to-green-700', bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' },
     orange: { gradient: 'from-orange-600 to-orange-700', bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200' },
     red: { gradient: 'from-red-600 to-red-700', bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200' },
+    indigo: { gradient: 'from-indigo-600 to-indigo-700', bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-200' },
   }
 
   const colors = colorClasses[info.color]

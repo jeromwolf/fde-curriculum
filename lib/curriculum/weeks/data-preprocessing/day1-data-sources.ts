@@ -633,27 +633,32 @@ scores = generate_quality_report(df)
         {
           question: '데이터 품질 6차원 중 "데이터가 실제와 일치하는가?"를 평가하는 차원은?',
           options: ['완전성 (Completeness)', '정확성 (Accuracy)', '일관성 (Consistency)', '유효성 (Validity)'],
-          answer: 1
+          answer: 1,
+          explanation: '정확성(Accuracy)은 데이터가 실제 값과 일치하는지를 평가합니다. 완전성은 결측치 여부, 일관성은 시스템 간 데이터 일치, 유효성은 형식이 올바른지를 평가합니다.'
         },
         {
           question: '결측률이 50% 이상인 컬럼에 대한 일반적인 권장 처리 방법은?',
           options: ['평균값으로 대체', '중앙값으로 대체', 'KNN 대체', '컬럼 삭제 고려'],
-          answer: 3
+          answer: 3,
+          explanation: '결측률이 50% 이상이면 대체 방법으로는 신뢰할 수 없는 값이 생성될 수 있어, 컬럼 삭제를 고려해야 합니다. 단, 해당 변수의 중요도와 비즈니스 맥락을 함께 고려해야 합니다.'
         },
         {
           question: '데이터 카탈로그의 주요 역할이 아닌 것은?',
           options: ['메타데이터 관리', '데이터 소유자 명시', '데이터 변환 수행', '접근 권한 관리'],
-          answer: 2
+          answer: 2,
+          explanation: '데이터 카탈로그는 메타데이터 관리, 데이터 소유자 명시, 접근 권한 관리를 담당합니다. 데이터 변환은 ETL 파이프라인이나 데이터 엔지니어링 도구에서 수행합니다.'
         },
         {
           question: 'CRM 시스템에서 일반적으로 관리하는 데이터 유형은?',
           options: ['재고, 구매', '고객, 영업', '물류, 배송', '재무, 원가'],
-          answer: 1
+          answer: 1,
+          explanation: 'CRM(Customer Relationship Management)은 고객 정보와 영업 데이터를 관리합니다. 재고/구매는 ERP, 물류/배송은 WMS, 재무/원가도 ERP에서 주로 관리합니다.'
         },
         {
           question: '이메일 형식 검증에 사용하는 기법은?',
           options: ['IQR 방법', '정규식 (Regex)', 'Z-score', 'KNN'],
-          answer: 1
+          answer: 1,
+          explanation: '정규식(Regular Expression)은 문자열 패턴을 정의하여 이메일, 전화번호 등의 형식을 검증합니다. IQR과 Z-score는 이상치 탐지, KNN은 결측치 대체에 사용됩니다.'
         }
       ]
     }

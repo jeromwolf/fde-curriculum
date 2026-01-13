@@ -351,17 +351,20 @@ print(f"주간 패턴: ±{np.sqrt(model.coef_[3]**2 + model.coef_[4]**2) * 100:.
         {
           question: 'Prophet에서 필수 컬럼은?',
           options: ['date, value', 'ds, y', 'time, target', 'x, y'],
-          answer: 1
+          answer: 1,
+          explanation: 'Prophet은 특정 컬럼명을 요구합니다: ds(datetime string)는 날짜/시간, y는 예측 대상 값입니다. 기존 컬럼명을 rename(columns={"date": "ds", "value": "y"})로 변환해야 합니다. 예측 결과에는 yhat(예측값), yhat_lower/yhat_upper(신뢰구간)가 포함됩니다.'
         },
         {
           question: 'changepoint_prior_scale을 높이면?',
           options: ['추세가 더 smooth', '추세가 더 유연 (변동 큼)', '계절성 증가', '노이즈 감소'],
-          answer: 1
+          answer: 1,
+          explanation: 'changepoint_prior_scale은 추세 변화점(changepoint)의 유연성을 조절합니다. 값을 높이면 추세가 더 급격하게 변할 수 있어 유연해지고, 낮추면(기본값 0.05) 추세가 더 smooth해집니다. 과적합이 우려되면 낮추고, 급격한 추세 변화를 잡으려면 높입니다.'
         },
         {
           question: 'MAPE가 5%라면?',
           options: ['나쁜 모델', '평균 오차 5%', 'R² 0.05', '5일 후 예측'],
-          answer: 1
+          answer: 1,
+          explanation: 'MAPE(Mean Absolute Percentage Error)는 예측 오차를 백분율로 나타냅니다. MAPE 5%는 예측값이 실제값 대비 평균 5% 차이가 난다는 의미입니다. 일반적으로 MAPE < 10%면 좋은 모델, < 5%면 매우 정확한 모델로 평가됩니다. 수요 예측에서 널리 사용되는 지표입니다.'
         }
       ]
     }

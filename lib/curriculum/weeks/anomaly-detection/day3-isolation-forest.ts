@@ -344,17 +344,20 @@ print(f"ROC-AUC: {roc_auc_score(y_true, y_score):.4f}")
         {
           question: 'Isolation Forest에서 이상치의 경로 길이는?',
           options: ['길다', '짧다', '평균과 같다', '무작위'],
-          answer: 1
+          answer: 1,
+          explanation: 'Isolation Forest의 핵심 아이디어는 "이상치는 고립시키기 쉽다"입니다. 이상치는 데이터 중심에서 떨어져 있어 적은 분할(짧은 경로)로 고립되고, 정상 데이터는 많은 분할이 필요합니다.'
         },
         {
           question: 'contamination 파라미터의 의미는?',
           options: ['트리 수', '최대 깊이', '예상 이상치 비율', '샘플 수'],
-          answer: 2
+          answer: 2,
+          explanation: 'contamination은 데이터셋에서 예상되는 이상치 비율을 지정합니다. 이 값에 따라 decision_function의 임계값이 결정되어, 해당 비율만큼의 데이터가 이상으로 분류됩니다.'
         },
         {
           question: 'Isolation Forest의 시간 복잡도는?',
           options: ['O(n)', 'O(n log n)', 'O(n²)', 'O(n³)'],
-          answer: 1
+          answer: 1,
+          explanation: 'Isolation Forest는 O(n log n) 시간 복잡도로 매우 빠릅니다. 각 트리가 랜덤 분할로 log n 깊이를 가지고, n개 샘플을 처리하기 때문입니다. 대용량 데이터에 적합합니다.'
         }
       ]
     }

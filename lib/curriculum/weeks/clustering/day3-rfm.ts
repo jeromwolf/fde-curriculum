@@ -283,18 +283,246 @@ for segment, strategy in strategies.items():
         {
           question: 'RFM에서 R(Recency)이 낮을수록 의미하는 것은?',
           options: ['오래된 고객', '최근에 구매한 고객', '자주 구매하는 고객', '많이 구매하는 고객'],
-          answer: 1
+          answer: 1,
+          explanation: 'Recency는 마지막 구매일로부터 경과한 일수입니다. 값이 낮을수록 최근에 구매했다는 의미로, 더 가치 있는 고객입니다.'
         },
         {
           question: 'At Risk 세그먼트의 특징은?',
           options: ['최근 구매, 높은 빈도', '이전엔 자주 구매, 최근 없음', '신규 고객', '최고 고객'],
-          answer: 1
+          answer: 1,
+          explanation: 'At Risk는 과거에는 자주 구매했지만(높은 F) 최근에는 구매가 없는(낮은 R) 고객입니다. 이탈 위험이 높아 재활성화 캠페인이 필요합니다.'
         },
         {
           question: 'Champions 세그먼트에 적합한 전략은?',
           options: ['대폭 할인', 'VIP 프로그램', '재활성화 캠페인', '온보딩 이메일'],
-          answer: 1
+          answer: 1,
+          explanation: 'Champions는 R,F,M 모두 높은 최고 가치 고객입니다. 할인보다는 VIP 프로그램, 신제품 우선 안내, 브랜드 앰배서더 역할 등으로 관계를 강화합니다.'
         }
+      ]
+    }
+  },
+  {
+    id: 'p2w6d3t4',
+    type: 'video',
+    title: 'RFM 고급 기법과 실전 팁',
+    duration: 18,
+    content: {
+      videoUrl: 'https://www.youtube.com/watch?v=placeholder',
+      transcript: `# RFM 고급 기법과 실전 팁
+
+## 1. RFM + 클러스터링 결합
+
+\`\`\`python
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+# RFM 값으로 클러스터링
+features = ['Recency', 'Frequency', 'Monetary']
+scaler = StandardScaler()
+rfm_scaled = scaler.fit_transform(rfm[features])
+
+# K-means 적용
+kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
+rfm['cluster'] = kmeans.fit_predict(rfm_scaled)
+
+# 클러스터별 RFM 프로파일
+cluster_profile = rfm.groupby('cluster')[features].mean()
+print(cluster_profile.round(1))
+\`\`\`
+
+## 2. RFM 가중치 적용
+
+비즈니스에 따라 R,F,M의 중요도가 다름
+
+\`\`\`python
+# 방법 1: 가중 합계
+weights = {'R': 0.3, 'F': 0.3, 'M': 0.4}  # 금액 중시
+rfm['weighted_score'] = (
+    rfm['R_Score'].astype(int) * weights['R'] +
+    rfm['F_Score'].astype(int) * weights['F'] +
+    rfm['M_Score'].astype(int) * weights['M']
+)
+
+# 방법 2: FM 점수 (SaaS에서 자주 사용)
+# Recency 제외, Frequency와 Monetary만 고려
+rfm['FM_Score'] = rfm['F_Score'].astype(int) + rfm['M_Score'].astype(int)
+\`\`\`
+
+## 3. RFM 세그먼트 자동화
+
+\`\`\`python
+# 세그먼트 매핑 테이블
+seg_map = {
+    r'[4-5][4-5]': 'Champions',
+    r'[2-5][4-5]': 'Loyal',
+    r'[4-5][2-3]': 'Potential',
+    r'[4-5][0-1]': 'New',
+    r'[0-2][2-5]': 'At Risk',
+    r'[0-2][0-1]': 'Lost'
+}
+
+# RF 점수로 세그먼트 결정
+rfm['RF'] = rfm['R_Score'].astype(str) + rfm['F_Score'].astype(str)
+
+def map_segment(rf):
+    import re
+    for pattern, segment in seg_map.items():
+        if re.match(pattern, rf):
+            return segment
+    return 'Others'
+
+rfm['segment'] = rfm['RF'].apply(map_segment)
+\`\`\`
+
+## 4. RFM 대시보드 지표
+
+\`\`\`python
+# 핵심 KPI
+kpis = {
+    '총 고객 수': len(rfm),
+    'Champions 비율': f"{(rfm['segment']=='Champions').mean()*100:.1f}%",
+    'At Risk 비율': f"{(rfm['segment']=='At Risk').mean()*100:.1f}%",
+    'Champions 매출 기여': f"{rfm[rfm['segment']=='Champions']['Monetary'].sum() / rfm['Monetary'].sum() * 100:.1f}%",
+    '평균 CLV': '$' + f"{rfm['Monetary'].mean():,.0f}"
+}
+
+for key, value in kpis.items():
+    print(f"{key}: {value}")
+\`\`\`
+
+## 5. 실전 주의사항
+
+\`\`\`
+✅ 좋은 실천:
+- 분석 기간 설정 (최근 1년? 2년?)
+- 비즈니스 맥락에 맞는 세그먼트 정의
+- 정기적 업데이트 (월간/분기별)
+- A/B 테스트로 전략 검증
+
+❌ 피해야 할 것:
+- 단발성 분석으로 끝내기
+- 모든 세그먼트에 같은 전략
+- 과도한 세분화 (3-7개가 적당)
+- 실행 없는 분석
+\`\`\`
+`,
+      objectives: [
+        'RFM과 클러스터링을 결합할 수 있다',
+        'RFM 가중치를 비즈니스에 맞게 조정할 수 있다',
+        'RFM 대시보드 KPI를 설계할 수 있다'
+      ],
+      keyPoints: [
+        'RFM + K-means로 더 정교한 세그먼트',
+        '가중치로 비즈니스 특성 반영',
+        'Champions 매출 기여도 추적',
+        '정기 업데이트와 A/B 테스트 필수'
+      ]
+    }
+  },
+  {
+    id: 'p2w6d3t5',
+    type: 'challenge',
+    title: '도전과제: RFM 대시보드 구축',
+    duration: 35,
+    content: {
+      instructions: `# 도전과제: RFM 분석 대시보드
+
+## 목표
+RFM 분석 결과를 시각화하는 종합 대시보드를 구축하세요.
+
+## 요구사항
+
+### 1. RFM 분석 (30점)
+- RFM 계산 및 5분위 점수화
+- 세그먼트 정의 (최소 6개)
+- 세그먼트별 고객 수와 비율
+
+### 2. 시각화 대시보드 (40점)
+- 세그먼트별 파이 차트
+- RFM 히트맵 (R점수 × F점수 매트릭스)
+- 세그먼트별 Monetary 박스플롯
+- 3D 산점도 (R, F, M 축)
+
+### 3. 비즈니스 인사이트 (30점)
+- 세그먼트별 매출 기여도 분석
+- 이탈 위험 고객 리스트 (상위 20명)
+- 세그먼트별 마케팅 전략 제안
+
+## 평가 기준
+
+| 항목 | 점수 |
+|------|------|
+| RFM 분석 정확성 | 30점 |
+| 시각화 품질 | 40점 |
+| 인사이트 실용성 | 30점 |
+
+## 보너스
+- RFM + K-means 결합 분석: +10점
+- CLV 추정 추가: +5점
+`,
+      starterCode: `"""
+RFM 대시보드 도전과제
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# 주문 데이터 생성
+np.random.seed(42)
+n_customers = 1000
+n_orders = 15000
+
+orders = pd.DataFrame({
+    'order_id': range(n_orders),
+    'customer_id': np.random.randint(1, n_customers + 1, n_orders),
+    'order_date': pd.date_range('2022-01-01', periods=n_orders, freq='35min'),
+    'amount': np.abs(np.random.exponential(75, n_orders))
+})
+
+# VIP 패턴
+vip_ids = np.random.choice(range(1, 101), 50, replace=False)
+for cust in vip_ids:
+    mask = orders['customer_id'] == cust
+    orders.loc[mask, 'amount'] *= 3
+
+# 휴면 패턴
+dormant_ids = np.random.choice(range(500, 700), 100, replace=False)
+for cust in dormant_ids:
+    mask = orders['customer_id'] == cust
+    orders.loc[mask, 'order_date'] -= pd.Timedelta(days=180)
+
+print(f"주문 수: {len(orders)}")
+print(f"고객 수: {orders['customer_id'].nunique()}")
+print(f"기간: {orders['order_date'].min()} ~ {orders['order_date'].max()}")
+
+# =============================================================================
+# 1. RFM 분석
+# =============================================================================
+print("\\n=== 1. RFM 분석 ===")
+
+# TODO: RFM 계산 및 세그먼트 정의
+
+# =============================================================================
+# 2. 시각화 대시보드
+# =============================================================================
+print("\\n=== 2. 시각화 대시보드 ===")
+
+# TODO: 4개 시각화 (파이, 히트맵, 박스플롯, 3D)
+
+# =============================================================================
+# 3. 비즈니스 인사이트
+# =============================================================================
+print("\\n=== 3. 비즈니스 인사이트 ===")
+
+# TODO: 매출 기여도, 이탈 위험 고객, 마케팅 전략
+`,
+      hints: [
+        'pd.qcut으로 5분위 점수화',
+        'plt.subplot(2, 2, n)으로 대시보드 레이아웃',
+        'pd.crosstab()으로 히트맵 데이터 생성',
+        'fig.add_subplot(projection="3d")로 3D 플롯'
       ]
     }
   }

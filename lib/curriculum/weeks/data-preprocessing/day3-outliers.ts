@@ -617,27 +617,32 @@ print("\\n처리 완료!")
         {
           question: 'IQR 방법에서 이상치로 판단하는 기준은?',
           options: ['평균 ± 2 표준편차', 'Q1 - 1.5*IQR ~ Q3 + 1.5*IQR 범위 밖', 'Z-score > 2', '상위/하위 5%'],
-          answer: 1
+          answer: 1,
+          explanation: 'IQR(Interquartile Range) 방법은 Q1 - 1.5×IQR보다 작거나 Q3 + 1.5×IQR보다 큰 값을 이상치로 판단합니다. 분포 가정이 없어 다양한 데이터에 적용 가능합니다.'
         },
         {
           question: 'Winsorizing의 특징이 아닌 것은?',
           options: ['데이터 개수가 유지된다', '극단값을 경계값으로 대체한다', '분포 형태가 크게 변한다', '정보 손실이 적다'],
-          answer: 2
+          answer: 2,
+          explanation: 'Winsorizing은 극단값을 경계값(예: 1%, 99% 퍼센타일)으로 대체합니다. 데이터 개수가 유지되고 정보 손실이 적지만, 분포 형태가 크게 변하지는 않고 꼬리 부분만 조정됩니다.'
         },
         {
           question: '오른쪽 꼬리가 긴 분포의 이상치 처리에 적합한 방법은?',
           options: ['Z-score 제거', '평균으로 대체', '로그 변환', 'IQR 제거'],
-          answer: 2
+          answer: 2,
+          explanation: '로그 변환은 오른쪽으로 치우친(positively skewed) 분포를 정규분포에 가깝게 만들어 줍니다. 소득, 거래 금액 등 극단적인 큰 값이 많은 데이터에 효과적입니다.'
         },
         {
           question: '다변량 이상치 탐지에 사용되는 거리 지표는?',
           options: ['유클리드 거리', '맨해튼 거리', '마할라노비스 거리', '코사인 유사도'],
-          answer: 2
+          answer: 2,
+          explanation: '마할라노비스 거리는 변수 간 상관관계를 고려한 거리 지표로, 단변량에서는 정상이지만 조합이 이상한 다변량 이상치를 탐지할 수 있습니다.'
         },
         {
           question: 'Modified Z-score (MAD 기반)의 장점은?',
           options: ['계산이 빠르다', '이상치에 강건하다', '정규분포에 최적화되어 있다', '다변량 분석이 가능하다'],
-          answer: 1
+          answer: 1,
+          explanation: 'MAD(Median Absolute Deviation) 기반 Modified Z-score는 중앙값을 사용하므로 이상치의 영향을 받지 않아 강건합니다. 평균과 표준편차를 사용하는 일반 Z-score보다 이상치에 덜 민감합니다.'
         }
       ]
     }

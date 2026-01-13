@@ -295,18 +295,243 @@ for i in range(optimal_k):
         {
           question: 'K-means에서 스케일링이 필요한 이유는?',
           options: ['속도 향상', '거리 계산 시 피처 영향 균등화', '과적합 방지', '결측치 처리'],
-          answer: 1
+          answer: 1,
+          explanation: 'K-means는 유클리드 거리를 사용하므로 스케일이 큰 피처가 과도하게 영향을 미칩니다. 스케일링으로 모든 피처의 영향을 균등하게 만들어야 합니다.'
         },
         {
           question: 'Silhouette Score 0.6의 의미는?',
           options: ['나쁜 클러스터링', '보통', '좋은 클러스터링', '최적'],
-          answer: 2
+          answer: 2,
+          explanation: 'Silhouette Score는 -1~1 범위로, 0.5 이상이면 좋은 클러스터링입니다. 0.6은 클러스터가 잘 분리되어 있음을 의미합니다.'
         },
         {
           question: 'Elbow Method에서 찾는 것은?',
           options: ['최대 inertia', '기울기 급변점', '최소 K', '최대 K'],
-          answer: 1
+          answer: 1,
+          explanation: 'Elbow Method는 K를 증가시키면서 inertia(클러스터 내 거리 합)를 그래프로 그립니다. 기울기가 급격히 완만해지는 "팔꿈치" 지점이 최적 K입니다.'
         }
+      ]
+    }
+  },
+  {
+    id: 'p2w6d1t4',
+    type: 'video',
+    title: 'K-means 한계와 대안 알고리즘',
+    duration: 18,
+    content: {
+      videoUrl: 'https://www.youtube.com/watch?v=placeholder',
+      transcript: `# K-means 한계와 대안 알고리즘
+
+## K-means의 한계
+
+\`\`\`
+1. K를 사전에 지정해야 함
+2. 구형 클러스터만 잘 찾음
+3. 이상치에 민감
+4. 초기값에 따라 결과 달라짐
+5. 밀도가 다른 클러스터 처리 어려움
+\`\`\`
+
+## 대안 알고리즘 비교
+
+### 1. K-means++
+\`\`\`python
+# K-means의 초기화 문제 개선
+kmeans = KMeans(n_clusters=4, init='k-means++', n_init=10)
+# init='k-means++'가 기본값 (sklearn 1.2+)
+\`\`\`
+
+### 2. Mini-Batch K-means
+\`\`\`python
+from sklearn.cluster import MiniBatchKMeans
+
+# 대용량 데이터에 적합 (샘플링 사용)
+mb_kmeans = MiniBatchKMeans(
+    n_clusters=4,
+    batch_size=100,
+    random_state=42
+)
+# K-means보다 10배 이상 빠름, 결과는 유사
+\`\`\`
+
+### 3. DBSCAN (Day 2에서 상세)
+\`\`\`python
+from sklearn.cluster import DBSCAN
+
+# K 지정 불필요, 임의 형태 클러스터
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+# 이상치 자동 분리 (-1 라벨)
+\`\`\`
+
+### 4. Hierarchical Clustering
+\`\`\`python
+from sklearn.cluster import AgglomerativeClustering
+
+# 덴드로그램으로 클러스터 구조 파악
+hierarchical = AgglomerativeClustering(
+    n_clusters=4,
+    linkage='ward'  # 분산 최소화
+)
+\`\`\`
+
+### 5. Gaussian Mixture Model (GMM)
+\`\`\`python
+from sklearn.mixture import GaussianMixture
+
+# 확률적 클러스터링, 소프트 할당
+gmm = GaussianMixture(
+    n_components=4,
+    covariance_type='full',
+    random_state=42
+)
+gmm.fit(X_scaled)
+
+# 각 클러스터에 속할 확률
+probs = gmm.predict_proba(X_scaled)
+print(probs[0])  # [0.1, 0.8, 0.05, 0.05]
+\`\`\`
+
+## 알고리즘 선택 가이드
+
+| 상황 | 추천 알고리즘 |
+|------|---------------|
+| K를 모름 | DBSCAN, Hierarchical |
+| 대용량 데이터 | Mini-Batch K-means |
+| 임의 형태 클러스터 | DBSCAN, Spectral |
+| 확률적 소속 필요 | GMM |
+| 계층 구조 파악 | Hierarchical |
+| 빠른 베이스라인 | K-means |
+`,
+      objectives: [
+        'K-means의 한계를 이해한다',
+        '상황에 맞는 대안 알고리즘을 선택할 수 있다'
+      ],
+      keyPoints: [
+        'K-means: 빠르지만 K 필요, 구형만 처리',
+        'DBSCAN: K 불필요, 이상치 분리',
+        'GMM: 확률적 소속',
+        'Mini-Batch: 대용량에 적합'
+      ]
+    }
+  },
+  {
+    id: 'p2w6d1t5',
+    type: 'challenge',
+    title: '도전과제: 클러스터링 알고리즘 비교',
+    duration: 30,
+    content: {
+      instructions: `# 도전과제: 클러스터링 알고리즘 비교
+
+## 목표
+같은 데이터에 여러 클러스터링 알고리즘을 적용하고 결과를 비교하세요.
+
+## 요구사항
+
+### 1. 3가지 알고리즘 비교
+- K-means
+- DBSCAN
+- Gaussian Mixture Model (GMM)
+
+### 2. 측정 지표
+- Silhouette Score
+- 클러스터 수
+- 이상치/노이즈 비율 (DBSCAN)
+- 실행 시간
+
+### 3. 시각화
+- 각 알고리즘별 클러스터링 결과 (2D PCA)
+- 클러스터 크기 분포 비교
+
+### 4. 분석 리포트
+- 각 알고리즘의 장단점 정리
+- 데이터 특성에 맞는 추천 알고리즘
+
+## 평가 기준
+
+| 항목 | 점수 |
+|------|------|
+| 구현 완성도 | 40점 |
+| 비교 분석 | 30점 |
+| 시각화 품질 | 30점 |
+
+## 보너스
+- Hierarchical Clustering 추가: +10점
+- 3D 시각화: +5점
+`,
+      starterCode: `"""
+클러스터링 알고리즘 비교 도전과제
+"""
+
+import pandas as pd
+import numpy as np
+import time
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans, DBSCAN
+from sklearn.mixture import GaussianMixture
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+from sklearn.decomposition import PCA
+
+# 테스트 데이터 생성 (다양한 형태의 클러스터)
+np.random.seed(42)
+n = 500
+
+# 3개의 다른 형태 클러스터
+cluster1 = np.random.multivariate_normal([0, 0], [[1, 0], [0, 1]], 150)
+cluster2 = np.random.multivariate_normal([5, 5], [[2, 0.5], [0.5, 1]], 200)
+cluster3 = np.random.multivariate_normal([0, 8], [[0.5, 0], [0, 3]], 150)
+
+X = np.vstack([cluster1, cluster2, cluster3])
+true_labels = np.array([0]*150 + [1]*200 + [2]*150)
+
+# 이상치 추가
+outliers = np.random.uniform(-5, 15, (20, 2))
+X = np.vstack([X, outliers])
+true_labels = np.append(true_labels, [-1]*20)
+
+print(f"데이터 Shape: {X.shape}")
+print(f"실제 클러스터: 3개 + 이상치 20개")
+
+# 스케일링
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 결과 저장
+results = []
+
+# =============================================================================
+# 1. K-means
+# =============================================================================
+print("\\n=== 1. K-means ===")
+
+# TODO: K-means 적용 (k=3)
+
+# =============================================================================
+# 2. DBSCAN
+# =============================================================================
+print("\\n=== 2. DBSCAN ===")
+
+# TODO: DBSCAN 적용 (eps, min_samples 조정)
+
+# =============================================================================
+# 3. GMM
+# =============================================================================
+print("\\n=== 3. Gaussian Mixture ===")
+
+# TODO: GMM 적용 (n_components=3)
+
+# =============================================================================
+# 4. 비교 시각화
+# =============================================================================
+print("\\n=== 4. 결과 비교 ===")
+
+# TODO: PCA 2D 시각화, 결과 테이블 출력
+`,
+      hints: [
+        'DBSCAN: eps=0.5, min_samples=5로 시작',
+        'GMM: n_components=3, covariance_type="full"',
+        'DBSCAN 노이즈는 label=-1로 표시됨',
+        'time.time()으로 실행 시간 측정'
       ]
     }
   }

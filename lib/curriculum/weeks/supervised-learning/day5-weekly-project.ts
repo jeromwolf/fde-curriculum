@@ -350,13 +350,190 @@ print("""
         {
           question: 'Lasso 규제의 효과는?',
           options: ['계수 증가', '피처 선택 (일부 계수 0)', '과적합 증가', '학습 속도 향상'],
-          answer: 1
+          answer: 1,
+          explanation: 'Lasso(L1 규제)는 일부 계수를 정확히 0으로 만들어 자동 피처 선택 효과가 있습니다. 불필요한 피처를 제거하여 모델을 단순화합니다.'
         },
         {
           question: 'Optuna의 장점이 아닌 것은?',
           options: ['Bayesian Optimization', 'Pruning', '완전 탐색 보장', '시각화'],
-          answer: 2
+          answer: 2,
+          explanation: 'Optuna는 효율적인 탐색을 위해 Bayesian Optimization을 사용하므로 완전 탐색은 보장하지 않습니다. 대신 유망한 영역을 집중 탐색합니다.'
         }
+      ]
+    }
+  },
+  {
+    id: 'p2w5d5t4',
+    type: 'challenge',
+    title: '주간 도전과제: Kaggle Tabular 경쟁',
+    duration: 60,
+    content: {
+      instructions: `# 주간 도전과제: Kaggle Tabular 분류 경쟁
+
+## 목표
+Kaggle Tabular 데이터셋에서 이번 주 배운 모든 기법을 종합하여 최고 성능을 달성하세요.
+
+## 추천 데이터셋
+
+### 옵션 1: Spaceship Titanic (권장)
+- 13개 피처, 8,700 샘플
+- 이진 분류 (승객 운송 예측)
+- 혼합형 데이터 (수치형 + 범주형)
+- URL: kaggle.com/c/spaceship-titanic
+
+### 옵션 2: Playground Series
+- 매달 새로운 Tabular 대회
+- 다양한 도메인 경험
+
+### 옵션 3: Home Credit Default Risk
+- 고급 피처 엔지니어링 필요
+- 실제 금융 데이터
+
+## 요구사항
+
+### 1. 전체 파이프라인 구축 (25점)
+- 데이터 전처리 (결측치, 인코딩, 스케일링)
+- sklearn Pipeline 사용
+- 재현 가능한 코드
+
+### 2. 다양한 모델 비교 (25점)
+- Logistic Regression (베이스라인)
+- Random Forest
+- XGBoost / LightGBM
+- 5-Fold CV 성능 비교
+
+### 3. 하이퍼파라미터 튜닝 (25점)
+- Optuna로 최적화 (최소 50 trials)
+- 튜닝 전/후 성능 비교
+- 시각화 (파라미터 중요도 등)
+
+### 4. 최종 제출 & 분석 (25점)
+- Kaggle 제출 및 순위 기록
+- 모델 해석 (Feature Importance)
+- 개선 방향 제시
+
+## 평가 기준
+
+| 항목 | 점수 |
+|------|------|
+| 파이프라인 품질 | 25점 |
+| 모델 비교 분석 | 25점 |
+| 튜닝 효과 | 25점 |
+| 제출 & 인사이트 | 25점 |
+
+## 보너스 포인트
+- 상위 25% 진입: +15점
+- Stacking/Blending 앙상블: +10점
+- 노트북 공개 & 피드백 수집: +5점
+
+## 제출물
+1. 코드 (Jupyter Notebook 또는 Python)
+2. 결과 리포트 (마크다운)
+3. Kaggle 제출 스크린샷
+
+## 참고 자료
+- Kaggle Learn: Machine Learning 코스
+- XGBoost/LightGBM 공식 문서
+- Optuna 튜토리얼
+`,
+      starterCode: `"""
+Week 13 주간 도전과제: Kaggle Tabular 경쟁
+Spaceship Titanic 데이터셋
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, StackingClassifier
+import xgboost as xgb
+import lightgbm as lgb
+from sklearn.metrics import classification_report, roc_auc_score, accuracy_score
+import optuna
+import warnings
+warnings.filterwarnings('ignore')
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+# =============================================================================
+# 1. 데이터 로드 (Kaggle에서 다운로드 필요)
+# =============================================================================
+print("=== 1. 데이터 로드 ===")
+
+# Kaggle 데이터 로드 (실제 파일 경로로 수정)
+# train = pd.read_csv('spaceship-titanic/train.csv')
+# test = pd.read_csv('spaceship-titanic/test.csv')
+
+# 데모용 합성 데이터
+np.random.seed(42)
+n = 5000
+
+df = pd.DataFrame({
+    'HomePlanet': np.random.choice(['Earth', 'Europa', 'Mars', None], n, p=[0.5, 0.25, 0.2, 0.05]),
+    'CryoSleep': np.random.choice([True, False, None], n, p=[0.3, 0.65, 0.05]),
+    'Destination': np.random.choice(['TRAPPIST-1e', 'PSO J318.5-22', '55 Cancri e'], n),
+    'Age': np.random.normal(30, 15, n).clip(0, 80),
+    'VIP': np.random.choice([True, False], n, p=[0.1, 0.9]),
+    'RoomService': np.random.exponential(200, n),
+    'FoodCourt': np.random.exponential(300, n),
+    'ShoppingMall': np.random.exponential(150, n),
+    'Spa': np.random.exponential(250, n),
+    'VRDeck': np.random.exponential(200, n),
+})
+
+# 타겟 생성 (일부 패턴 포함)
+df['Transported'] = (
+    (df['CryoSleep'] == True) * 0.3 +
+    (df['Age'] < 25) * 0.2 +
+    (df['RoomService'] < 100) * 0.2 +
+    np.random.randn(n) * 0.3 > 0
+).astype(int)
+
+print(f"Shape: {df.shape}")
+print(f"Transported 비율: {df['Transported'].mean():.1%}")
+
+# =============================================================================
+# 2. 데이터 전처리
+# =============================================================================
+print("\\n=== 2. 데이터 전처리 ===")
+
+# TODO: 결측치 분석
+# TODO: 수치형/범주형 분리
+# TODO: 전처리 파이프라인 구축
+
+# =============================================================================
+# 3. 베이스라인 & 모델 비교
+# =============================================================================
+print("\\n=== 3. 모델 비교 ===")
+
+# TODO: Logistic, RF, XGBoost, LightGBM 비교
+
+# =============================================================================
+# 4. Optuna 튜닝
+# =============================================================================
+print("\\n=== 4. Optuna 튜닝 ===")
+
+# TODO: 최고 모델 튜닝 (50+ trials)
+
+# =============================================================================
+# 5. 최종 모델 & 분석
+# =============================================================================
+print("\\n=== 5. 최종 모델 ===")
+
+# TODO: Feature Importance
+# TODO: 예측 & Kaggle 제출 파일 생성
+
+print("\\n도전과제 완료!")
+`,
+      hints: [
+        'CryoSleep가 중요 피처 - True면 Transported 확률 높음',
+        'RoomService 등 지출 피처 합산하여 새 피처 생성 고려',
+        'ColumnTransformer로 수치형/범주형 분리 처리',
+        'StratifiedKFold로 클래스 비율 유지'
       ]
     }
   }

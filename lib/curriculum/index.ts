@@ -58,6 +58,15 @@ import { capstoneAiRagWeek } from './weeks/capstone-ai-rag'
 import { capstoneAgentWeek } from './weeks/capstone-agent'
 import { capstoneDeploymentWeek } from './weeks/capstone-deployment'
 import { capstoneFinalWeek } from './weeks/capstone-final'
+// Phase 7: Palantir Foundry 스페셜 (Week 1-8)
+import { foundryFoundationsWeek } from './weeks/foundry-foundations'
+import { foundryToolsWeek } from './weeks/foundry-tools'
+import { foundryPipelineWeek } from './weeks/foundry-pipeline'
+import { foundryTransformsWeek } from './weeks/foundry-transforms'
+import { foundryOntologyWeek } from './weeks/foundry-ontology'
+import { foundryWorkshopWeek } from './weeks/foundry-workshop'
+import { foundryAipWeek } from './weeks/foundry-aip'
+import { foundryCertificationWeek } from './weeks/foundry-certification'
 
 import type { Week, Task, Day, Module, Course, TaskContent, QuizQuestion } from './types'
 
@@ -117,6 +126,15 @@ export const curriculum: Week[] = [
   capstoneAgentWeek,
   capstoneDeploymentWeek,
   capstoneFinalWeek,
+  // Phase 7: Palantir Foundry 스페셜 (Week 1-8)
+  foundryFoundationsWeek,
+  foundryToolsWeek,
+  foundryPipelineWeek,
+  foundryTransformsWeek,
+  foundryOntologyWeek,
+  foundryWorkshopWeek,
+  foundryAipWeek,
+  foundryCertificationWeek,
 ]
 
 // Week slug로 찾기

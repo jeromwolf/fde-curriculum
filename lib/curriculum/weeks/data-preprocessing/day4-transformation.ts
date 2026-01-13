@@ -575,27 +575,32 @@ print(f"피처 이름: {feature_names}")
         {
           question: '이상치에 가장 강건한 스케일러는?',
           options: ['StandardScaler', 'MinMaxScaler', 'RobustScaler', 'PowerTransformer'],
-          answer: 2
+          answer: 2,
+          explanation: 'RobustScaler는 중앙값과 IQR을 사용하여 스케일링하므로 이상치의 영향을 받지 않습니다. StandardScaler는 평균/표준편차, MinMaxScaler는 최소/최대값을 사용해 이상치에 민감합니다.'
         },
         {
           question: 'One-Hot Encoding에서 drop="first"를 사용하는 이유는?',
           options: ['계산 속도 향상', '메모리 절약', '다중공선성 방지', '결측치 처리'],
-          answer: 2
+          answer: 2,
+          explanation: 'One-Hot 인코딩된 컬럼들은 합이 항상 1이 되어 다중공선성(multicollinearity)을 발생시킵니다. 하나의 컬럼을 제거하면 나머지 컬럼들로 해당 카테고리를 추론할 수 있어 다중공선성을 방지합니다.'
         },
         {
           question: 'Target Encoding의 과적합을 방지하는 방법은?',
           options: ['더 많은 카테고리 사용', 'Cross-Validation 방식 적용', 'Label Encoding으로 대체', 'Standardization 적용'],
-          answer: 1
+          answer: 1,
+          explanation: 'Target Encoding은 타겟 값을 직접 사용하므로 과적합 위험이 있습니다. K-Fold CV 방식으로 각 fold에서 다른 fold의 타겟 평균을 사용하면 과적합을 방지할 수 있습니다.'
         },
         {
           question: '스케일러를 학습 데이터에만 fit해야 하는 이유는?',
           options: ['계산 속도', '메모리 효율', '데이터 누수 방지', '정확도 향상'],
-          answer: 2
+          answer: 2,
+          explanation: '테스트 데이터의 통계치(평균, 표준편차 등)가 모델 학습에 사용되면 데이터 누수가 발생합니다. 실제 예측 시점에는 미래 데이터를 알 수 없으므로, 학습 데이터에서만 fit하고 테스트 데이터에는 transform만 적용해야 합니다.'
         },
         {
           question: '1000개 카테고리를 가진 변수에 적합한 인코딩은?',
           options: ['One-Hot Encoding', 'Label Encoding', 'Binary Encoding', 'Ordinal Encoding'],
-          answer: 2
+          answer: 2,
+          explanation: 'Binary Encoding은 카테고리를 이진수로 변환하여 log₂(N)개의 컬럼만 필요합니다. 1000개 카테고리는 10개 컬럼으로 표현 가능해, One-Hot의 1000개 컬럼보다 훨씬 효율적입니다.'
         }
       ]
     }

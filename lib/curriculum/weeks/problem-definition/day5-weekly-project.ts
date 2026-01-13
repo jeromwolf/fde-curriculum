@@ -688,5 +688,99 @@ print("\\nEDA 리포트 완료!")
         }
       ]
     }
+  },
+  {
+    id: 'p2w1d5t4',
+    type: 'challenge',
+    title: '주간 도전과제: Kaggle EDA 경쟁',
+    duration: 60,
+    content: {
+      instructions: `# 주간 도전과제: Kaggle EDA 경쟁
+
+## 목표
+실제 Kaggle 데이터셋을 선택하여 종합 EDA를 수행하고, Kaggle Notebook으로 공개하세요.
+
+## 추천 데이터셋
+
+| 데이터셋 | 난이도 | 특징 |
+|---------|--------|------|
+| [Spaceship Titanic](https://www.kaggle.com/competitions/spaceship-titanic) | 중 | 다양한 결측 패턴, 범주형/수치형 혼합 |
+| [House Prices](https://www.kaggle.com/c/house-prices-advanced-regression-techniques) | 중 | 79개 피처, 많은 결측치 |
+| [Tabular Playground](https://www.kaggle.com/competitions?hostSegmentIdFilter=8) | 다양 | 월간 대회, 다양한 주제 |
+
+## 요구사항
+
+### 1. 데이터셋 선택 및 로드
+- Kaggle 데이터셋 1개 선택
+- 데이터 로드 및 기본 정보 확인
+
+### 2. 종합 EDA 수행 (이번 주 학습 내용 활용)
+- **비즈니스 문제 정의**: 5 Whys 또는 MECE로 구조화
+- **기술 통계**: 중심 경향, 산포도, 왜도/첨도
+- **시각화**: 최소 10개 차트 (분포, 관계, 범주별 비교)
+- **결측치 분석**: 패턴, 유형 판단, 처리 전략
+- **이상치 분석**: IQR/Z-score, 시각화, 처리 전략
+
+### 3. 인사이트 문서화
+- 주요 발견 5개 이상
+- 실행 가능한 권장사항 3개 이상
+- 추가 분석 필요 영역
+
+### 4. Kaggle 공개
+- Kaggle Notebook으로 작성
+- Public으로 설정하여 공개
+- 마크다운으로 설명 포함
+
+## 평가 기준
+
+| 항목 | 배점 | 세부 기준 |
+|------|------|----------|
+| 문제 정의 | 15% | 가설 3개 이상, 구조화 |
+| 기술 통계 | 15% | 모든 수치형 변수 분석 |
+| 시각화 | 25% | 10개 이상, 품질, 해석 |
+| 결측치/이상치 | 25% | 패턴 분석 + 처리 전략 |
+| 인사이트 | 20% | 실행 가능, 구체적 |
+
+## 보너스 포인트
+- Kaggle Notebook 투표 10개 이상 획득
+- EDA 기반으로 모델링까지 진행
+- 다른 Notebook과 차별화된 분석 관점
+
+## 제출
+- Kaggle Notebook URL
+- 주요 인사이트 요약 (3-5줄)
+`,
+      starterCode: `"""
+Kaggle EDA 경쟁 시작 템플릿
+"""
+
+# 1. 라이브러리 임포트
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import skew, kurtosis
+
+# 시각화 설정
+plt.style.use('seaborn-v0_8-whitegrid')
+plt.rcParams['figure.figsize'] = (12, 6)
+
+# 2. 데이터 로드
+# TODO: Kaggle에서 데이터 로드
+# df = pd.read_csv('/kaggle/input/your-dataset/train.csv')
+
+# 3. EDA 시작
+# TODO: 이번 주 학습 내용을 활용하여 종합 EDA 수행
+
+print("Kaggle EDA 도전과제를 시작합니다!")
+print("이번 주에 배운 기법들을 모두 활용하세요.")
+`,
+      hints: [
+        'Kaggle Notebook에서 데이터셋을 쉽게 로드할 수 있습니다',
+        '마크다운 셀을 활용하여 분석 과정을 설명하세요',
+        '시각화에 제목과 라벨을 반드시 추가하세요',
+        '인사이트는 구체적이고 실행 가능해야 합니다'
+      ]
+    }
   }
 ]

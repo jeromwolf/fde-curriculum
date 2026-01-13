@@ -301,17 +301,20 @@ for method in methods:
         {
           question: 'Z-score 방법의 가정은?',
           options: ['균등분포', '정규분포', '지수분포', '가정 없음'],
-          answer: 1
+          answer: 1,
+          explanation: 'Z-score는 (값-평균)/표준편차로 계산하며, 정규분포를 가정합니다. 정규분포에서 |Z| > 3이면 약 0.27%의 극히 드문 값으로, 이상치로 판단합니다.'
         },
         {
           question: 'IQR 방법의 상한 경계값은?',
           options: ['Q3 + IQR', 'Q3 + 1.5*IQR', 'Q3 + 2*IQR', 'Q3 + 3*IQR'],
-          answer: 1
+          answer: 1,
+          explanation: 'IQR(Interquartile Range) 방법의 상한은 Q3 + 1.5×IQR입니다. 이 범위 밖의 값은 이상치로 판단합니다. 분포 가정이 없어 다양한 데이터에 적용 가능합니다.'
         },
         {
           question: 'Mahalanobis 거리의 장점은?',
           options: ['계산 빠름', '단변량 전용', '변수 간 상관관계 고려', '정규분포 불필요'],
-          answer: 2
+          answer: 2,
+          explanation: 'Mahalanobis 거리는 공분산 행렬을 사용하여 변수 간 상관관계를 고려합니다. 이를 통해 개별 변수로는 정상이지만 조합이 이상한 다변량 이상치를 탐지할 수 있습니다.'
         }
       ]
     }

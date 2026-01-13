@@ -376,33 +376,202 @@ print("""
         {
           question: '시계열의 3가지 구성 요소는?',
           options: ['X, Y, Z', 'Trend, Seasonal, Residual', 'Mean, Median, Mode', 'Input, Hidden, Output'],
-          answer: 1
+          answer: 1,
+          explanation: '시계열은 Trend(추세), Seasonal(계절성), Residual(잔차)의 세 구성 요소로 분해됩니다. 추세는 장기적 증감, 계절성은 주기적 패턴, 잔차는 설명되지 않는 노이즈입니다. 이 분해를 통해 각 성분을 독립적으로 분석하고 예측 모델을 구축할 수 있습니다.'
         },
         {
           question: 'ADF 검정에서 p-value < 0.05면?',
           options: ['비정상', '정상', '계절성 있음', '추세 있음'],
-          answer: 1
+          answer: 1,
+          explanation: 'ADF(Augmented Dickey-Fuller) 검정의 귀무가설은 "비정상 시계열"입니다. p-value < 0.05면 귀무가설을 기각하여 정상 시계열임을 의미합니다. ARIMA 등 전통 모델은 정상성을 가정하므로, p > 0.05면 차분을 통해 정상화가 필요합니다.'
         },
         {
           question: 'Prophet의 필수 컬럼은?',
           options: ['date, value', 'ds, y', 'time, target', 'x, y'],
-          answer: 1
+          answer: 1,
+          explanation: 'Prophet은 ds(datetime string)와 y(예측 대상 값) 두 컬럼을 필수로 요구합니다. 기존 데이터를 rename(columns={"date": "ds", "sales": "y"})로 변환해야 합니다. 예측 결과에는 yhat(예측값), yhat_lower/yhat_upper(신뢰구간)가 포함됩니다.'
         },
         {
           question: 'Lag 피처에서 데이터 누수를 방지하려면?',
           options: ['shift(0)', 'shift(-1)', 'shift(1)', '필요 없음'],
-          answer: 2
+          answer: 2,
+          explanation: 'shift(1)은 현재 행에 1시점 이전(과거)의 값을 가져옵니다. 예측 시점에는 현재 시점의 실제값을 알 수 없으므로, shift(1) 이상을 사용해야 데이터 누수를 방지합니다. shift(-1)은 미래 값을 가져오므로 절대 사용하면 안 됩니다.'
         },
         {
           question: 'TimeSeriesSplit의 특징은?',
           options: ['랜덤 셔플', '시간 순서 보존', 'Stratified', '동일 크기'],
-          answer: 1
+          answer: 1,
+          explanation: 'TimeSeriesSplit은 시간 순서를 보존하는 교차 검증입니다. 일반 KFold는 랜덤 셔플로 미래 데이터가 학습에 포함될 수 있지만, TimeSeriesSplit은 항상 과거 데이터로 학습하고 미래 데이터로 검증합니다. 시계열의 시간 의존성을 올바르게 반영합니다.'
         },
         {
           question: 'MAPE 5%의 의미는?',
           options: ['R² = 0.05', '평균 오차 5%', '5일 후 예측', 'F1 = 0.05'],
-          answer: 1
+          answer: 1,
+          explanation: 'MAPE(Mean Absolute Percentage Error)는 예측 오차를 백분율로 나타냅니다. MAPE 5%는 예측값이 실제값 대비 평균 5% 차이가 난다는 의미입니다. 일반적으로 MAPE < 10%면 좋은 모델, < 5%면 매우 정확한 모델로 평가되며, 수요 예측에서 널리 사용됩니다.'
         }
+      ]
+    }
+  },
+  {
+    id: 'p2w8d5t4',
+    type: 'challenge',
+    title: '주간 도전과제: 시계열 예측 대회',
+    duration: 60,
+    content: {
+      instructions: `# 주간 도전과제: 시계열 예측 대회
+
+## 목표
+Kaggle Store Sales 데이터셋으로 **최고 정확도의 수요 예측 모델**을 구축하세요.
+
+## 데이터셋
+**Store Sales - Time Series Forecasting** (Kaggle)
+- https://www.kaggle.com/c/store-sales-time-series-forecasting
+- 54개 매장, 33개 상품군의 일별 매출
+- 2013-2017년 (약 170만 행)
+- 휴일, 프로모션, 유가 정보 포함
+
+## 평가 기준
+
+### 1. 시계열 분석 (25점)
+| 항목 | 점수 |
+|------|------|
+| STL 분해 & 시각화 | 10점 |
+| ADF 정상성 검정 | 8점 |
+| ACF/PACF 분석 | 7점 |
+
+### 2. 다중 모델 구현 (35점)
+| 모델 | 점수 |
+|------|------|
+| Prophet (또는 대안 구현) | 15점 |
+| ML 모델 (Lag/Rolling 피처) | 15점 |
+| 앙상블 (선택) | 5점 (보너스) |
+
+### 3. 피처 엔지니어링 (25점)
+| 피처 | 점수 |
+|------|------|
+| Lag 피처 (1, 7, 14, 30일) | 8점 |
+| Rolling 통계 (mean, std, min, max) | 8점 |
+| 시간 피처 (sin/cos 인코딩) | 5점 |
+| 외부 변수 (휴일, 프로모션) | 4점 |
+
+### 4. 성능 달성 (15점)
+| 지표 | 기준 |
+|------|------|
+| MAPE < 15% | 5점 |
+| MAPE < 10% | 10점 |
+| MAPE < 5% | 15점 |
+
+## 제출물
+1. \`sales_forecasting.ipynb\` (전체 코드)
+2. 모델 성능 비교표 (MAE, RMSE, MAPE)
+3. Feature Importance 분석
+4. 비즈니스 인사이트 (재고 관리 관점)
+
+## 도전 힌트
+- 데이터 누수 주의: Rolling 피처에 shift(1) 필수!
+- 매장/상품군별로 개별 모델 vs 전체 모델 비교
+- 휴일 전후 매출 급증 패턴 활용
+- TimeSeriesSplit으로 시간 순서 보존
+`,
+      starterCode: `"""
+Week 16 도전과제: 시계열 예측 대회
+Store Sales Forecasting
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from statsmodels.tsa.seasonal import STL
+from statsmodels.tsa.stattools import adfuller
+
+# ============================================================
+# 1. 데이터 로드 (Kaggle에서 다운로드 또는 샘플 사용)
+# ============================================================
+print("=== 1. 데이터 로드 ===")
+
+# 샘플 데이터 생성 (실제는 Kaggle 데이터 사용)
+np.random.seed(42)
+dates = pd.date_range('2022-01-01', periods=730, freq='D')
+
+# 복잡한 패턴
+trend = np.linspace(10000, 15000, 730)
+yearly = 2000 * np.sin(2 * np.pi * np.arange(730) / 365)
+weekly = 500 * np.sin(2 * np.pi * np.arange(730) / 7)
+noise = np.random.normal(0, 500, 730)
+
+# 휴일 효과
+holiday_boost = np.zeros(730)
+for year in [0, 1]:
+    bf = 325 + 365 * year  # 블랙프라이데이
+    xmas = 359 + 365 * year  # 크리스마스
+    if bf < 730: holiday_boost[max(0,bf-3):min(730,bf+3)] = 3000
+    if xmas < 730: holiday_boost[max(0,xmas-5):min(730,xmas+2)] = 4000
+
+sales = np.maximum(trend + yearly + weekly + holiday_boost + noise, 0)
+
+df = pd.DataFrame({'date': dates, 'sales': sales})
+df = df.set_index('date')
+
+print(f"기간: {df.index.min().date()} ~ {df.index.max().date()}")
+print(f"평균 매출: $" + f"{df['sales'].mean():,.0f}")
+
+# ============================================================
+# 2. 시계열 분석
+# ============================================================
+print("\\n=== 2. 시계열 분석 ===")
+
+# TODO: STL 분해, ADF 검정, ACF/PACF
+
+
+# ============================================================
+# 3. 피처 엔지니어링
+# ============================================================
+print("\\n=== 3. 피처 엔지니어링 ===")
+
+# TODO: Lag, Rolling, 시간 피처 생성
+
+
+# ============================================================
+# 4. Prophet 스타일 모델
+# ============================================================
+print("\\n=== 4. Prophet 스타일 모델 ===")
+
+# TODO: sin/cos 피처 기반 선형 모델
+
+
+# ============================================================
+# 5. ML 모델 (RandomForest/LightGBM)
+# ============================================================
+print("\\n=== 5. ML 모델 ===")
+
+# TODO: TimeSeriesSplit CV, Feature Importance
+
+
+# ============================================================
+# 6. 모델 비교 & 앙상블
+# ============================================================
+print("\\n=== 6. 모델 비교 ===")
+
+# TODO: MAE, RMSE, MAPE 비교, 앙상블
+
+
+# ============================================================
+# 7. 비즈니스 인사이트
+# ============================================================
+print("\\n=== 7. 비즈니스 인사이트 ===")
+
+# TODO: 재고 관리 관점 해석
+`,
+      hints: [
+        'STL(period=7, robust=True)로 분해',
+        'shift(1).rolling()으로 데이터 누수 방지',
+        'TimeSeriesSplit(n_splits=5)로 시간 순서 보존',
+        'lag_1이 보통 가장 중요한 피처',
+        'MAPE = mean(abs((y_true - y_pred) / y_true)) * 100',
+        '휴일 전후 패턴을 피처로 추가하면 성능 향상'
       ]
     }
   }

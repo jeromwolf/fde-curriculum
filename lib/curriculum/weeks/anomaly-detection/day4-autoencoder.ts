@@ -361,17 +361,20 @@ print(f"실제 이상치 중 탐지: {((predictions == 1) & (y == 1)).sum()}/{y.
         {
           question: 'Autoencoder 이상탐지에서 학습 데이터는?',
           options: ['전체 데이터', '이상치만', '정상 데이터만', '레이블된 데이터'],
-          answer: 2
+          answer: 2,
+          explanation: 'Autoencoder는 정상 데이터로만 학습합니다. 이렇게 하면 모델이 정상 패턴만 학습하여 정상 데이터는 잘 복원하고, 학습하지 않은 이상 패턴은 복원하지 못해 오차가 커집니다.'
         },
         {
           question: '재구성 오차가 높으면 의미는?',
           options: ['정상', '이상치', '학습 실패', '과적합'],
-          answer: 1
+          answer: 1,
+          explanation: '재구성 오차(Reconstruction Error)가 높다는 것은 모델이 해당 데이터를 잘 복원하지 못한다는 의미입니다. 정상 데이터로 학습했으므로, 복원 오차가 큰 데이터는 학습되지 않은 이상 패턴입니다.'
         },
         {
           question: 'Bottleneck 구조의 목적은?',
           options: ['속도 향상', '차원 축소 후 복원', '오버피팅 증가', '손실 감소'],
-          answer: 1
+          answer: 1,
+          explanation: 'Bottleneck(병목) 구조는 중간 레이어의 차원을 입력보다 작게 만들어 데이터를 압축했다가 복원하게 합니다. 이를 통해 데이터의 핵심 특징만 학습하고, 노이즈나 이상 패턴은 학습하지 않습니다.'
         }
       ]
     }

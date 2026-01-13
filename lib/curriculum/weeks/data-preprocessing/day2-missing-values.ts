@@ -591,27 +591,32 @@ print(f"원본: {df.shape} → 처리 후: {df_imputed.shape}")
         {
           question: '결측값 자체가 결측 발생과 관련 있는 메커니즘은?',
           options: ['MCAR', 'MAR', 'MNAR', 'Random'],
-          answer: 2
+          answer: 2,
+          explanation: 'MNAR(Missing Not At Random)은 결측값 자체와 결측 발생이 관련됩니다. 예: 고소득자가 소득을 공개하지 않음. MCAR은 완전 무작위, MAR은 다른 관측 변수와 관련됩니다.'
         },
         {
           question: 'KNN Imputer의 원리는?',
           options: ['전체 평균으로 대체', '유사한 K개 행의 평균으로 대체', '랜덤 값으로 대체', '이전 값으로 대체'],
-          answer: 1
+          answer: 1,
+          explanation: 'KNN Imputer는 결측이 있는 행과 가장 유사한 K개의 행을 찾아 그 값들의 (가중) 평균으로 대체합니다. 변수 간 관계를 고려하여 더 정교한 대체가 가능합니다.'
         },
         {
           question: 'MAR (Missing At Random) 상황에서 권장되는 처리 방법은?',
           options: ['행 삭제', '전체 평균 대체', '그룹별 대체 또는 조건부 대체', '컬럼 삭제'],
-          answer: 2
+          answer: 2,
+          explanation: 'MAR에서는 결측이 다른 관측 변수와 관련되므로, 해당 변수를 기준으로 그룹별 대체나 조건부 대체가 적합합니다. 예: 성별에 따라 소득 결측이 다르면 성별별 중앙값으로 대체.'
         },
         {
           question: '시계열 데이터에서 결측치 처리에 적합한 방법은?',
           options: ['전체 평균 대체', 'KNN Imputer', '보간법 (Interpolation)', '최빈값 대체'],
-          answer: 2
+          answer: 2,
+          explanation: '시계열 데이터는 시간적 연속성이 있으므로 보간법(선형, 스플라인 등)이 적합합니다. 앞뒤 값을 이용해 연속적인 값을 추정할 수 있습니다. forward fill, backward fill도 사용됩니다.'
         },
         {
           question: 'Iterative Imputer (MICE)의 특징이 아닌 것은?',
           options: ['다변량 관계를 반영한다', '반복적으로 값을 예측한다', '가장 빠른 방법이다', '불확실성을 고려한다'],
-          answer: 2
+          answer: 2,
+          explanation: 'MICE(Multiple Imputation by Chained Equations)는 반복적으로 각 변수를 다른 변수로 예측하여 다변량 관계를 반영합니다. 정교하지만 계산량이 많아 가장 느린 방법 중 하나입니다.'
         }
       ]
     }

@@ -1883,5 +1883,355 @@ project/
         '추가 개선으로 포트폴리오 가치 향상'
       ]
     }
+  },
+
+  // Task 8: 주간 도전과제
+  {
+    id: 'w2d5-challenge',
+    type: 'challenge',
+    title: '주간 도전과제: NYC Taxi 팁 예측 대회',
+    duration: 60,
+    content: {
+      instructions: `# 주간 도전과제: NYC Taxi 팁 예측 대회
+
+## 🎯 목표
+이번 주에 배운 **pandas/Polars, 메모리 최적화, 대용량 데이터 처리** 기술을 활용하여 NYC Taxi 팁 금액을 예측하는 모델을 구축하세요.
+
+## 📊 데이터셋
+- **NYC TLC Trip Record Data** (Yellow Taxi)
+- 실제 뉴욕시 택시 운행 데이터
+- 100만+ 행 대용량 데이터
+
+## 📋 요구사항
+
+### Part 1: 데이터 준비 (20점)
+1. **메모리 효율적 로딩**
+   - 필요 컬럼만 선택
+   - dtype 최적화
+   - 메모리 사용량 리포트
+
+2. **피처 엔지니어링**
+   - 시간 특성 (hour, day_of_week, is_weekend, is_rush_hour)
+   - 거리 특성 (trip_distance, distance_per_minute)
+   - 지역 특성 (pickup/dropoff zone, is_airport)
+   - 요금 특성 (fare_per_mile, fare_per_minute)
+
+3. **데이터 정제**
+   - 현금 결제 제외 (팁 기록 없음)
+   - 이상치 제거 (합리적 기준 설정)
+   - 누락값 처리
+
+### Part 2: 팁 패턴 분석 (20점)
+1. **기술 통계**
+   - 팁 금액 분포 (히스토그램)
+   - 팁 비율 분포 (tip/fare)
+   - 기술 통계량 (평균, 중앙값, 분위수)
+
+2. **상관 분석**
+   - 피처별 팁과의 상관계수
+   - 시간대별 팁 패턴
+   - 거리별 팁 패턴
+   - 지역별 팁 패턴
+
+### Part 3: 예측 모델 (30점)
+1. **기준 모델 (Baseline)**
+   - 전체 평균 예측
+   - 시간대별 평균 예측
+
+2. **회귀 모델**
+   - Linear Regression
+   - Ridge/Lasso Regression
+   - (선택) Random Forest, XGBoost
+
+3. **모델 평가**
+   - MAE, RMSE, R² 계산
+   - 교차 검증 (5-fold)
+   - Train/Test 분할 성능
+
+### Part 4: 최적화 & 인사이트 (30점)
+1. **성능 최적화**
+   - pandas vs Polars 속도 비교
+   - 메모리 사용량 비교
+   - 처리 시간 벤치마크
+
+2. **인사이트 도출**
+   - 팁에 가장 영향을 주는 요인 Top 5
+   - 고팁/저팁 운행 특성
+   - 비즈니스 인사이트 (운전사 관점)
+
+3. **최종 리포트**
+   - 분석 과정 문서화
+   - 시각화 포함
+   - 실행 가능한 코드
+
+## 🏆 평가 기준
+
+| 항목 | 배점 | 세부 기준 |
+|------|------|-----------|
+| 데이터 준비 | 20점 | 메모리 최적화(10), 피처 엔지니어링(10) |
+| 패턴 분석 | 20점 | 기술 통계(10), 상관 분석(10) |
+| 예측 모델 | 30점 | 모델 구현(15), 성능 평가(15) |
+| 최적화 & 인사이트 | 30점 | 성능 비교(15), 인사이트(15) |
+
+## 💡 힌트
+
+### 피처 엔지니어링 예시
+\`\`\`python
+# 시간 특성
+df['hour'] = df['tpep_pickup_datetime'].dt.hour
+df['is_rush_hour'] = df['hour'].isin([7, 8, 9, 17, 18, 19])
+df['is_night'] = df['hour'].isin([22, 23, 0, 1, 2, 3, 4])
+
+# 거리 특성
+df['trip_duration_min'] = (df['tpep_dropoff_datetime'] - df['tpep_pickup_datetime']).dt.total_seconds() / 60
+df['speed_mph'] = df['trip_distance'] / (df['trip_duration_min'] / 60)
+df['fare_per_mile'] = df['fare_amount'] / df['trip_distance'].clip(lower=0.1)
+
+# 공항 여부
+AIRPORT_ZONES = [132, 138, 1]  # JFK, LaGuardia, Newark
+df['is_airport_pickup'] = df['PULocationID'].isin(AIRPORT_ZONES)
+df['is_airport_dropoff'] = df['DOLocationID'].isin(AIRPORT_ZONES)
+\`\`\`
+
+### 팁 비율 계산 (현금 결제 제외)
+\`\`\`python
+# payment_type: 1=신용카드, 2=현금
+df_card = df[df['payment_type'] == 1].copy()
+df_card['tip_pct'] = (df_card['tip_amount'] / df_card['fare_amount'] * 100).clip(0, 100)
+\`\`\`
+
+### Polars로 빠른 집계
+\`\`\`python
+import polars as pl
+
+df_pl = pl.from_pandas(df)
+hourly_tips = df_pl.group_by('hour').agg([
+    pl.col('tip_amount').mean().alias('avg_tip'),
+    pl.col('tip_pct').mean().alias('avg_tip_pct'),
+    pl.len().alias('count')
+]).sort('hour')
+\`\`\`
+
+## 🔗 참고 자료
+- [NYC TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page)
+- [Polars User Guide](https://docs.pola.rs/user-guide/)
+- [scikit-learn 회귀 모델](https://scikit-learn.org/stable/supervised_learning.html#supervised-learning)
+`,
+      starterCode: `"""
+Week 3 도전과제: NYC Taxi 팁 예측 대회
+=========================================
+목표: 대용량 데이터 처리 + 피처 엔지니어링 + 예측 모델 구축
+"""
+
+import pandas as pd
+import numpy as np
+import time
+import tracemalloc
+from typing import Dict, Any, Tuple
+
+# ===========================================
+# 샘플 데이터 생성 (실제 데이터 없을 경우)
+# ===========================================
+
+def create_sample_data(n_rows: int = 500_000) -> pd.DataFrame:
+    """테스트용 샘플 데이터 생성"""
+    np.random.seed(42)
+
+    start_date = pd.Timestamp('2022-01-01')
+    pickup_times = start_date + pd.to_timedelta(
+        np.random.randint(0, 31*24*60*60, n_rows), unit='s'
+    )
+    trip_durations = np.random.exponential(15, n_rows) * 60
+
+    # 거리와 요금은 상관관계 있도록
+    distances = np.random.exponential(3, n_rows)
+    base_fares = 2.5 + distances * 2.5 + np.random.normal(0, 2, n_rows)
+    base_fares = np.clip(base_fares, 2.5, 200)
+
+    # 팁은 요금, 거리, 시간에 따라 다르게
+    hours = pickup_times.hour.values
+    tip_base = base_fares * 0.18  # 기본 18%
+    tip_variation = np.random.normal(0, base_fares * 0.05, n_rows)
+    # 저녁 시간대 팁 높음
+    evening_bonus = np.where((hours >= 18) & (hours <= 22), base_fares * 0.03, 0)
+    tips = np.clip(tip_base + tip_variation + evening_bonus, 0, 100)
+
+    # 현금 결제는 팁 0
+    payment_types = np.random.choice([1, 1, 1, 2], n_rows)  # 75% 카드
+    tips = np.where(payment_types == 2, 0, tips)
+
+    df = pd.DataFrame({
+        'tpep_pickup_datetime': pickup_times,
+        'tpep_dropoff_datetime': pickup_times + pd.to_timedelta(trip_durations, unit='s'),
+        'passenger_count': np.random.choice([1, 1, 1, 2, 2, 3, 4], n_rows),
+        'trip_distance': distances,
+        'PULocationID': np.random.randint(1, 265, n_rows),
+        'DOLocationID': np.random.randint(1, 265, n_rows),
+        'payment_type': payment_types,
+        'fare_amount': base_fares,
+        'tip_amount': tips,
+        'total_amount': base_fares + tips + np.random.uniform(0, 5, n_rows)
+    })
+
+    return df
+
+# ===========================================
+# Part 1: 데이터 준비
+# ===========================================
+
+class TipDataPreparer:
+    """팁 예측용 데이터 준비 클래스"""
+
+    AIRPORT_ZONES = [132, 138, 1]  # JFK, LaGuardia, Newark
+
+    def __init__(self):
+        self.df = None
+        self.memory_stats = {}
+
+    def load_data(self, filepath: str = None) -> 'TipDataPreparer':
+        """데이터 로딩 (샘플 또는 실제)"""
+        # TODO: 구현
+        # 1. 메모리 추적 시작
+        # 2. 필요 컬럼만 선택하여 로딩
+        # 3. dtype 최적화
+        # 4. 메모리 사용량 기록
+        pass
+
+    def create_features(self) -> 'TipDataPreparer':
+        """피처 엔지니어링"""
+        # TODO: 구현
+        # 1. 시간 특성 (hour, day_of_week, is_weekend, is_rush_hour)
+        # 2. 거리 특성 (trip_duration, speed, fare_per_mile)
+        # 3. 지역 특성 (is_airport)
+        pass
+
+    def clean_data(self) -> 'TipDataPreparer':
+        """데이터 정제"""
+        # TODO: 구현
+        # 1. 현금 결제 제외
+        # 2. 이상치 제거
+        # 3. 팁 비율 계산
+        pass
+
+    def get_prepared_data(self) -> pd.DataFrame:
+        """준비된 데이터 반환"""
+        return self.df
+
+# ===========================================
+# Part 2: 팁 패턴 분석
+# ===========================================
+
+class TipAnalyzer:
+    """팁 패턴 분석 클래스"""
+
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+        self.analysis_results = {}
+
+    def compute_statistics(self) -> Dict[str, Any]:
+        """기술 통계 계산"""
+        # TODO: 구현
+        pass
+
+    def analyze_correlations(self) -> pd.DataFrame:
+        """상관 분석"""
+        # TODO: 구현
+        pass
+
+    def analyze_by_feature(self, feature: str) -> pd.DataFrame:
+        """피처별 팁 패턴 분석"""
+        # TODO: 구현
+        pass
+
+# ===========================================
+# Part 3: 예측 모델
+# ===========================================
+
+class TipPredictor:
+    """팁 예측 모델 클래스"""
+
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+        self.models = {}
+        self.results = {}
+
+    def prepare_features(self, target: str = 'tip_amount') -> Tuple[pd.DataFrame, pd.Series]:
+        """학습용 피처 준비"""
+        # TODO: 구현
+        pass
+
+    def train_baseline(self) -> Dict[str, float]:
+        """기준 모델 학습"""
+        # TODO: 구현
+        pass
+
+    def train_regression(self) -> Dict[str, float]:
+        """회귀 모델 학습"""
+        # TODO: 구현
+        pass
+
+    def evaluate_models(self) -> pd.DataFrame:
+        """모델 성능 평가"""
+        # TODO: 구현
+        pass
+
+# ===========================================
+# Part 4: 최적화 & 리포트
+# ===========================================
+
+class TipPredictionPipeline:
+    """전체 파이프라인 클래스"""
+
+    def __init__(self):
+        self.preparer = None
+        self.analyzer = None
+        self.predictor = None
+        self.performance = {}
+
+    def run(self, filepath: str = None) -> Dict[str, Any]:
+        """전체 파이프라인 실행"""
+        # TODO: 구현
+        pass
+
+    def compare_backends(self) -> Dict[str, float]:
+        """pandas vs Polars 성능 비교"""
+        # TODO: 구현
+        pass
+
+    def generate_insights(self) -> str:
+        """인사이트 생성"""
+        # TODO: 구현
+        pass
+
+    def generate_report(self) -> str:
+        """최종 리포트 생성"""
+        # TODO: 구현
+        pass
+
+# ===========================================
+# 메인 실행
+# ===========================================
+
+if __name__ == "__main__":
+    print("=" * 60)
+    print("NYC Taxi 팁 예측 대회")
+    print("=" * 60)
+
+    # 파이프라인 실행
+    pipeline = TipPredictionPipeline()
+    results = pipeline.run()
+
+    # 리포트 출력
+    print(pipeline.generate_report())
+`,
+      hints: [
+        'payment_type=1 (카드) 만 팁 분석에 사용',
+        'trip_duration_min으로 속도 계산 가능',
+        'Polars group_by가 pandas groupby보다 훨씬 빠름',
+        'tip_pct (팁 비율)로 예측하면 더 일반화됨',
+        'LinearRegression 전에 StandardScaler 적용',
+        'cross_val_score로 5-fold CV 평가'
+      ]
+    }
   }
 ]

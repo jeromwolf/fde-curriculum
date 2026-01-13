@@ -338,17 +338,20 @@ print("\\n결론: AND는 높은 Precision, OR는 높은 Recall")
         {
           question: 'LOF 점수가 1보다 훨씬 크면 의미는?',
           options: ['정상', '이웃보다 밀도 높음', '이상치 (이웃보다 밀도 낮음)', '클러스터 중심'],
-          answer: 2
+          answer: 2,
+          explanation: 'LOF(Local Outlier Factor)가 1보다 크면 주변 이웃보다 밀도가 낮다는 의미입니다. LOF ≈ 1은 이웃과 밀도가 비슷한 정상, LOF >> 1은 고립된 이상치를 나타냅니다.'
         },
         {
           question: 'DBSCAN에서 이상치의 레이블은?',
           options: ['0', '1', '-1', '999'],
-          answer: 2
+          answer: 2,
+          explanation: 'DBSCAN은 밀도 기반 클러스터링으로, 어떤 클러스터에도 속하지 않는 노이즈 포인트에 -1 레이블을 부여합니다. 이 노이즈가 곧 이상치로 활용됩니다.'
         },
         {
           question: 'LOF와 DBSCAN을 AND로 조합하면?',
           options: ['Recall 증가', 'Precision 증가', '속도 증가', '계산량 감소'],
-          answer: 1
+          answer: 1,
+          explanation: 'AND 조합은 두 방법 모두 이상으로 판단한 경우만 최종 이상으로 분류합니다. 이는 오탐(False Positive)을 줄여 Precision을 높이지만, 일부 이상치를 놓쳐 Recall은 감소합니다.'
         }
       ]
     }

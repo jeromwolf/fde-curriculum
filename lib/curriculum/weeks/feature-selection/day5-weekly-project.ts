@@ -337,8 +337,166 @@ print("\\n프로젝트 완료!")
         {
           question: 'UMAP이 t-SNE보다 좋은 점은?',
           options: ['더 정확함', '전역 구조 보존 + 빠름', '해석 가능', '항상 같은 결과'],
-          answer: 1
+          answer: 1,
+          explanation: 'UMAP은 전역 구조를 더 잘 보존하고, t-SNE보다 훨씬 빠릅니다. 또한 새로운 데이터 포인트에 대한 변환(transform)도 지원합니다.'
         }
+      ]
+    }
+  },
+  {
+    id: 'p2w4d5t4',
+    type: 'challenge',
+    title: '주간 도전과제: Kaggle 피처 선택 경쟁',
+    duration: 60,
+    content: {
+      instructions: `# 주간 도전과제: Kaggle 피처 선택 경쟁
+
+## 목표
+Kaggle의 고차원 데이터셋으로 피처 선택 실력을 검증하세요.
+
+## 추천 데이터셋
+
+### 옵션 1: Santander Customer Satisfaction (권장)
+- 370개 피처, 76,000 샘플
+- 익명화된 금융 데이터
+- 이진 분류 문제
+- URL: kaggle.com/c/santander-customer-satisfaction
+
+### 옵션 2: Gene Expression (유전자 발현)
+- 20,000+ 피처, 800 샘플
+- 극단적인 고차원 문제
+- 암 분류
+
+### 옵션 3: Amazon Employee Access
+- 카테고리컬 피처 + 인코딩
+- 피처 조합 문제
+
+## 요구사항
+
+### 1. EDA & 전처리 (10점)
+- 결측치, 상수 피처, 중복 피처 분석
+- 클래스 불균형 확인
+
+### 2. 피처 선택 전략 (40점)
+- Filter 방법 2가지 이상 적용
+- Embedded 방법 1가지 이상
+- 각 방법으로 선택된 피처 비교
+- 최종 피처셋 선정 및 근거
+
+### 3. 모델링 & 평가 (30점)
+- 원본 vs 선택 후 성능 비교
+- 적절한 평가 지표 사용 (AUC, F1 등)
+- 교차 검증 필수
+
+### 4. 제출 & 리더보드 (20점)
+- Kaggle에 예측 결과 제출
+- 리더보드 순위 기록
+- 피처 선택이 순위에 미친 영향 분석
+
+## 평가 기준
+
+| 항목 | 배점 | 설명 |
+|------|------|------|
+| EDA 품질 | 10점 | 데이터 이해도 |
+| 선택 전략 | 40점 | 방법 다양성, 근거 |
+| 성능 향상 | 30점 | 원본 대비 개선 |
+| Kaggle 제출 | 20점 | 실제 경쟁 참여 |
+
+## 보너스 포인트
+- 상위 25% 진입: +10점
+- 앙상블 피처 선택 시도: +5점
+- 블로그/노트북 공유: +5점
+
+## 참고 자료
+- Kaggle Learn: Feature Engineering 코스
+- sklearn Feature Selection 공식 문서
+- AutoML 도구 (TPOT, auto-sklearn) 활용 가능
+`,
+      starterCode: `"""
+Week 12 주간 도전과제: Kaggle 피처 선택 경쟁
+Santander Customer Satisfaction 데이터셋
+"""
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import (
+    VarianceThreshold, SelectKBest, f_classif, mutual_info_classif,
+    SelectFromModel, RFE
+)
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+import warnings
+warnings.filterwarnings('ignore')
+
+# =============================================================================
+# 1. 데이터 로드 (Kaggle에서 다운로드 필요)
+# =============================================================================
+print("=== 1. 데이터 로드 ===")
+
+# Kaggle 데이터 로드 (실제 파일 경로로 수정)
+# train = pd.read_csv('santander-customer-satisfaction/train.csv')
+# test = pd.read_csv('santander-customer-satisfaction/test.csv')
+
+# 데모용 합성 데이터 (실제 분석 시 위 코드 사용)
+from sklearn.datasets import make_classification
+X, y = make_classification(
+    n_samples=5000, n_features=370,
+    n_informative=30, n_redundant=100,
+    n_classes=2, weights=[0.96, 0.04],  # 불균형
+    random_state=42
+)
+X = pd.DataFrame(X, columns=[f'var_{i}' for i in range(370)])
+y = pd.Series(y)
+
+print(f"Shape: {X.shape}")
+print(f"클래스 분포:\\n{y.value_counts(normalize=True)}")
+
+# =============================================================================
+# 2. EDA & 전처리
+# =============================================================================
+print("\\n=== 2. EDA & 전처리 ===")
+
+# TODO: 상수 피처 확인
+# TODO: 중복 피처 확인
+# TODO: 클래스 불균형 대응 전략
+
+# =============================================================================
+# 3. 피처 선택 전략
+# =============================================================================
+print("\\n=== 3. 피처 선택 전략 ===")
+
+# TODO: Filter 방법 (분산, 상관관계, SelectKBest)
+# TODO: Embedded 방법 (Tree Importance, Lasso)
+# TODO: 선택된 피처 비교
+
+# =============================================================================
+# 4. 모델링 & 평가
+# =============================================================================
+print("\\n=== 4. 모델링 & 평가 ===")
+
+# TODO: 원본 vs 선택 후 성능 비교
+# TODO: AUC 점수 계산
+
+# =============================================================================
+# 5. Kaggle 제출 파일 생성
+# =============================================================================
+print("\\n=== 5. Kaggle 제출 ===")
+
+# TODO: test 데이터 예측
+# TODO: submission.csv 생성
+# submission = pd.DataFrame({'ID': test_ids, 'TARGET': predictions})
+# submission.to_csv('submission.csv', index=False)
+
+print("\\n도전과제 완료!")
+`,
+      hints: [
+        'Santander 데이터는 익명화되어 도메인 지식 적용 어려움',
+        '상수/거의 상수 피처가 많음 - VarianceThreshold 필수',
+        '클래스 불균형: scale_pos_weight 또는 SMOTE 고려',
+        'AUC 점수가 주요 평가 지표'
       ]
     }
   }

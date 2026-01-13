@@ -376,17 +376,20 @@ print(f"\\n→ lag_1이 가장 중요 (전날 매출이 오늘 예측에 핵심)
         {
           question: 'Lag 피처 생성 시 shift(1)의 의미는?',
           options: ['1일 앞으로', '1일 뒤로 (과거 값)', '1시간 뒤로', '1주 뒤로'],
-          answer: 1
+          answer: 1,
+          explanation: 'shift(1)은 데이터를 1행 아래로 이동시켜 현재 행에 이전 시점(과거)의 값을 가져옵니다. 예를 들어 t시점에 t-1시점의 값이 오게 됩니다. 시계열 ML에서 과거 값을 피처로 사용할 때 필수적인 함수입니다. shift(-1)은 반대로 미래 값을 가져옵니다.'
         },
         {
           question: 'Rolling 피처에서 shift(1)를 사용하는 이유는?',
           options: ['속도 향상', '데이터 누수 방지', '정확도 향상', '메모리 절약'],
-          answer: 1
+          answer: 1,
+          explanation: 'Rolling 피처 계산 시 shift(1)을 먼저 적용하지 않으면 현재 시점의 값이 이동평균에 포함되어 데이터 누수(data leakage)가 발생합니다. 예측 시점에는 해당 시점의 실제값을 모르므로, df["sales"].shift(1).rolling(7).mean()처럼 shift를 적용해야 합니다.'
         },
         {
           question: 'TimeSeriesSplit의 특징은?',
           options: ['랜덤 셔플', '시간 순서 보존', '동일 크기 폴드', 'Stratified 분할'],
-          answer: 1
+          answer: 1,
+          explanation: 'TimeSeriesSplit은 시간 순서를 보존하는 교차 검증입니다. 일반 KFold는 랜덤 셔플로 미래 데이터가 학습에 포함될 수 있지만, TimeSeriesSplit은 항상 과거 데이터로 학습하고 미래 데이터로 검증합니다. 각 폴드마다 학습 데이터가 누적되어 증가하는 특징이 있습니다.'
         }
       ]
     }

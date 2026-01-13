@@ -342,8 +342,171 @@ for c in range(optimal_k):
         {
           question: 'At Risk 세그먼트에 적합한 전략은?',
           options: ['VIP 프로그램', '재활성화 캠페인', '온보딩 이메일', '신제품 안내'],
-          answer: 1
+          answer: 1,
+          explanation: 'At Risk는 이전에 활발했지만 최근 구매가 없는 고객입니다. 이탈 방지를 위해 재활성화 캠페인(개인화 쿠폰, 이탈 방지 CS 등)이 적합합니다.'
         }
+      ]
+    }
+  },
+  {
+    id: 'p2w6d5t4',
+    type: 'challenge',
+    title: '주간 도전과제: 실제 데이터 세그멘테이션',
+    duration: 60,
+    content: {
+      instructions: `# 주간 도전과제: 실제 데이터 세그멘테이션
+
+## 목표
+UCI Online Retail 데이터셋으로 실제 고객 세그멘테이션을 수행하세요.
+
+## 데이터셋
+
+### UCI Online Retail II Dataset
+- 1,067,371 거래 기록
+- 2009-2011년 UK 온라인 리테일
+- 41개국 4,373 고객
+- URL: archive.ics.uci.edu/ml/datasets/Online+Retail+II
+
+## 요구사항
+
+### 1. 데이터 전처리 (20점)
+- 결측치 및 이상치 처리
+- 환불/취소 거래 처리 (음수 수량)
+- UK 고객만 또는 전체 선택
+- 분석 기간 설정
+
+### 2. RFM 분석 (30점)
+- R, F, M 계산 및 분포 확인
+- 이상치 처리 (상위 1% cap 등)
+- 5분위 점수화
+- 세그먼트 정의 및 명명
+
+### 3. 클러스터링 비교 (25점)
+- K-means (최적 K 탐색)
+- RFM 점수 기반 vs 원시 RFM 값 비교
+- Silhouette Score로 품질 평가
+
+### 4. 인사이트 & 전략 (25점)
+- 세그먼트별 고객 특성 분석
+- 세그먼트별 매출 기여도
+- 실행 가능한 마케팅 전략 제안
+- 예상 ROI 논의
+
+## 평가 기준
+
+| 항목 | 점수 |
+|------|------|
+| 데이터 전처리 품질 | 20점 |
+| RFM 분석 정확성 | 30점 |
+| 클러스터링 결과 | 25점 |
+| 비즈니스 인사이트 | 25점 |
+
+## 보너스 포인트
+- 국가별 세그먼트 비교: +10점
+- 시계열 변화 분석 (분기별): +10점
+- 대시보드 시각화 (Plotly): +5점
+
+## 제출물
+1. 분석 코드 (Jupyter Notebook)
+2. 결과 리포트 (마크다운)
+3. 세그먼트 프로파일 테이블
+
+## 참고 자료
+- UCI ML Repository
+- Kaggle: Online Retail 분석 노트북
+- RFM Analysis Best Practices
+`,
+      starterCode: `"""
+Week 14 주간 도전과제: 실제 데이터 세그멘테이션
+UCI Online Retail Dataset
+"""
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+from sklearn.decomposition import PCA
+import warnings
+warnings.filterwarnings('ignore')
+
+# =============================================================================
+# 1. 데이터 로드 (실제 데이터 다운로드 필요)
+# =============================================================================
+print("=== 1. 데이터 로드 ===")
+
+# UCI 데이터 로드 (실제 파일 경로로 수정)
+# df = pd.read_excel('Online Retail.xlsx')
+
+# 데모용 합성 데이터 (실제 분석 시 위 코드 사용)
+np.random.seed(42)
+n_orders = 10000
+n_customers = 800
+
+df = pd.DataFrame({
+    'InvoiceNo': [f'INV{i:06d}' for i in range(n_orders)],
+    'StockCode': np.random.choice([f'SKU{i}' for i in range(200)], n_orders),
+    'Description': np.random.choice(['Widget', 'Gadget', 'Tool', 'Part', 'Item'], n_orders),
+    'Quantity': np.random.randint(1, 20, n_orders),
+    'InvoiceDate': pd.date_range('2022-01-01', periods=n_orders, freq='52min'),
+    'UnitPrice': np.random.exponential(5, n_orders) + 1,
+    'CustomerID': np.random.randint(10000, 10000 + n_customers, n_orders),
+    'Country': np.random.choice(['United Kingdom', 'Germany', 'France', 'USA'], n_orders,
+                                p=[0.7, 0.1, 0.1, 0.1])
+})
+
+# 환불 데이터 추가 (일부 음수 수량)
+refund_idx = np.random.choice(len(df), 500, replace=False)
+df.loc[refund_idx, 'InvoiceNo'] = 'C' + df.loc[refund_idx, 'InvoiceNo']
+df.loc[refund_idx, 'Quantity'] = -df.loc[refund_idx, 'Quantity']
+
+# VIP 패턴
+vip_customers = np.random.choice(df['CustomerID'].unique()[:50], 30, replace=False)
+for cust in vip_customers:
+    mask = df['CustomerID'] == cust
+    df.loc[mask, 'Quantity'] *= 3
+    df.loc[mask, 'UnitPrice'] *= 2
+
+print(f"주문 수: {len(df)}")
+print(f"고객 수: {df['CustomerID'].nunique()}")
+print(f"국가 수: {df['Country'].nunique()}")
+
+# =============================================================================
+# 2. 데이터 전처리
+# =============================================================================
+print("\\n=== 2. 데이터 전처리 ===")
+
+# TODO: 환불 처리, 결측치 제거, 금액 계산
+
+# =============================================================================
+# 3. RFM 분석
+# =============================================================================
+print("\\n=== 3. RFM 분석 ===")
+
+# TODO: RFM 계산, 점수화, 세그먼트 정의
+
+# =============================================================================
+# 4. 클러스터링
+# =============================================================================
+print("\\n=== 4. 클러스터링 ===")
+
+# TODO: K-means 최적 K 탐색, 클러스터링
+
+# =============================================================================
+# 5. 인사이트 & 전략
+# =============================================================================
+print("\\n=== 5. 인사이트 & 전략 ===")
+
+# TODO: 세그먼트별 분석, 마케팅 전략 제안
+
+print("\\n도전과제 완료!")
+`,
+      hints: [
+        'InvoiceNo가 "C"로 시작하면 환불/취소',
+        'TotalAmount = Quantity * UnitPrice',
+        'CustomerID가 NaN인 행 제거 필요',
+        'RFM 값 분포 확인 후 이상치 처리'
       ]
     }
   }

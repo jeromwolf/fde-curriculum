@@ -319,8 +319,205 @@ print("\\n프로젝트 완료!")
         {
           question: '피처 수가 너무 많을 때 발생할 수 있는 문제는?',
           options: ['과적합', '언더피팅', '학습 속도 증가', '정확도 향상'],
-          answer: 0
+          answer: 0,
+          explanation: '피처가 너무 많으면 모델이 노이즈까지 학습하여 과적합이 발생하고, 일반화 성능이 저하됩니다.'
         }
+      ]
+    }
+  },
+  {
+    id: 'p2w3d5t4',
+    type: 'challenge',
+    title: '주간 도전과제: Kaggle 경쟁',
+    duration: 60,
+    content: {
+      instructions: `# 주간 도전과제: Kaggle Feature Engineering 경쟁
+
+## 목표
+실제 Kaggle 데이터셋으로 Feature Engineering을 수행하고 리더보드 상위 50%를 목표로 합니다.
+
+## 데이터셋 (택1)
+1. **House Prices** (추천 - 입문자)
+   - https://www.kaggle.com/c/house-prices-advanced-regression-techniques
+   - 회귀 문제, 80개 피처
+
+2. **Spaceship Titanic** (중급)
+   - https://www.kaggle.com/competitions/spaceship-titanic
+   - 분류 문제, 텍스트/범주형 풍부
+
+3. **Tabular Playground** (도전)
+   - https://www.kaggle.com/competitions/tabular-playground-series-jan-2021
+   - 합성 데이터, 다양한 기법 필요
+
+## 요구사항
+
+### 필수 (70점)
+1. **최소 50개 신규 피처 생성**
+   - 수치형: 15개 이상
+   - 범주형: 15개 이상
+   - 상호작용: 10개 이상
+   - Groupby 집계: 10개 이상
+
+2. **피처 중요도 분석**
+   - Permutation Importance 또는 SHAP
+   - 상위 20개 피처 선별
+
+3. **베이스라인 대비 성능 개선**
+   - 원본 피처만 사용한 베이스라인
+   - FE 적용 후 성능
+   - 개선율 명시
+
+### 보너스 (30점)
+- Kaggle 제출 및 점수 캡처 (+10점)
+- 상위 50% 이내 달성 (+10점)
+- FE 파이프라인 클래스 구현 (+10점)
+
+## 제출물
+1. Jupyter Notebook (.ipynb)
+2. 최종 피처 목록 (.csv)
+3. (선택) Kaggle 제출 스크린샷
+
+## 평가 기준
+| 항목 | 배점 |
+|------|------|
+| 피처 다양성 | 25% |
+| 피처 품질 | 25% |
+| 성능 개선율 | 25% |
+| 코드 품질 | 15% |
+| 보너스 | +30% |
+`,
+      starterCode: `"""
+Week 11 Challenge: Kaggle Feature Engineering
+실제 Kaggle 데이터로 50개 이상의 피처를 생성하세요.
+"""
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error
+from sklearn.inspection import permutation_importance
+import warnings
+warnings.filterwarnings('ignore')
+
+# =============================================================================
+# 1. 데이터 로드 (House Prices 예시)
+# =============================================================================
+# Kaggle에서 다운로드: https://www.kaggle.com/c/house-prices-advanced-regression-techniques
+
+# 샘플 데이터 (실제 데이터로 교체)
+np.random.seed(42)
+n = 1460  # House Prices train set size
+
+df = pd.DataFrame({
+    'Id': range(1, n + 1),
+    'MSSubClass': np.random.choice([20, 30, 40, 45, 50, 60, 70, 75, 80, 85, 90, 120, 150, 160, 180, 190], n),
+    'LotFrontage': np.random.uniform(20, 200, n),
+    'LotArea': np.random.uniform(1000, 50000, n),
+    'OverallQual': np.random.randint(1, 11, n),
+    'OverallCond': np.random.randint(1, 11, n),
+    'YearBuilt': np.random.randint(1900, 2010, n),
+    'YearRemodAdd': np.random.randint(1950, 2010, n),
+    'TotalBsmtSF': np.random.uniform(0, 3000, n),
+    '1stFlrSF': np.random.uniform(300, 3000, n),
+    '2ndFlrSF': np.random.uniform(0, 2000, n),
+    'GrLivArea': np.random.uniform(500, 5000, n),
+    'FullBath': np.random.randint(0, 4, n),
+    'HalfBath': np.random.randint(0, 3, n),
+    'BedroomAbvGr': np.random.randint(0, 8, n),
+    'KitchenAbvGr': np.random.randint(1, 3, n),
+    'TotRmsAbvGrd': np.random.randint(3, 14, n),
+    'GarageCars': np.random.randint(0, 5, n),
+    'GarageArea': np.random.uniform(0, 1500, n),
+    'Neighborhood': np.random.choice(['CollgCr', 'Veenker', 'Crawfor', 'NoRidge', 'Mitchel', 'Somerst', 'NWAmes', 'OldTown', 'BrkSide', 'Sawyer'], n),
+    'BldgType': np.random.choice(['1Fam', '2fmCon', 'Duplex', 'TwnhsE', 'Twnhs'], n),
+    'HouseStyle': np.random.choice(['1Story', '1.5Fin', '1.5Unf', '2Story', '2.5Fin', '2.5Unf', 'SFoyer', 'SLvl'], n),
+    'SalePrice': np.random.uniform(50000, 500000, n)
+})
+
+print("=" * 60)
+print("KAGGLE FEATURE ENGINEERING CHALLENGE")
+print("=" * 60)
+print(f"\\nOriginal Shape: {df.shape}")
+print(f"Target: SalePrice")
+
+# =============================================================================
+# 2. 베이스라인
+# =============================================================================
+print("\\n=== BASELINE ===")
+
+X = df.drop(['Id', 'SalePrice'], axis=1)
+y = np.log1p(df['SalePrice'])  # Log transform target
+
+# 범주형 인코딩
+X_baseline = pd.get_dummies(X, drop_first=True)
+
+rf = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+baseline_cv = cross_val_score(rf, X_baseline, y, cv=5, scoring='neg_root_mean_squared_error')
+print(f"Baseline CV RMSE (log): {-baseline_cv.mean():.4f} (+/- {baseline_cv.std():.4f})")
+
+# =============================================================================
+# 3. Feature Engineering (여기서부터 작성!)
+# =============================================================================
+print("\\n=== FEATURE ENGINEERING ===")
+
+df_fe = df.copy()
+
+# TODO: 수치형 피처 (15개 이상)
+# 예시:
+# df_fe['TotalSF'] = df_fe['TotalBsmtSF'] + df_fe['1stFlrSF'] + df_fe['2ndFlrSF']
+
+# TODO: 범주형 피처 (15개 이상)
+# 예시:
+# df_fe['Neighborhood_BldgType'] = df_fe['Neighborhood'] + '_' + df_fe['BldgType']
+
+# TODO: 상호작용 피처 (10개 이상)
+
+# TODO: Groupby 집계 (10개 이상)
+
+# =============================================================================
+# 4. FE 후 모델 학습
+# =============================================================================
+print("\\n=== AFTER FE ===")
+
+# TODO: FE 데이터로 학습 및 CV 점수 계산
+
+# =============================================================================
+# 5. 피처 중요도 분석
+# =============================================================================
+print("\\n=== FEATURE IMPORTANCE ===")
+
+# TODO: Permutation Importance로 상위 20개 피처
+
+# =============================================================================
+# 6. 결과 요약
+# =============================================================================
+print("\\n" + "=" * 60)
+print("RESULTS SUMMARY")
+print("=" * 60)
+
+# TODO: 결과 정리
+# - 총 생성 피처 수
+# - 베이스라인 vs FE RMSE
+# - 개선율
+# - 상위 10개 피처
+`,
+      hints: [
+        '수치형: 면적 조합, 비율, 나이, 품질 점수 조합',
+        '범주형: Neighborhood별 통계, Target Encoding',
+        '상호작용: 품질 * 면적, 방 수 * 층 수',
+        'Groupby: Neighborhood별 평균 가격, 중앙값 등'
+      ],
+      evaluationCriteria: [
+        '최소 50개 신규 피처 생성',
+        '베이스라인 대비 RMSE 개선',
+        '피처 중요도 분석 수행',
+        '코드 주석 및 가독성'
+      ],
+      bonusPoints: [
+        'Kaggle 제출 (+10점)',
+        '상위 50% 달성 (+10점)',
+        'FE 파이프라인 클래스 (+10점)'
       ]
     }
   }
