@@ -2,11 +2,14 @@
 const { execSync } = require('child_process')
 
 // Git commit hash 가져오기 (빌드 시점)
-let gitCommitHash = 'unknown'
-try {
-  gitCommitHash = execSync('git rev-parse --short HEAD').toString().trim()
-} catch (e) {
-  console.warn('Could not get git commit hash')
+// Docker 빌드에서는 NEXT_PUBLIC_GIT_COMMIT_HASH 환경변수 사용
+let gitCommitHash = process.env.NEXT_PUBLIC_GIT_COMMIT_HASH || 'unknown'
+if (gitCommitHash === 'unknown') {
+  try {
+    gitCommitHash = execSync('git rev-parse --short HEAD').toString().trim()
+  } catch (e) {
+    console.warn('Could not get git commit hash')
+  }
 }
 
 const nextConfig = {
