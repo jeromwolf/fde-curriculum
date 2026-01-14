@@ -1,0 +1,36 @@
+steps:
+  # Step 1: Build Docker image with commit hash
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'GIT_COMMIT_HASH=${_GIT_COMMIT_HASH}'
+      - '-t'
+      - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/fde-academy:latest'
+      - '-t'
+      - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/fde-academy:${_GIT_COMMIT_HASH}'
+      - '.'
+    id: 'build'
+
+  # Step 3: Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '--all-tags', 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/fde-academy']
+    id: 'push'
+
+  # Step 4: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'fde-academy'
+      - '--image=asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/fde-academy:latest'
+      - '--region=asia-northeast3'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+    id: 'deploy'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'
