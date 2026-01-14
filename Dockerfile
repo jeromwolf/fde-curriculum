@@ -7,10 +7,13 @@ RUN npm install
 
 # Stage 2: Build
 FROM node:20-slim AS builder
-RUN apt-get update && apt-get install -y openssl libssl-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y openssl libssl-dev git && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Git commit hash for version display
+ARG GIT_COMMIT_HASH
+ENV NEXT_PUBLIC_GIT_COMMIT_HASH=${GIT_COMMIT_HASH}
 ENV NEXT_TELEMETRY_DISABLED 1
 # 토스페이먼츠 클라이언트 키 (빌드 시점에 필요)
 ENV NEXT_PUBLIC_TOSS_CLIENT_KEY="test_ck_lpP2YxJ4K877JAdv7KX8RGZwXLOb"
