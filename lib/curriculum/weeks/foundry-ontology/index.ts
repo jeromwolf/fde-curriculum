@@ -84,7 +84,8 @@ Primary Key = 고유 식별자
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Object Types', url: 'https://learn.palantir.com/object-types' }
+          { title: 'Object Types', url: 'https://www.palantir.com/docs/foundry/ontology/object-types/' },
+          { title: 'Ontology Overview', url: 'https://www.palantir.com/docs/foundry/ontology/' }
         ]
       }
     },
@@ -160,7 +161,7 @@ Display Configuration:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Properties Guide', url: 'https://learn.palantir.com/properties' }
+          { title: 'Property Types', url: 'https://www.palantir.com/docs/foundry/ontology/object-type-properties/' }
         ]
       }
     },
@@ -380,7 +381,7 @@ Reverse: Order → placedBy → Customer
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Link Types', url: 'https://learn.palantir.com/link-types' }
+          { title: 'Link Types', url: 'https://www.palantir.com/docs/foundry/ontology/link-types/' }
         ]
       }
     },
@@ -448,7 +449,7 @@ Product ←→ Category
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Relationship Patterns', url: 'https://learn.palantir.com/patterns' }
+          { title: 'Ontology Best Practices', url: 'https://www.palantir.com/docs/foundry/ontology/best-practices/' }
         ]
       }
     },
@@ -637,7 +638,7 @@ Action 정의:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Actions', url: 'https://learn.palantir.com/actions' }
+          { title: 'Actions', url: 'https://www.palantir.com/docs/foundry/action-types/' }
         ]
       }
     },
@@ -715,7 +716,7 @@ Action 실행 후:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Action Configuration', url: 'https://learn.palantir.com/action-config' }
+          { title: 'Action Configuration', url: 'https://www.palantir.com/docs/foundry/action-types/action-configuration/' }
         ]
       }
     },
@@ -918,7 +919,7 @@ Object Explorer = Ontology 기반 데이터 탐색 도구
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Object Explorer', url: 'https://learn.palantir.com/object-explorer' }
+          { title: 'Object Explorer', url: 'https://www.palantir.com/docs/foundry/object-explorer/' }
         ]
       }
     },
@@ -984,7 +985,7 @@ Detail View 설정:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Views Configuration', url: 'https://learn.palantir.com/views' }
+          { title: 'Object Views', url: 'https://www.palantir.com/docs/foundry/object-views/' }
         ]
       }
     },

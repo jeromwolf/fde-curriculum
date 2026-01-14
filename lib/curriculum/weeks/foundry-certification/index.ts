@@ -86,8 +86,8 @@ Professional (전문):
 | 응시료 | $200 | $350 |
         `,
         externalLinks: [
-          { title: 'Palantir Certification', url: 'https://www.palantir.com/certification' },
-          { title: 'Learn Palantir', url: 'https://learn.palantir.com' }
+          { title: 'Palantir Foundry Docs', url: 'https://www.palantir.com/docs/foundry/' },
+          { title: 'Foundry Training', url: 'https://www.palantir.com/docs/foundry/getting-started/' }
         ]
       }
     },
@@ -152,7 +152,7 @@ Best Practices   █████ 10%
 - Action 파라미터 처리
         `,
         externalLinks: [
-          { title: 'Exam Guide', url: 'https://learn.palantir.com/certification' }
+          { title: 'Foundry Concepts', url: 'https://www.palantir.com/docs/foundry/getting-started/key-concepts/' }
         ]
       }
     },
@@ -403,7 +403,7 @@ A: 전 (데이터 감소 → 성능 향상)
 | 캐싱 | 재사용 데이터셋 |
         `,
         externalLinks: [
-          { title: 'Pipeline Builder', url: 'https://learn.palantir.com/pipeline-builder' }
+          { title: 'Pipeline Builder', url: 'https://www.palantir.com/docs/foundry/pipeline-builder/' }
         ]
       }
     },
@@ -503,7 +503,7 @@ Window: 원본 + 집계 함께 반환
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Transforms API', url: 'https://learn.palantir.com/transforms' }
+          { title: 'Transforms Python', url: 'https://www.palantir.com/docs/foundry/transforms-python/' }
         ]
       }
     },
@@ -737,7 +737,7 @@ Link Type:
 | Title Property | 의미 있는 표시명 |
         `,
         externalLinks: [
-          { title: 'Ontology Manager', url: 'https://learn.palantir.com/ontology' }
+          { title: 'Ontology Overview', url: 'https://www.palantir.com/docs/foundry/ontology/' }
         ]
       }
     },
@@ -832,7 +832,7 @@ A: Button onClick → Execute Action → Action 선택 → Parameter 바인딩
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Workshop', url: 'https://learn.palantir.com/workshop' }
+          { title: 'Workshop', url: 'https://www.palantir.com/docs/foundry/workshop/' }
         ]
       }
     },
@@ -1175,7 +1175,7 @@ const day5: Day = {
    - 표시하고 넘어가기
         `,
         externalLinks: [
-          { title: 'Exam Tips', url: 'https://learn.palantir.com/certification' }
+          { title: 'Foundry Best Practices', url: 'https://www.palantir.com/docs/foundry/best-practices/' }
         ]
       }
     },

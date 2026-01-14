@@ -1,4 +1,4 @@
-// Day 1: RAG 아키텍처 심화
+// Day 1: RAG 아키텍처 개요
 // 타겟: 중급 개발자 (Python, API 사용 경험 있음)
 
 import type { Day } from '../../types'
@@ -12,7 +12,7 @@ import {
 
 export const day1RagArchitecture: Day = {
   slug: 'rag-architecture',
-  title: 'RAG 아키텍처 심화',
+  title: 'RAG 아키텍처 개요',
   totalDuration: 280,
   tasks: [
     // ============================================

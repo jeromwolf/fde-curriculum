@@ -90,7 +90,7 @@ AIP가 Ontology 이해:
         `,
         externalLinks: [
           { title: 'AIP Overview', url: 'https://www.palantir.com/platforms/aip/' },
-          { title: 'AIP Documentation', url: 'https://learn.palantir.com/aip' }
+          { title: 'AIP Documentation', url: 'https://www.palantir.com/docs/foundry/aip-logic/' }
         ]
       }
     },
@@ -203,7 +203,8 @@ Response: "이번 달 VIP 고객 매출 합계는 ₩2.5억입니다."
 \`\`\`
         `,
         externalLinks: [
-          { title: 'AIP Logic', url: 'https://learn.palantir.com/aip-logic' }
+          { title: 'AIP Logic', url: 'https://www.palantir.com/docs/foundry/aip-logic/' },
+          { title: 'AIP Functions', url: 'https://www.palantir.com/docs/foundry/aip-logic/aip-functions/' }
         ]
       }
     },
@@ -416,7 +417,7 @@ Output Schema 정의:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'AIP Logic Guide', url: 'https://learn.palantir.com/aip-logic' }
+          { title: 'AIP Logic Guide', url: 'https://www.palantir.com/docs/foundry/aip-logic/create-function/' }
         ]
       }
     },
@@ -684,7 +685,7 @@ Tool = Agent가 사용하는 기능
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Agentic Workflows', url: 'https://learn.palantir.com/agents' }
+          { title: 'AIP Agents', url: 'https://www.palantir.com/docs/foundry/aip-agents/' }
         ]
       }
     },
@@ -881,7 +882,7 @@ Action: 자동 카테고리 설정 + 담당자 배정
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Workshop AI', url: 'https://learn.palantir.com/workshop-ai' }
+          { title: 'AIP in Workshop', url: 'https://www.palantir.com/docs/foundry/workshop/aip-widgets/' }
         ]
       }
     },

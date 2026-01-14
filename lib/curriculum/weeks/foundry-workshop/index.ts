@@ -92,7 +92,8 @@ Action Widgets:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Workshop Guide', url: 'https://learn.palantir.com/workshop' }
+          { title: 'Workshop Overview', url: 'https://www.palantir.com/docs/foundry/workshop/' },
+          { title: 'Workshop Widgets', url: 'https://www.palantir.com/docs/foundry/workshop/widgets/' }
         ]
       }
     },
@@ -371,7 +372,7 @@ Form 패턴:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Variables', url: 'https://learn.palantir.com/variables' }
+          { title: 'Workshop Variables', url: 'https://www.palantir.com/docs/foundry/workshop/variables/' }
         ]
       }
     },
@@ -463,7 +464,7 @@ Parallel Actions:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Events & Actions', url: 'https://learn.palantir.com/events' }
+          { title: 'Workshop Events', url: 'https://www.palantir.com/docs/foundry/workshop/events/' }
         ]
       }
     },
@@ -653,7 +654,7 @@ Form Submit 플로우:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Forms', url: 'https://learn.palantir.com/forms' }
+          { title: 'Workshop Forms', url: 'https://www.palantir.com/docs/foundry/workshop/forms/' }
         ]
       }
     },
@@ -722,7 +723,7 @@ Action 권한 확인:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Action Integration', url: 'https://learn.palantir.com/action-integration' }
+          { title: 'Action Integration', url: 'https://www.palantir.com/docs/foundry/action-types/workshop-integration/' }
         ]
       }
     },
@@ -928,7 +929,7 @@ Quiver → Workshop:
 \`\`\`
         `,
         externalLinks: [
-          { title: 'Quiver', url: 'https://learn.palantir.com/quiver' }
+          { title: 'Quiver Documentation', url: 'https://www.palantir.com/docs/foundry/quiver/' }
         ]
       }
     },
