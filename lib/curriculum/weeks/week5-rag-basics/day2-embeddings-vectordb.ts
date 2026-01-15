@@ -33,6 +33,10 @@ export const day2EmbeddingsVectordb: Day = {
 
 **TF-IDF (Term Frequency-Inverse Document Frequency)**
 
+> 💡 **한 줄 요약**: 문서에서 단어의 중요도를 "빈도"와 "희소성"으로 계산하는 통계 기법
+>
+> TF(단어 빈도) × IDF(역문서 빈도) = 해당 문서에서 그 단어가 얼마나 중요한지 점수화
+
 \`\`\`python
 # 전통적인 문서 표현 방식
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -60,6 +64,11 @@ print(f"비영 요소 비율: {tfidf_matrix.nnz / tfidf_matrix.size:.2%}")  # ~2
 ### 2세대: 신경망 기반 Word Embeddings (2013-2017)
 
 **Word2Vec (2013, Google)**
+
+> 💡 **한 줄 요약**: 단어를 고정 길이의 밀집 벡터(dense vector)로 변환하는 최초의 신경망 기반 임베딩
+>
+> 핵심 원리: "비슷한 문맥에서 등장하는 단어는 비슷한 의미를 가진다" (분포 가설)
+> 결과: 단어 간 의미 관계가 벡터 연산으로 표현됨 (King - Man + Woman ≈ Queen)
 
 Mikolov et al.의 혁신적 논문 "Efficient Estimation of Word Representations in Vector Space"
 
@@ -131,6 +140,11 @@ GloVe: 전체 코퍼스의 동시 출현 통계 활용
 ### 3세대: Transformer 기반 (2018-현재)
 
 **BERT (2018, Google)**
+
+> 💡 **한 줄 요약**: 문맥을 양방향으로 이해하여 동일 단어도 상황에 따라 다른 벡터를 생성하는 혁신적 모델
+>
+> Word2Vec과의 차이: "bank"가 항상 같은 벡터 → BERT는 문맥에 따라 "은행" 또는 "강둑"으로 다른 벡터
+> 핵심 기술: Transformer의 Self-Attention 메커니즘으로 문장 전체의 관계를 학습
 
 Bidirectional Encoder Representations from Transformers
 
@@ -290,6 +304,14 @@ reduced_umap = reducer.fit_transform(embeddings)
         '고차원 벡터는 의미적 분별력이 높음',
       ],
       practiceGoal: '임베딩의 역사와 수학적 원리를 이해한다',
+      simulators: [
+        {
+          id: 'embedding-visualizer',
+          title: 'Embedding Visualizer 3D',
+          description: '단어/문장 임베딩을 3D 공간에서 시각화하고 유사도를 직접 확인해보세요',
+          url: '/simulators/embedding-visualizer'
+        }
+      ],
     }),
 
     // ========================================

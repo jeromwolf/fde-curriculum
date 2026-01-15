@@ -1,6 +1,6 @@
 // Week 5: RAG 기초 - 공통 타입 및 헬퍼
 
-import type { Day, Task } from '../../types'
+import type { Day, Task, SimulatorLink } from '../../types'
 
 // Week 5 메타데이터
 export const WEEK5_META = {
@@ -35,6 +35,7 @@ interface Week5TaskContent {
   questions?: Week5QuizQuestion[]
   hints?: string[]
   videoUrl?: string
+  simulators?: SimulatorLink[]
 }
 
 // Task 생성 헬퍼 함수들
@@ -54,6 +55,7 @@ export function createVideoTask(
       transcript: content.introduction,
       keyPoints: content.keyPoints,
       objectives: content.practiceGoal ? [content.practiceGoal] : [],
+      simulators: content.simulators,
     },
   }
 }
