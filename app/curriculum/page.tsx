@@ -221,11 +221,13 @@ export default function CurriculumPage() {
   ]
 
   const prerequisites = [
-    { skill: 'Python 기초', level: '필수', description: '변수, 함수, 클래스, 모듈 이해' },
-    { skill: 'SQL 기초', level: '필수', description: 'SELECT, JOIN, GROUP BY 사용 가능' },
-    { skill: 'Git 기초', level: '필수', description: 'clone, commit, push, branch 사용 가능' },
-    { skill: '영어 문서 독해', level: '권장', description: '기술 문서 읽기 가능 수준' },
-    { skill: '통계 기초', level: '권장', description: '평균, 분산, 분포 개념 이해' }
+    { skill: 'Python 기초 1', level: '필수', description: '변수, 자료형, 조건문, 반복문', slug: 'prereq-python-1' },
+    { skill: 'Python 기초 2', level: '필수', description: '함수, 클래스, 모듈, 파일 I/O', slug: 'prereq-python-2' },
+    { skill: 'SQL 기초 1', level: '필수', description: 'SELECT, WHERE, ORDER BY', slug: 'prereq-sql-1' },
+    { skill: 'SQL 기초 2', level: '필수', description: 'JOIN, GROUP BY, 서브쿼리', slug: 'prereq-sql-2' },
+    { skill: 'Git 기초', level: '필수', description: 'clone, commit, push, branch 사용 가능', slug: 'prereq-git' },
+    { skill: '영어 문서 독해', level: '권장', description: '기술 문서 읽기 가능 수준', slug: 'prereq-english' },
+    { skill: '통계 기초', level: '권장', description: '평균, 분산, 분포 개념 이해', slug: 'prereq-stats' }
   ]
 
   const weeklySchedule = {
@@ -377,17 +379,34 @@ export default function CurriculumPage() {
                 <span>📋</span> 선수 과목 (Prerequisites)
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {prerequisites.map((req) => (
-                  <div key={req.skill} className="bg-white rounded-lg p-4 border border-yellow-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${req.level === '필수' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                        {req.level}
-                      </span>
-                      <span className="font-semibold text-gray-900">{req.skill}</span>
+                {prerequisites.map((req) => {
+                  const CardContent = (
+                    <>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${req.level === '필수' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                          {req.level}
+                        </span>
+                        <span className="font-semibold text-gray-900">{req.skill}</span>
+                        {req.slug && <span className="text-xs text-[#03EF62] font-medium">학습하기 →</span>}
+                      </div>
+                      <p className="text-sm text-gray-600">{req.description}</p>
+                    </>
+                  )
+
+                  return req.slug ? (
+                    <Link
+                      key={req.skill}
+                      href={`/learn/week/${req.slug}`}
+                      className="bg-white rounded-lg p-4 border border-yellow-100 hover:border-[#03EF62] hover:shadow-md transition-all cursor-pointer"
+                    >
+                      {CardContent}
+                    </Link>
+                  ) : (
+                    <div key={req.skill} className="bg-white rounded-lg p-4 border border-yellow-100">
+                      {CardContent}
                     </div>
-                    <p className="text-sm text-gray-600">{req.description}</p>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 

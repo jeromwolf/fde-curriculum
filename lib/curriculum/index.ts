@@ -4,6 +4,14 @@
 export * from './types'
 export * from './packages'
 
+// Phase 0: 선수과목 (Week 1-6)
+import { prereqPython1Week } from './weeks/prereq-python-1'
+import { prereqPython2Week } from './weeks/prereq-python-2'
+import { prereqSql1Week } from './weeks/prereq-sql-1'
+import { prereqSql2Week } from './weeks/prereq-sql-2'
+import { prereqEnglishWeek } from './weeks/prereq-english'
+import { prereqStatsWeek } from './weeks/prereq-stats'
+import { prereqGitWeek } from './weeks/prereq-git'
 // Phase 1: 데이터 엔지니어링 기초 (Week 1-8)
 import { pythonAdvancedWeek } from './weeks/python-advanced'
 import { pandasDataWeek } from './weeks/pandas-data'
@@ -72,6 +80,14 @@ import type { Week, Task, Day, Module, Course, TaskContent, QuizQuestion } from 
 
 // 전체 커리큘럼 (Week 배열)
 export const curriculum: Week[] = [
+  // Phase 0: 선수과목 (Week 1-7)
+  prereqPython1Week,
+  prereqPython2Week,
+  prereqSql1Week,
+  prereqSql2Week,
+  prereqGitWeek,
+  prereqEnglishWeek,
+  prereqStatsWeek,
   // Phase 1: 데이터 엔지니어링 기초 (Week 1-8)
   pythonAdvancedWeek,
   pandasDataWeek,
