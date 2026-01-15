@@ -1,5 +1,23 @@
 # FDE Academy - 개발 로그
 
+## ⚠️ 배포 방법 (중요!)
+
+**프로덕션 배포는 Google Cloud Run을 사용합니다. Vercel 아님!**
+
+```bash
+# Cloud Run 배포 명령어
+cd fde-curriculum-simple
+gcloud builds submit --config=cloudbuild.yaml --substitutions=_GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
+```
+
+| 환경 | URL | 용도 |
+|------|-----|------|
+| **프로덕션 (Cloud Run)** | https://fde-academy.ai.kr | 메인 서비스 |
+| Cloud Run 직접 | https://fde-academy-827760573017.asia-northeast3.run.app | Cloud Run URL |
+| Vercel | https://fde-curriculum-simple.vercel.app | 자동 배포 (참고용) |
+
+---
+
 ## 2026-01-13: Neon DB 마이그레이션 & Prompt Lab 시뮬레이터
 
 ### 🎯 목표
