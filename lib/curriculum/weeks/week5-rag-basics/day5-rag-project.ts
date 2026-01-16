@@ -283,11 +283,75 @@ class SecureRAG:
 | **MVP** | Pinecone Free | GPT-4o-mini + Claude Haiku | LangChain | Vercel/Railway |
 | **Scale-up** | Pinecone Standard | GPT-4o + Fallback | LangGraph | AWS ECS/GCP Cloud Run |
 | **Enterprise** | pgvector + Pinecone | Fine-tuned + GPT-4 | Custom | Kubernetes |
+
+## 📊 실제 적용 사례 + ROI
+
+### 실제 기업 RAG 도입 사례
+
+| 분야 | 적용 사례 | Before | After | ROI |
+|------|----------|--------|-------|-----|
+| **고객 상담** | 연말정산 챗봇 | 상담사 1명당 일 50건 | 챗봇이 80% 자동 처리 | **인건비 60% 절감** |
+| **사내 지식** | 신입 온보딩 | 질문→선배 시간 낭비 | 사내문서 RAG로 자동 답변 | **온보딩 2주→3일** |
+| **법률/금융** | 계약서 검토 | 변호사 2시간/건 | AI 초안 + 변호사 확인 | **검토시간 70% 단축** |
+| **제조업** | 설비 매뉴얼 | 매뉴얼 뒤지기 30분 | 음성 질문→즉시 답변 | **설비 가동률 15%↑** |
+
+### ROI 계산 방법
+
+\`\`\`python
+# 예시: 연말정산 챗봇 ROI 계산
+
+# Before (상담사 운영)
+daily_queries = 1000           # 일일 질문 수
+avg_handling_time = 10         # 건당 평균 처리시간 (분)
+hourly_wage = 25000           # 상담사 시급 (원)
+monthly_labor_cost = (daily_queries * avg_handling_time / 60) * hourly_wage * 22
+# = 1000 * 10/60 * 25000 * 22 = 91,666,667원/월
+
+# After (RAG 챗봇)
+chatbot_coverage = 0.8        # 챗봇 자동 처리율 80%
+api_cost_per_query = 50       # GPT-4o-mini 비용 (약 50원/건)
+monthly_api_cost = daily_queries * chatbot_coverage * api_cost_per_query * 22
+# = 1000 * 0.8 * 50 * 22 = 880,000원/월
+
+# ROI 계산
+monthly_savings = monthly_labor_cost - monthly_api_cost
+# = 91,666,667 - 880,000 = 약 9,080만원/월 절감!
+
+roi_percentage = (monthly_savings / monthly_labor_cost) * 100
+# = 99% ROI (거의 전액 절감)
+\`\`\`
+
+### 성공적인 RAG 도입 체크리스트
+
+\`\`\`markdown
+□ 명확한 비즈니스 문제 정의
+  - "직원들이 내부 문서를 못 찾아서 시간 낭비"
+  - "고객 문의 응답 시간이 너무 김"
+
+□ 측정 가능한 KPI 설정
+  - 응답 시간: 5분 → 10초
+  - 정확도: 70% → 95%
+  - 처리량: 일 100건 → 1000건
+
+□ 작게 시작 (PoC)
+  - 전체 문서가 아닌 핵심 문서 100개부터
+  - 전체 사용자가 아닌 파일럿 그룹 10명부터
+
+□ 피드백 루프 구축
+  - 👍/👎 버튼으로 답변 품질 수집
+  - 주간 리뷰 → 프롬프트/청킹 개선
+\`\`\`
+
+> 💡 **핵심 포인트**
+>
+> RAG 프로젝트는 기술이 아니라 **비즈니스 문제 해결**입니다.
+> "어떤 문제를 풀 것인가?"가 "어떤 모델을 쓸 것인가?"보다 100배 중요합니다.
       `,
       keyPoints: [
         '프로덕션 RAG는 데모의 10배 복잡도',
         '5원칙: Fail-Safe, Observable, Scalable, Cost-Efficient, Secure',
         '규모에 맞는 기술 스택 선택',
+        '📊 ROI 중심 사고: 비즈니스 문제 → 기술 선택',
       ],
       practiceGoal: '프로덕션 수준 RAG 시스템의 아키텍처와 설계 원칙을 이해한다',
     }),
