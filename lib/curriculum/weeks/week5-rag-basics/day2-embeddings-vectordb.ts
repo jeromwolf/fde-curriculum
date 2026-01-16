@@ -414,6 +414,65 @@ embeddings = model_ko.encode(korean_texts)
 
 ---
 
+### 로컬 LLM용 임베딩 모델 (Ollama)
+
+Ollama를 통해 로컬에서 실행 가능한 임베딩 모델입니다. 데이터 보안이 중요하거나 오프라인 환경에서 필수입니다.
+
+| 모델 | 크기 | 차원 | 한국어 | 특징 |
+|------|------|------|--------|------|
+| **bge-m3** | 2.2GB | 1024 | ✅ 좋음 | 다국어 최강, 한국어 검색 정확도 높음 |
+| nomic-embed-text | 274MB | 768 | ⚠️ 보통 | 가볍고 빠름, 영어 최적화 |
+| mxbai-embed-large | 670MB | 1024 | ⚠️ 보통 | 균형 잡힌 성능 |
+| snowflake-arctic | 335MB | 1024 | ⚠️ 보통 | 최신 모델 |
+
+> 💡 **한국어 RAG라면 bge-m3 필수!**
+> 임베딩 모델 선택이 RAG 성능의 **70%**를 결정합니다.
+
+**실제 한국어 검색 비교 예시**
+
+\`\`\`
+질문: "자녀세액공제 금액"
+
+[nomic-embed-text 검색 결과]
+1. 의료비 세액공제 (페이지 156)  ← 엉뚱함
+2. 교육비 공제 (페이지 203)
+3. 자녀세액공제 (페이지 89)     ← 3번째에서야 발견
+
+[bge-m3 검색 결과]
+1. 자녀세액공제 (페이지 89)     ← 정확!
+2. 자녀세액공제 계산 (페이지 90)
+3. 자녀 관련 공제 요약 (페이지 91)
+
+→ 검색이 틀리면 답변도 틀린다!
+→ 한국어 문서라면 bge-m3가 훨씬 정확
+\`\`\`
+
+\`\`\`bash
+# Ollama로 임베딩 모델 설치
+ollama pull bge-m3            # 2.2GB, 한국어 추천 (필수!)
+ollama pull nomic-embed-text  # 274MB, 영어 문서용 (가벼움)
+
+# 설치 확인
+ollama list
+\`\`\`
+
+\`\`\`python
+# LangChain + Ollama 임베딩 사용
+from langchain_ollama import OllamaEmbeddings
+
+# 한국어 문서용 (추천)
+embeddings = OllamaEmbeddings(model="bge-m3")
+
+# 가벼운 영어 문서용
+embeddings_light = OllamaEmbeddings(model="nomic-embed-text")
+
+# 임베딩 생성
+vector = embeddings.embed_query("자녀세액공제 금액이 얼마인가요?")
+print(f"차원: {len(vector)}")  # 1024
+\`\`\`
+
+---
+
 ## 임베딩 모델 선택 의사결정 트리
 
 \`\`\`
