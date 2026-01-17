@@ -1853,12 +1853,230 @@ async def demo():
     print(f"\\n📊 성공률: {stats['success_rate']:.1%}")
     print(f"📊 평균 지연: {stats['avg_latency_ms']:.1f}ms")
     print(f"📊 P95 지연: {stats['p95_latency_ms']:.1f}ms")
+
+# ──────────────────────────────────────────────
+# 7. JSONL 구조화 로깅 시스템
+# ──────────────────────────────────────────────
+
+import json
+from datetime import datetime
+from pathlib import Path
+
+class RAGLogger:
+    """JSONL 포맷으로 RAG 로그 저장"""
+
+    def __init__(self, log_dir: str = "./logs"):
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.log_file = self.log_dir / f"rag_{datetime.now():%Y%m%d}.jsonl"
+
+    def log(self, query: str, answer: str, sources: list, latency: float, success: bool = True):
+        """로그 엔트리 저장"""
+        entry = {
+            "timestamp": datetime.now().isoformat(),
+            "query": query,
+            "answer": answer[:500],  # 답변 500자 제한
+            "source_count": len(sources),
+            "sources": [s[:100] for s in sources[:3]],  # 상위 3개 소스
+            "latency_ms": round(latency * 1000, 2),
+            "success": success
+        }
+
+        with open(self.log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\\n")
+
+    def get_logs(self, limit: int = 100) -> list:
+        """최근 로그 조회"""
+        logs = []
+        if self.log_file.exists():
+            with open(self.log_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    logs.append(json.loads(line))
+        return logs[-limit:]
+
+# 사용 예시
+logger = RAGLogger()
+# RAG 호출 후
+# logger.log(query, answer, sources, latency)
+
+# ──────────────────────────────────────────────
+# 8. Streamlit 분석 대시보드
+# ──────────────────────────────────────────────
+
+# dashboard.py
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+def show_analytics():
+    """RAG 분석 대시보드"""
+    st.title("📊 RAG 분석 대시보드")
+
+    # 로그 데이터 로드
+    logger = RAGLogger()
+    logs = logger.get_logs(limit=1000)
+
+    if not logs:
+        st.warning("아직 로그 데이터가 없습니다.")
+        return
+
+    df = pd.DataFrame(logs)
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+
+    # 핵심 지표
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("총 쿼리 수", len(df))
+    with col2:
+        success_rate = df['success'].mean() * 100
+        st.metric("성공률", f"{success_rate:.1f}%")
+    with col3:
+        avg_latency = df['latency_ms'].mean()
+        st.metric("평균 응답시간", f"{avg_latency:.0f}ms")
+    with col4:
+        p95_latency = df['latency_ms'].quantile(0.95)
+        st.metric("P95 응답시간", f"{p95_latency:.0f}ms")
+
+    # 시간별 요청 추이
+    st.subheader("📈 시간별 요청 추이")
+    hourly = df.set_index('timestamp').resample('H').size()
+    fig = px.line(x=hourly.index, y=hourly.values,
+                  labels={'x': '시간', 'y': '요청 수'})
+    st.plotly_chart(fig, use_container_width=True)
+
+    # 응답시간 분포
+    st.subheader("⏱️ 응답시간 분포")
+    fig = px.histogram(df, x='latency_ms', nbins=30,
+                       labels={'latency_ms': '응답시간 (ms)'})
+    st.plotly_chart(fig, use_container_width=True)
+
+    # 최근 쿼리 목록
+    st.subheader("📝 최근 쿼리")
+    recent = df.tail(10)[['timestamp', 'query', 'latency_ms', 'success']]
+    st.dataframe(recent, use_container_width=True)
+
+# ──────────────────────────────────────────────
+# 9. Slack 알림 시스템
+# ──────────────────────────────────────────────
+
+import requests
+
+def send_slack_alert(webhook_url: str, message: str, level: str = "warning"):
+    """Slack으로 알림 전송"""
+    emoji = {"info": "ℹ️", "warning": "⚠️", "error": "🚨"}.get(level, "📢")
+
+    payload = {
+        "blocks": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"{emoji} *RAG 시스템 알림*\\n{message}"
+                }
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"발생 시간: {datetime.now():%Y-%m-%d %H:%M:%S}"
+                    }
+                ]
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(webhook_url, json=payload, timeout=5)
+        response.raise_for_status()
+    except Exception as e:
+        print(f"Slack 알림 실패: {e}")
+
+# 알림 조건 예시
+def check_and_alert(metrics_collector, slack_webhook: str):
+    """메트릭 기반 알림 체크"""
+    stats = metrics_collector.get_stats()
+
+    # 성공률 90% 미만 시 경고
+    if stats.get('success_rate', 1) < 0.9:
+        send_slack_alert(
+            slack_webhook,
+            f"성공률 저하: {stats['success_rate']:.1%}",
+            level="warning"
+        )
+
+    # P95 응답시간 3초 초과 시 경고
+    if stats.get('p95_latency_ms', 0) > 3000:
+        send_slack_alert(
+            slack_webhook,
+            f"응답 지연: P95 = {stats['p95_latency_ms']:.0f}ms",
+            level="error"
+        )
+
+# ──────────────────────────────────────────────
+# 10. 사용자 피드백 수집
+# ──────────────────────────────────────────────
+
+# Streamlit UI에서 피드백 수집
+def show_feedback_buttons(query: str, answer: str, query_id: str):
+    """👍/👎 피드백 버튼 표시"""
+    col1, col2, col3 = st.columns([1, 1, 8])
+
+    with col1:
+        if st.button("👍", key=f"up_{query_id}"):
+            save_feedback(query_id, query, answer, positive=True)
+            st.success("감사합니다!")
+
+    with col2:
+        if st.button("👎", key=f"down_{query_id}"):
+            save_feedback(query_id, query, answer, positive=False)
+            st.info("피드백이 기록되었습니다.")
+
+def save_feedback(query_id: str, query: str, answer: str, positive: bool):
+    """피드백 저장"""
+    feedback_file = Path("./logs/feedback.jsonl")
+    feedback_file.parent.mkdir(parents=True, exist_ok=True)
+
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "query_id": query_id,
+        "query": query,
+        "answer": answer[:500],
+        "positive": positive
+    }
+
+    with open(feedback_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\\n")
+
+# 피드백 분석
+def analyze_feedback():
+    """부정 피드백 분석"""
+    feedback_file = Path("./logs/feedback.jsonl")
+    if not feedback_file.exists():
+        return []
+
+    negative_feedback = []
+    with open(feedback_file, "r", encoding="utf-8") as f:
+        for line in f:
+            entry = json.loads(line)
+            if not entry.get("positive"):
+                negative_feedback.append(entry)
+
+    return negative_feedback
+
+# 부정 피드백은 RAG 개선의 핵심 자료!
+# - 어떤 질문에서 실패했는지 분석
+# - 문서 추가 또는 프롬프트 개선에 활용
 \`\`\`
       `,
       keyPoints: [
         'Result 타입으로 성공/실패 명시적 처리',
         '지수 백오프 + 서킷 브레이커로 장애 대응',
         '구조화된 메트릭으로 성능 모니터링',
+        '📊 JSONL 로깅으로 쿼리/응답/지연시간 기록',
+        '📈 Streamlit 대시보드로 실시간 분석',
+        '🔔 Slack 알림으로 이상 징후 즉시 감지',
+        '👍👎 사용자 피드백으로 지속적 품질 개선',
       ],
       practiceGoal: '프로덕션 환경에서 안정적으로 동작하는 에러 핸들링과 모니터링을 구현한다',
     }),

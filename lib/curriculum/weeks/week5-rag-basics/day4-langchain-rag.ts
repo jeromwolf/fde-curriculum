@@ -1451,11 +1451,188 @@ final_retriever = ContextualCompressionRetriever(
 | Parent Document | 검색 정확도 vs 컨텍스트 | 작은 청크 검색, 큰 청크 반환 |
 | Multi-Query | 단일 관점 한계 | 여러 쿼리로 다양한 결과 |
 | Compression | 긴 청크에 노이즈 | 관련 부분만 추출 |
+
+---
+
+## 5. Agent 연동 (RAG + 도구 활용)
+
+### RAG의 한계
+
+\`\`\`
+User: "자녀세액공제 25만원이면 세금 얼마나 줄어?"
+
+RAG 답변: "자녀세액공제는 1명당 25만원입니다."
+          (문서에 있는 내용만 답변)
+
+원하는 답변: "25만원 세액공제를 받으면 실제 납부세액이 25만원 감소합니다."
+            (계산까지 수행)
+\`\`\`
+
+**한계:**
+- RAG = 검색 + 생성 (문서 기반 답변만)
+- ❌ 계산 불가
+- ❌ 실시간 정보 검색 불가
+- ❌ 외부 API 호출 불가
+
+### ReAct 패턴 (Reasoning + Acting)
+
+\`\`\`
+1. Thought (생각): "자녀세액공제 금액을 알아야 해"
+       ↓
+2. Action (행동): RAG 검색 도구 실행
+       ↓
+3. Observation (관찰): "1명당 25만원"
+       ↓
+4. Thought: "이제 계산이 필요해"
+       ↓
+5. Action: 계산기 도구 실행
+       ↓
+6. Final Answer: 최종 답변 생성
+\`\`\`
+
+### 도구 정의
+
+\`\`\`python
+from langchain.tools import tool
+
+@tool
+def calculator(expression: str) -> str:
+    """수학 계산을 수행합니다. 예: '100 - 25' → '75'"""
+    try:
+        result = eval(expression)
+        return str(result)
+    except:
+        return "계산 오류"
+
+@tool
+def rag_search(query: str) -> str:
+    """연말정산 문서에서 정보를 검색합니다."""
+    docs = retriever.invoke(query)
+    return "\\n".join([d.page_content for d in docs[:3]])
+
+@tool
+def web_search(query: str) -> str:
+    """최신 정보를 웹에서 검색합니다. 예: '2025년 세법 개정'"""
+    # Tavily API 사용
+    from tavily import TavilyClient
+    client = TavilyClient(api_key="tvly-...")
+    response = client.search(query, max_results=3)
+    return "\\n".join([r['content'][:200] for r in response['results']])
+
+tools = [calculator, rag_search, web_search]
+\`\`\`
+
+### Agent 구성 및 실행
+
+\`\`\`python
+from langchain.agents import create_react_agent, AgentExecutor
+from langchain_core.prompts import PromptTemplate
+
+# Agent 프롬프트
+prompt = PromptTemplate.from_template("""
+당신은 연말정산 전문 상담사입니다.
+
+사용 가능한 도구:
+{tools}
+
+도구 이름: {tool_names}
+
+질문에 답하기 위해 필요한 도구를 선택하고 사용하세요.
+
+질문: {input}
+{agent_scratchpad}
+""")
+
+# Agent 생성 및 실행
+agent = create_react_agent(llm, tools, prompt)
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    verbose=True,
+    max_iterations=5  # 무한 루프 방지
+)
+
+result = agent_executor.invoke({
+    "input": "자녀 2명이면 세액공제 얼마야? 계산해줘"
+})
+\`\`\`
+
+---
+
+## 6. 쿼리 라우팅 (질문별 최적 처리)
+
+### 왜 필요한가?
+
+\`\`\`
+모든 질문에 같은 처리?
+
+"안녕하세요" → RAG 검색? (불필요! 0.5초 낭비)
+"자녀세액공제" → RAG 검색 (필요!)
+"100+200" → RAG 검색? (계산기 필요!)
+\`\`\`
+
+### LLM 기반 라우터
+
+\`\`\`python
+from langchain_core.output_parsers import StrOutputParser
+
+router_prompt = PromptTemplate.from_template("""
+다음 질문을 분류하세요.
+
+분류:
+- "general": 일반 대화, 인사
+- "rag": 연말정산, 세금, 공제 관련 질문
+- "calculate": 계산이 필요한 질문
+- "web": 최신 뉴스, 실시간 정보 필요
+
+질문: {question}
+
+분류 (general/rag/calculate/web 중 하나만):
+""")
+
+router_chain = router_prompt | llm | StrOutputParser()
+
+def route_question(question: str):
+    # 1. 질문 분류
+    category = router_chain.invoke({"question": question}).strip()
+
+    # 2. 분류별 처리
+    if category == "general":
+        return llm.invoke(f"친절하게 답변하세요: {question}")
+
+    elif category == "rag":
+        docs = retriever.invoke(question)
+        context = "\\n".join([d.page_content for d in docs])
+        return rag_chain.invoke({"context": context, "question": question})
+
+    elif category == "calculate":
+        return agent_executor.invoke({"input": question})
+
+    elif category == "web":
+        results = web_search(question)
+        return llm.invoke(f"검색 결과를 요약하세요:\\n{results}")
+\`\`\`
+
+### 라우팅 효과
+
+| Before (모든 질문 RAG) | After (라우팅 적용) |
+|----------------------|-------------------|
+| "안녕하세요" → RAG 검색 (0.5초) | "안녕하세요" → 직접 답변 (0.1초) |
+| 관련 문서 없음 | 즉시 응답 |
+| "죄송합니다..." | "안녕하세요! 연말정산 관련 질문이 있으시면..." |
+
+**장점:**
+- ✅ 불필요한 검색 감소
+- ✅ 응답 속도 향상
+- ✅ 적절한 도구 사용
+- ✅ 사용자 경험 개선
       `,
       keyPoints: [
         'Self-Query: 자연어에서 메타데이터 필터 자동 추출',
         'Parent Document: 작은 청크 검색, 큰 청크 반환',
         'Multi-Query: 여러 관점의 쿼리로 다양한 결과',
+        '🤖 Agent: ReAct 패턴으로 도구(계산기, 웹검색) 활용',
+        '🔀 쿼리 라우팅: 질문 분류 → 최적 처리 경로',
       ],
       practiceGoal: '고급 RAG 패턴을 이해하고 적용할 수 있다',
     }),
