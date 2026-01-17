@@ -1089,11 +1089,216 @@ def detect_changes(self, directory):
 \`\`\`
 
 **기억할 점**: 신규/삭제/수정 세 가지 상태 모두 감지해야 완전한 증분 수집.
+
+---
+
+## 🖼️ 멀티모달 RAG: 이미지/표 처리
+
+### 멀티모달의 필요성
+
+실제 문서는 텍스트만 있지 않습니다:
+
+\`\`\`
+📁 실제 문서 구성
+├── 텍스트 설명
+├── 📊 세율표 (이미지)
+├── 📈 계산 예시 (표)
+├── 📋 신청서 양식 (이미지)
+└── 📉 공제 한도표 (표)
+\`\`\`
+
+**문제**:
+- 기존 RAG = 텍스트만 처리
+- 표/이미지 정보 손실
+- "세율표 보여줘" → 답변 불가
+
+---
+
+### 멀티모달 RAG 구조
+
+\`\`\`
+[PDF 문서]
+    ↓
+┌────────────────────────────────────────┐
+│ 텍스트 추출    │ → 청킹 → 벡터DB       │
+│ 표 추출        │ → 마크다운 변환 → 벡터DB│
+│ 이미지 추출    │ → Vision LLM 설명 → 벡터DB│
+└────────────────────────────────────────┘
+    ↓
+[통합 검색] → [LLM 답변]
+\`\`\`
+
+---
+
+### Vision LLM으로 이미지 설명 생성
+
+\`\`\`python
+from langchain_ollama import OllamaLLM
+import base64
+
+def describe_image(image_path: str) -> str:
+    """이미지를 설명하는 텍스트 생성 (Vision LLM 활용)"""
+
+    # 이미지를 base64로 인코딩
+    with open(image_path, "rb") as f:
+        image_data = base64.b64encode(f.read()).decode()
+
+    # Vision 모델로 설명 생성
+    llm = OllamaLLM(model="llava:7b")  # Vision 모델
+
+    prompt = f"""이 이미지를 자세히 설명해주세요.
+    표가 있다면 내용을 텍스트로 변환해주세요.
+    숫자와 데이터가 있다면 정확히 기록해주세요.
+
+    [이미지 데이터]
+    data:image/png;base64,{image_data}
+    """
+
+    return llm.invoke(prompt)
+
+# 사용 예시
+description = describe_image("세율표.png")
+print(description)
+# 출력: "이 이미지는 2024년 소득세율표입니다.
+#        - 1,200만원 이하: 6%
+#        - 1,200만원~4,600만원: 15%
+#        - ..."
+\`\`\`
+
+---
+
+### 표 추출 및 마크다운 변환
+
+\`\`\`python
+import pdfplumber
+
+def extract_tables(pdf_path: str) -> list[str]:
+    """PDF에서 표 추출 → 마크다운 변환"""
+    tables_md = []
+
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            for table in page.extract_tables():
+                # 표 → 마크다운 변환
+                md_table = convert_to_markdown(table)
+                tables_md.append(md_table)
+
+    return tables_md
+
+def convert_to_markdown(table: list) -> str:
+    """2D 리스트 → 마크다운 테이블"""
+    if not table:
+        return ""
+
+    header = table[0]
+    rows = table[1:]
+
+    # 헤더
+    md = "| " + " | ".join(str(h) for h in header) + " |\\n"
+    md += "| " + " | ".join("---" for _ in header) + " |\\n"
+
+    # 데이터 행
+    for row in rows:
+        md += "| " + " | ".join(str(c) for c in row) + " |\\n"
+
+    return md
+\`\`\`
+
+---
+
+### 통합 멀티모달 Document 생성
+
+\`\`\`python
+from langchain.schema import Document
+
+def create_multimodal_documents(pdf_path: str) -> list[Document]:
+    """PDF에서 텍스트 + 표 + 이미지 모두 추출"""
+
+    documents = []
+
+    # 1. 텍스트 추출
+    text = extract_text(pdf_path)
+    documents.append(Document(
+        page_content=text,
+        metadata={"type": "text", "source": pdf_path}
+    ))
+
+    # 2. 표 추출 (마크다운)
+    tables = extract_tables(pdf_path)
+    for i, table_md in enumerate(tables):
+        documents.append(Document(
+            page_content=f"[표 {i+1}]\\n{table_md}",
+            metadata={"type": "table", "source": pdf_path}
+        ))
+
+    # 3. 이미지 추출 및 설명 생성
+    images = extract_images(pdf_path)
+    for img in images:
+        description = describe_image(img['path'])
+        documents.append(Document(
+            page_content=f"[이미지 설명]\\n{description}",
+            metadata={"type": "image", "page": img['page'], "source": pdf_path}
+        ))
+
+    return documents
+\`\`\`
+
+---
+
+### 멀티모달 검색 (타입별 가중치)
+
+\`\`\`python
+def multimodal_search(query: str, retriever, k: int = 5) -> list[Document]:
+    """멀티모달 검색 with 타입 가중치"""
+
+    # 기본 검색
+    docs = retriever.invoke(query)
+
+    # 쿼리 분석하여 타입별 가중치 적용
+    if "표" in query or "테이블" in query:
+        # 표 문서 우선
+        docs = sorted(docs, key=lambda d:
+            1 if d.metadata.get('type') == 'table' else 0,
+            reverse=True
+        )
+
+    elif "이미지" in query or "그림" in query or "사진" in query:
+        # 이미지 설명 문서 우선
+        docs = sorted(docs, key=lambda d:
+            1 if d.metadata.get('type') == 'image' else 0,
+            reverse=True
+        )
+
+    return docs[:k]
+
+# 사용 예시
+results = multimodal_search("세율표 보여줘", retriever)
+for doc in results:
+    print(f"[{doc.metadata['type']}] {doc.page_content[:100]}...")
+\`\`\`
+
+---
+
+### 💡 멀티모달 RAG 핵심 정리
+
+| 콘텐츠 타입 | 처리 방법 | 저장 형태 |
+|------------|----------|----------|
+| **텍스트** | 직접 추출 | 원본 텍스트 |
+| **표** | pdfplumber → 마크다운 | 마크다운 테이블 |
+| **이미지** | Vision LLM (llava) | 텍스트 설명 |
+
+**Vision 모델 옵션**:
+- **llava:7b** (Ollama): 무료, 로컬 실행
+- **GPT-4V**: 최고 성능, API 비용
+- **Claude 3**: 우수한 이미지 이해력
       `,
       keyPoints: [
         '📄 PDF, Word, HTML, Code 등 다양한 포맷 처리',
         '✂️ 문서 타입별 최적화된 청킹 전략',
         '🔄 증분 수집으로 효율적 업데이트',
+        '🖼️ Vision LLM으로 이미지를 텍스트 설명으로 변환',
+        '📊 표를 마크다운으로 변환하여 검색 가능하게',
+        '🔀 쿼리 분석으로 콘텐츠 타입별 가중치 적용',
       ],
       practiceGoal: '실무에서 사용되는 다양한 문서 포맷을 처리하는 파이프라인을 구축한다',
     }),
