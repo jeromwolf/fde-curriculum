@@ -9,6 +9,7 @@ import { day5RagProject } from './day5-rag-project'
 import { day6SllmRag } from './day6-sllm-rag'
 import { day7LanggraphAgent } from './day7-langgraph-agent'
 import { day8DomainAgents } from './day8-domain-agents'
+import { day9Finetuning } from './day9-finetuning'
 
 // Week 5 완성: RAG 기초
 export const week5RagBasics: Week = {
@@ -20,7 +21,7 @@ export const week5RagBasics: Week = {
   title: WEEK5_META.title,
   topics: WEEK5_META.topics,
   practice: WEEK5_META.practice,
-  totalDuration: 2220, // 37시간 = 2220분 (기존 26시간 + LangGraph 5시간 + Domain Agent 6시간)
+  totalDuration: 2520, // 42시간 = 2520분 (기존 37시간 + Fine-tuning 5시간)
   days: [
     day1RagArchitecture,      // Day 1: RAG 아키텍처 개요
     day2EmbeddingsVectordb,   // Day 2: 임베딩 & 벡터 DB
@@ -28,8 +29,9 @@ export const week5RagBasics: Week = {
     day4LangchainRag,         // Day 4: LangChain RAG 파이프라인
     day5RagProject,           // Day 5: 프로덕션 RAG 시스템
     day6SllmRag,              // Day 6: 로컬 LLM과 RAG 통합 (sLLM)
-    day7LanggraphAgent,       // Day 7: LangGraph Agent 심화 (NEW)
-    day8DomainAgents          // Day 8: 도메인 특화 Agent & 실전 도구 (NEW)
+    day7LanggraphAgent,       // Day 7: LangGraph Agent 심화
+    day8DomainAgents,         // Day 8: 도메인 특화 Agent & 실전 도구
+    day9Finetuning            // Day 9: LLM Fine-tuning (QLoRA 실습) (NEW)
   ]
 }
 
@@ -45,7 +47,8 @@ export {
   day5RagProject,
   day6SllmRag,
   day7LanggraphAgent,
-  day8DomainAgents
+  day8DomainAgents,
+  day9Finetuning
 }
 
 // 타입 재내보내기
@@ -62,8 +65,8 @@ export {
 // Week 5 통계
 // ============================================
 //
-// 총 Task 수: 37개 (기존 30개 + Day 6 7개)
-// 총 학습 시간: ~26시간
+// 총 Task 수: 45개 (기존 37개 + Day 9 8개)
+// 총 학습 시간: ~42시간
 //
 // Day 1: RAG 아키텍처 개요
 //   - Tasks: 6개
@@ -94,6 +97,21 @@ export {
 //   - Tasks: 6개 + Challenge
 //   - 시간: 300분 (5시간)
 //   - 주요: Ollama, 시스템 요구사항, sLLM RAG 통합
+//
+// Day 7: LangGraph Agent 심화
+//   - Tasks: 6개 + Challenge
+//   - 시간: 300분 (5시간)
+//   - 주요: 상태 머신, 복잡한 워크플로우, 도구 활용
+//
+// Day 8: 도메인 특화 Agent
+//   - Tasks: 6개 + Challenge
+//   - 시간: 360분 (6시간)
+//   - 주요: 도메인별 Agent 설계, 실전 도구
+//
+// Day 9: LLM Fine-tuning (QLoRA) ⭐ NEW
+//   - Tasks: 8개 (6개 + Quiz + Challenge)
+//   - 시간: 300분 (5시간)
+//   - 주요: QLoRA 실습, 데이터 준비, HuggingFace 배포
 //
 // ============================================
 // 학습 목표 달성 체크리스트
@@ -130,5 +148,12 @@ export {
 //    - Ollama 설치 및 사용
 //    - sLLM + RAG 통합
 //    - 프로덕션 배포 (Docker, vLLM)
+//
+// ✅ LLM Fine-tuning (NEW)
+//    - RAG vs Fine-tuning 선택 기준
+//    - Instruction Format 데이터 준비
+//    - QLoRA (4bit 양자화 + LoRA) 실습
+//    - Fine-tuned + RAG 통합
+//    - HuggingFace Hub 배포
 //
 // ============================================
