@@ -1246,6 +1246,71 @@ final_results = reranker.rerank("RAG 최적화", initial_results, top_n=5)
 
 ---
 
+## 4.5 경량 Reranker: flashrank (로컬 LLM용 추천)
+
+> 💡 **왜 flashrank인가?**
+> - sentence-transformers의 CrossEncoder는 1GB+ 모델
+> - Cohere는 API 비용 발생
+> - flashrank는 **50MB**, **무료**, **빠름**
+
+\`\`\`python
+# pip install flashrank
+from flashrank import Ranker, RerankRequest
+
+class FlashReranker:
+    """경량 Reranker (로컬 LLM 환경에 최적)"""
+
+    def __init__(self, model_name: str = "ms-marco-MiniLM-L-12-v2"):
+        # 모델 자동 다운로드 (~50MB)
+        self.ranker = Ranker(model_name=model_name)
+
+    def rerank(
+        self,
+        query: str,
+        documents: list,
+        top_k: int = 5
+    ) -> list:
+        """문서 재정렬"""
+
+        # 문서를 passage 형태로 변환
+        passages = [
+            {"id": i, "text": doc.page_content[:1000]}  # 최대 1000자
+            for i, doc in enumerate(documents)
+        ]
+
+        # Reranking 요청
+        request = RerankRequest(query=query, passages=passages)
+        results = self.ranker.rerank(request)
+
+        # 상위 k개 반환 (원본 Document 객체)
+        return [documents[r["id"]] for r in results[:top_k]]
+
+# 사용 예시
+reranker = FlashReranker()
+
+# 1차 검색 (Hybrid로 20개)
+initial_results = hybrid_retriever.invoke("자녀세액공제 조건")
+
+# 2차 Re-ranking (상위 5개)
+final_results = reranker.rerank("자녀세액공제 조건", initial_results, top_k=5)
+
+# 결과: 정확도 향상!
+# Before: 정답이 4번째에 있었음
+# After: 정답이 1번째로 올라옴
+\`\`\`
+
+### Reranker 비교표
+
+| Reranker | 크기 | 비용 | 속도 | 한국어 |
+|----------|------|------|------|--------|
+| **flashrank** | 50MB | 무료 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| BGE-reranker | 1.1GB | 무료 | ⭐⭐⭐ | ⭐⭐⭐⭐ |
+| Cohere | API | 유료 | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+
+> 💡 **실무 추천**: 로컬 LLM 환경이면 **flashrank**부터 시작. 정확도 부족하면 BGE-reranker로 업그레이드.
+
+---
+
 ## 5. MMR 검색
 
 \`\`\`python
@@ -1745,11 +1810,100 @@ class RAGEvaluator:
 
         return results
 \`\`\`
+
+---
+
+## 🔄 PDCA 기반 지속적 품질 개선
+
+### 테스트 질문 세트 설계
+
+\`\`\`python
+# 실무용 테스트 질문 세트 (연말정산 예시)
+TEST_QUESTIONS = [
+    {
+        "id": 1,
+        "question": "자녀세액공제 금액이 얼마인가요?",
+        "expected_keywords": ["자녀", "세액공제", "25만원", "55만원"],
+        "category": "세액공제"
+    },
+    {
+        "id": 2,
+        "question": "신용카드 소득공제 한도는?",
+        "expected_keywords": ["신용카드", "소득공제", "300만원"],
+        "category": "소득공제"
+    },
+    {
+        "id": 3,
+        "question": "의료비 공제 최소 금액은?",
+        "expected_keywords": ["의료비", "총급여", "3%"],
+        "category": "소득공제"
+    }
+]
+\`\`\`
+
+### 키워드 기반 검색 품질 평가 (RAGAS보다 간단)
+
+\`\`\`python
+def evaluate_retrieval_simple(question: str, docs: list, expected_keywords: list) -> dict:
+    """키워드 기반 검색 품질 평가 (실무용 간단 버전)"""
+
+    # 검색된 문서 텍스트 합치기
+    combined_text = " ".join([doc.page_content for doc in docs])
+
+    # 키워드 매칭
+    found = [kw for kw in expected_keywords if kw in combined_text]
+    missing = [kw for kw in expected_keywords if kw not in combined_text]
+
+    # 점수 계산
+    score = len(found) / len(expected_keywords) if expected_keywords else 0
+
+    return {
+        "score": score,  # 0.0 ~ 1.0
+        "found": found,
+        "missing": missing
+    }
+
+# 사용 예시
+result = evaluate_retrieval_simple(
+    "자녀세액공제 금액",
+    retrieved_docs,
+    ["자녀", "세액공제", "25만원"]
+)
+print(f"검색 품질: {result['score']*100:.0f}%")
+print(f"발견된 키워드: {result['found']}")
+print(f"누락된 키워드: {result['missing']}")
+\`\`\`
+
+### PDCA 사이클
+
+\`\`\`
+Plan: 테스트 질문 세트 설계 (카테고리별 5-10개)
+  ↓
+Do: RAG 시스템 실행 (모든 질문에 대해)
+  ↓
+Check: 평가 시스템으로 측정 (검색/답변 품질)
+  ↓
+Act: 낮은 점수 영역 개선
+  ↓
+(반복)
+\`\`\`
+
+### 개선 방향 결정 가이드
+
+| 문제 | 원인 분석 | 해결책 |
+|------|----------|--------|
+| 검색 품질 < 50% | 청킹 문제 | 청크 크기 조정, 오버랩 증가 |
+| 답변 정확성 낮음 | 프롬프트 문제 | 프롬프트 4요소 점검 (역할/지시/제약/형식) |
+| 특정 카테고리만 약함 | 문서 부족 | 관련 문서 추가 |
+| 전체적으로 낮음 | 임베딩 모델 | 한국어 특화 모델로 교체 (bge-m3) |
+
+> 💡 **실무 팁**: 주 1회 평가 실행 → 낮은 점수 질문 5개 분석 → 개선 → 재평가
       `,
       keyPoints: [
         '검색 평가: Precision@K, Recall@K, MRR',
         '생성 평가: Faithfulness, Answer Relevance',
         'RAGAS 프레임워크로 자동화된 평가',
+        '🔄 PDCA 사이클: Plan→Do→Check→Act 반복',
       ],
       practiceGoal: 'RAG 시스템의 평가 지표와 측정 방법을 이해한다',
     }),
